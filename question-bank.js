@@ -1,13 +1,13 @@
 (function () {
   const SECTIONS = [
-    "Verbal Reasoning",
-    "Quantitative (Mathematical) Reasoning",
-    "Nonverbal Reasoning",
-    "Spatial / Figural Reasoning",
-    "Pattern Recognition / Matrix Reasoning",
-    "Analogical Reasoning",
-    "Classification and Categorization",
-    "Logical Reasoning",
+    "Verbal",
+    "Math",
+    "Nonverbal",
+    "Spatial",
+    "Patterns",
+    "Analogies",
+    "Categories",
+    "Logic",
   ];
 
   const QUESTIONS_PER_SECTION = 100;

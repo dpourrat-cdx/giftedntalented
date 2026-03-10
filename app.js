@@ -7,8 +7,7 @@ const {
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
-  sectionPicker: document.getElementById("sectionPicker"),
-  sectionPickerNote: document.getElementById("sectionPickerNote"),
+  sectionStats: document.getElementById("sectionStats"),
   nameEntry: document.getElementById("nameEntry"),
   childNameInput: document.getElementById("childNameInput"),
   nameHint: document.getElementById("nameHint"),
@@ -40,6 +39,7 @@ let currentIndex = 0;
 let selectedAnswers = [];
 let validatedAnswers = [];
 let timerId = null;
+let startDelayId = null;
 let isSubmitted = false;
 let hasStarted = false;
 let playerName = "";
@@ -97,6 +97,13 @@ function clearTimer() {
   }
 }
 
+function clearStartDelay() {
+  if (startDelayId) {
+    window.clearTimeout(startDelayId);
+    startDelayId = null;
+  }
+}
+
 function startTimer() {
   clearTimer();
   timerId = window.setInterval(() => {
@@ -151,51 +158,36 @@ function nextUnansweredIndexAfterCurrent() {
 }
 
 function goToSection(section) {
-  if (!playerName) {
+  if (!hasStarted) {
     return;
   }
 
   currentIndex = firstUnansweredIndexForSection(section);
-  if (!hasStarted) {
-    hasStarted = true;
-    startTimer();
-  }
   renderQuestion();
 }
 
-function buildSectionButton(section, isActive, buttonLabel) {
-  const questionsInSection = sectionQuestions(section);
-  const sectionAnswered = questionsInSection.filter(
-    (question) => validatedAnswers[question.id - 1] !== null,
-  ).length;
-  const targetIndex = firstUnansweredIndexForSection(section) + 1;
+function buildSectionButton(section, isActive) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
-  button.disabled = !playerName;
+  button.disabled = !hasStarted;
 
   if (isActive) {
     button.classList.add("is-active");
   }
 
-  button.innerHTML = `
-    <strong>${section}</strong>
-    <span>${sectionAnswered} / ${questionsInSection.length} answered</span>
-    <span>${buttonLabel} question ${targetIndex}</span>
-  `;
+  button.innerHTML = `<strong>${section}</strong>`;
   button.addEventListener("click", () => goToSection(section));
   return button;
 }
 
 function renderSectionStats() {
-  dom.sectionPicker.innerHTML = "";
-
+  dom.sectionStats.innerHTML = "";
   const activeSection = hasStarted ? questionAt(currentIndex).section : "";
-  const buttonLabel = hasStarted ? "Go to" : "Start at";
 
   for (const section of sections) {
     const isActive = activeSection === section;
-    dom.sectionPicker.appendChild(buildSectionButton(section, isActive, buttonLabel));
+    dom.sectionStats.appendChild(buildSectionButton(section, isActive));
   }
 }
 
@@ -236,21 +228,19 @@ function renderQuestion() {
     dom.sectionBadge.textContent = playerName ? `Ready, ${playerName}` : "Start Here";
     dom.questionCounter.textContent = `${totalQuestions()} total questions`;
     dom.questionPrompt.textContent = playerName
-      ? `Hi ${playerName}! Pick a section to begin this 64-question practice test.`
-      : "Type your name, then choose any section to begin.";
+      ? `Hi ${playerName}! Your test will begin with the first Verbal question.`
+      : "Type your name to begin the test.";
     dom.questionStimulus.textContent = "";
     dom.questionStimulus.classList.add("is-hidden");
     dom.optionsList.innerHTML = "";
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
-    dom.sectionPickerNote.textContent =
-      "Each test includes 8 random questions from each of the 8 sections.";
     dom.nameHint.textContent = playerName
-      ? "Great. Now choose a section to begin."
+      ? "Press Enter or click outside the box to begin."
       : "Let's start with your name.";
     dom.nextHint.textContent = playerName
-      ? "Your 32-minute timer starts when you choose a section."
-      : "Enter your name to unlock the section buttons.";
+      ? "The test will start with the first Verbal question."
+      : "Type your name to begin the test.";
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
@@ -261,8 +251,6 @@ function renderQuestion() {
   dom.nameEntry.classList.add("is-hidden");
   dom.playerNote.textContent = `Playing as ${playerName}.`;
   dom.playerNote.classList.remove("is-hidden");
-  dom.sectionPickerNote.textContent =
-    "This test has 8 questions in each section. Switch sections anytime without losing progress.";
 
   const question = questionAt(currentIndex);
   const selectedAnswer = selectedAnswers[currentIndex];
@@ -448,8 +436,33 @@ function renderResults() {
   });
 }
 
+function startTestFromBeginning() {
+  if (hasStarted || !playerName) {
+    return;
+  }
+
+  clearStartDelay();
+  currentIndex = 0;
+  hasStarted = true;
+  startTimer();
+  renderQuestion();
+}
+
+function scheduleStartFromName() {
+  clearStartDelay();
+
+  if (!playerName || hasStarted) {
+    return;
+  }
+
+  startDelayId = window.setTimeout(() => {
+    startTestFromBeginning();
+  }, 700);
+}
+
 function restartTest() {
   clearTimer();
+  clearStartDelay();
   createNewSession();
   playerName = "";
   dom.childNameInput.value = "";
@@ -508,6 +521,17 @@ dom.retryButton.addEventListener("click", restartTest);
 dom.childNameInput.addEventListener("input", () => {
   playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
   renderQuestion();
+  scheduleStartFromName();
+});
+dom.childNameInput.addEventListener("change", startTestFromBeginning);
+dom.childNameInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+
+  event.preventDefault();
+  dom.childNameInput.blur();
+  startTestFromBeginning();
 });
 dom.backToQuestionsButton.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });

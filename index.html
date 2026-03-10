@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260310-4" />
+    <link rel="stylesheet" href="./styles.css?v=20260310-5" />
   </head>
   <body>
     <main class="app-shell">
@@ -64,6 +64,11 @@
               mistakes after the test instead of during it.
             </p>
           </div>
+
+          <div class="dashboard-card">
+            <p class="card-kicker">Sections</p>
+            <div id="sectionStats" class="section-stats"></div>
+          </div>
         </aside>
 
         <section id="questionPanel" class="question-panel">
@@ -82,14 +87,9 @@
               <p id="nameHint" class="name-hint">Let's start with your name.</p>
             </div>
             <p id="playerNote" class="name-hint is-hidden"></p>
-            <p id="sectionPickerNote" class="dashboard-note">
-              Pick any section to begin. You can switch sections later without
-              losing progress.
-            </p>
-            <div id="sectionPicker" class="section-picker"></div>
           </div>
           <div class="question-meta">
-            <span id="sectionBadge" class="section-badge">Verbal Reasoning</span>
+            <span id="sectionBadge" class="section-badge">Verbal</span>
             <span id="questionCounter" class="question-counter">Question 1 of 64</span>
           </div>
           <h2 id="questionPrompt" class="question-prompt"></h2>
@@ -134,7 +134,7 @@
       </section>
     </main>
 
-    <script src="./question-bank.js?v=20260310-4"></script>
-    <script src="./app.js?v=20260310-4"></script>
+    <script src="./question-bank.js?v=20260310-5"></script>
+    <script src="./app.js?v=20260310-5"></script>
   </body>
 </html>
