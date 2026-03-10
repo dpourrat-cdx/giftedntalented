@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260310-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260310-4" />
   </head>
   <body>
     <main class="app-shell">
@@ -25,9 +25,9 @@
           styles.
         </p>
         <div class="hero-metrics">
-          <span>100 Questions</span>
-          <span>Phone Friendly</span>
-          <span>2nd Grade Level</span>
+          <span>64 Questions</span>
+          <span>8 Sections</span>
+          <span>32 Minutes</span>
         </div>
         <div class="hero-actions">
           <button id="restartButton" class="primary-button" type="button">
@@ -40,21 +40,21 @@
         <aside class="dashboard">
           <div class="dashboard-card">
             <p class="card-kicker">Progress</p>
-            <p id="answeredCount" class="big-progress">0 / 100</p>
+            <p id="answeredCount" class="big-progress">0 / 64</p>
             <div class="progress-track" aria-hidden="true">
               <div id="progressFill" class="progress-fill"></div>
             </div>
             <div class="status-strip">
               <div class="mini-stat">
                 <span>Timer</span>
-                <strong id="timerDisplay">50:00</strong>
+                <strong id="timerDisplay">32:00</strong>
               </div>
               <div class="mini-stat">
                 <span>Live Score</span>
-                <strong id="scoreDisplay">0/100 (0%)</strong>
+                <strong id="scoreDisplay">0/64 (0%)</strong>
               </div>
             </div>
-            <p class="dashboard-note">Suggested practice time: 50 minutes.</p>
+            <p class="dashboard-note">Suggested practice time: 32 minutes.</p>
           </div>
 
           <div class="dashboard-card">
@@ -90,7 +90,7 @@
           </div>
           <div class="question-meta">
             <span id="sectionBadge" class="section-badge">Verbal Reasoning</span>
-            <span id="questionCounter" class="question-counter">Question 1 of 100</span>
+            <span id="questionCounter" class="question-counter">Question 1 of 64</span>
           </div>
           <h2 id="questionPrompt" class="question-prompt"></h2>
           <pre id="questionStimulus" class="question-stimulus is-hidden"></pre>
@@ -108,7 +108,7 @@
       <section id="resultsSection" class="results-section is-hidden">
         <div class="results-header">
           <p class="eyebrow">Results</p>
-          <h2 id="scoreHeadline">You scored 0 out of 100</h2>
+          <h2 id="scoreHeadline">You scored 0/64 (0%)</h2>
           <p id="scoreSummary" class="hero-copy"></p>
           <p id="timeSummary" class="dashboard-note"></p>
         </div>
@@ -134,6 +134,7 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260310-3"></script>
+    <script src="./question-bank.js?v=20260310-4"></script>
+    <script src="./app.js?v=20260310-4"></script>
   </body>
 </html>
