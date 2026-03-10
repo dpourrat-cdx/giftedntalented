@@ -108,6 +108,25 @@
     return rows.join("\n");
   }
 
+  function repeatSymbol(symbol, count) {
+    return Array(count).fill(symbol).join(" ");
+  }
+
+  function formatMatrix(topLeft, topRight, bottomLeft, bottomRight = "?") {
+    const values = [topLeft, topRight, bottomLeft, bottomRight].map(String);
+    const width = values.reduce((max, value) => Math.max(max, value.length), 1);
+    const pad = (value) => String(value).padEnd(width, " ");
+    const divider = "─".repeat(width + 2);
+
+    return formatRows([
+      `┌${divider}┬${divider}┐`,
+      `│ ${pad(topLeft)} │ ${pad(topRight)} │`,
+      `├${divider}┼${divider}┤`,
+      `│ ${pad(bottomLeft)} │ ${pad(bottomRight)} │`,
+      `└${divider}┴${divider}┘`,
+    ]);
+  }
+
   function rotateDirection(direction, turn) {
     const directions = ["north", "east", "south", "west"];
     const index = directions.indexOf(direction);
@@ -815,22 +834,22 @@
   function buildMatrixQuestions() {
     const section = SECTIONS[4];
     const questions = [];
-    const shapes = ["circle", "square", "triangle", "star", "diamond"];
+    const shapes = ["○", "□", "△", "☆", "◇"];
     const fillPairs = [
-      ["outline circle", "filled circle"],
-      ["outline square", "filled square"],
-      ["outline triangle", "filled triangle"],
-      ["outline star", "filled star"],
-      ["outline diamond", "filled diamond"],
+      ["○", "●"],
+      ["□", "■"],
+      ["△", "▲"],
+      ["☆", "★"],
+      ["◇", "◆"],
     ];
     const sizePairs = [
-      ["small circle", "big circle"],
-      ["small square", "big square"],
-      ["small triangle", "big triangle"],
-      ["small star", "big star"],
-      ["small diamond", "big diamond"],
+      ["○", "○ ○"],
+      ["□", "□ □"],
+      ["△", "△ △"],
+      ["☆", "☆ ☆"],
+      ["◇", "◇ ◇"],
     ];
-    const directionPairs = ["up", "right", "down", "left"];
+    const directionPairs = ["↑", "→", "↓", "←"];
 
     for (let index = 0; index < 20; index += 1) {
       const top = sizePairs[index % sizePairs.length];
@@ -839,10 +858,7 @@
         bottomIndex = (bottomIndex + 1) % sizePairs.length;
       }
       const bottom = sizePairs[bottomIndex];
-      const stimulus = formatRows([
-        `Top left: ${top[0]} | Top right: ${top[1]}`,
-        `Bottom left: ${bottom[0]} | Bottom right: ?`,
-      ]);
+      const stimulus = formatMatrix(top[0], top[1], bottom[0], "?");
 
       questions.push(
         makeChoiceQuestion(
@@ -850,7 +866,7 @@
           "Which choice completes the matrix?",
           bottom[1],
           [bottom[0], top[1], top[0]],
-          `Across each row, the size changes from small to big, so ${bottom[0]} becomes ${bottom[1]}.`,
+          `Across each row, one symbol becomes two matching symbols, so ${bottom[0]} becomes ${bottom[1]}.`,
           stimulus,
           7000 + index,
         ),
@@ -864,10 +880,7 @@
         bottomIndex = (bottomIndex + 1) % fillPairs.length;
       }
       const bottom = fillPairs[bottomIndex];
-      const stimulus = formatRows([
-        `Top left: ${top[0]} | Top right: ${top[1]}`,
-        `Bottom left: ${bottom[0]} | Bottom right: ?`,
-      ]);
+      const stimulus = formatMatrix(top[0], top[1], bottom[0], "?");
 
       questions.push(
         makeChoiceQuestion(
@@ -887,11 +900,11 @@
       const secondCount = firstCount + 1;
       const topShape = shapes[index % shapes.length];
       const bottomShape = shapes[(index + 1) % shapes.length];
-      const stimulus = formatRows([
-        `Top left: ${firstCount} ${topShape}${firstCount > 1 ? "s" : ""} | Top right: ${secondCount} ${topShape}${secondCount > 1 ? "s" : ""}`,
-        `Bottom left: ${firstCount} ${bottomShape}${firstCount > 1 ? "s" : ""} | Bottom right: ?`,
-      ]);
-      const correct = `${secondCount} ${bottomShape}${secondCount > 1 ? "s" : ""}`;
+      const topLeft = repeatSymbol(topShape, firstCount);
+      const topRight = repeatSymbol(topShape, secondCount);
+      const bottomLeft = repeatSymbol(bottomShape, firstCount);
+      const correct = repeatSymbol(bottomShape, secondCount);
+      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
 
       questions.push(
         makeChoiceQuestion(
@@ -899,11 +912,11 @@
           "Which choice completes the matrix?",
           correct,
           [
-            `${firstCount} ${bottomShape}${firstCount > 1 ? "s" : ""}`,
-            `${secondCount + 1} ${bottomShape}${secondCount + 1 > 1 ? "s" : ""}`,
-            `${secondCount} ${topShape}${secondCount > 1 ? "s" : ""}`,
+            repeatSymbol(bottomShape, firstCount),
+            repeatSymbol(bottomShape, secondCount + 1),
+            repeatSymbol(topShape, secondCount),
           ],
-          `Across each row, the number grows by one.`,
+          `Across each row, one more matching symbol is added.`,
           stimulus,
           7200 + index,
         ),
@@ -915,17 +928,14 @@
       const topRight = directionPairs[(index + 1) % directionPairs.length];
       const bottomLeft = directionPairs[(index + 2) % directionPairs.length];
       const bottomRight = directionPairs[(index + 3) % directionPairs.length];
-      const stimulus = formatRows([
-        `Top left: ${topLeft} arrow | Top right: ${topRight} arrow`,
-        `Bottom left: ${bottomLeft} arrow | Bottom right: ?`,
-      ]);
+      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
 
       questions.push(
         makeChoiceQuestion(
           section,
           "Which choice completes the matrix?",
-          `${bottomRight} arrow`,
-          directionPairs.filter((direction) => direction !== bottomRight).map((direction) => `${direction} arrow`),
+          bottomRight,
+          directionPairs.filter((direction) => direction !== bottomRight),
           `Each item turns one step to the right across the row.`,
           stimulus,
           7300 + index,
@@ -934,15 +944,12 @@
     }
 
     for (let index = 0; index < 20; index += 1) {
-      const order = ["circle", "square", "triangle", "star", "diamond"];
+      const order = ["○", "□", "△", "☆", "◇"];
       const topLeft = order[index % order.length];
       const topRight = order[(index + 1) % order.length];
       const bottomLeft = order[(index + 2) % order.length];
       const bottomRight = order[(index + 3) % order.length];
-      const stimulus = formatRows([
-        `Top left: ${topLeft} | Top right: ${topRight}`,
-        `Bottom left: ${bottomLeft} | Bottom right: ?`,
-      ]);
+      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
 
       questions.push(
         makeChoiceQuestion(
@@ -950,7 +957,7 @@
           "Which choice completes the matrix?",
           bottomRight,
           order.filter((shape) => shape !== bottomRight).slice(0, 3),
-          `The shapes move forward one step in order, so ${bottomLeft} is followed by ${bottomRight}.`,
+          `The shapes move forward one step in order, so the next symbol is ${bottomRight}.`,
           stimulus,
           7400 + index,
         ),
