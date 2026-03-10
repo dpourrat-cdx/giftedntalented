@@ -108,25 +108,6 @@
     return rows.join("\n");
   }
 
-  function repeatSymbol(symbol, count) {
-    return Array(count).fill(symbol).join(" ");
-  }
-
-  function formatMatrix(topLeft, topRight, bottomLeft, bottomRight = "?") {
-    const values = [topLeft, topRight, bottomLeft, bottomRight].map(String);
-    const width = values.reduce((max, value) => Math.max(max, value.length), 1);
-    const pad = (value) => String(value).padEnd(width, " ");
-    const divider = "─".repeat(width + 2);
-
-    return formatRows([
-      `┌${divider}┬${divider}┐`,
-      `│ ${pad(topLeft)} │ ${pad(topRight)} │`,
-      `├${divider}┼${divider}┤`,
-      `│ ${pad(bottomLeft)} │ ${pad(bottomRight)} │`,
-      `└${divider}┴${divider}┘`,
-    ]);
-  }
-
   function rotateDirection(direction, turn) {
     const directions = ["north", "east", "south", "west"];
     const index = directions.indexOf(direction);
@@ -831,138 +812,218 @@
     return questions;
   }
 
-  function buildMatrixQuestions() {
+  function buildPatternQuestions() {
     const section = SECTIONS[4];
     const questions = [];
-    const shapes = ["○", "□", "△", "☆", "◇"];
-    const fillPairs = [
-      ["○", "●"],
-      ["□", "■"],
-      ["△", "▲"],
-      ["☆", "★"],
-      ["◇", "◆"],
-    ];
-    const sizePairs = [
-      ["○", "○ ○"],
-      ["□", "□ □"],
-      ["△", "△ △"],
-      ["☆", "☆ ☆"],
-      ["◇", "◇ ◇"],
-    ];
-    const directionPairs = ["↑", "→", "↓", "←"];
+    const symbols = ["●", "■", "▲", "★", "◆", "○", "□", "△", "☆", "◇"];
 
-    for (let index = 0; index < 20; index += 1) {
-      const top = sizePairs[index % sizePairs.length];
-      let bottomIndex = (index + 1 + Math.floor(index / 5)) % sizePairs.length;
-      if (bottomIndex === index % sizePairs.length) {
-        bottomIndex = (bottomIndex + 1) % sizePairs.length;
-      }
-      const bottom = sizePairs[bottomIndex];
-      const stimulus = formatMatrix(top[0], top[1], bottom[0], "?");
+    function symbolDistractors(correct, seed) {
+      return seededShuffle(symbols.filter((symbol) => symbol !== correct), seed).slice(0, 3);
+    }
+
+    for (let index = 0; index < 10; index += 1) {
+      const first = symbols[index % symbols.length];
+      const second = symbols[(index + 1) % symbols.length];
+      const stimulus = `${first}  ${second}  ${first}  ${second}  ${first}  ?`;
 
       questions.push(
         makeChoiceQuestion(
           section,
-          "Which choice completes the matrix?",
-          bottom[1],
-          [bottom[0], top[1], top[0]],
-          `Across each row, one symbol becomes two matching symbols, so ${bottom[0]} becomes ${bottom[1]}.`,
+          "What comes next in the pattern?",
+          first,
+          symbolDistractors(first, 7000 + index),
+          `${first} and ${second} alternate, so the next symbol is ${first}.`,
           stimulus,
           7000 + index,
         ),
       );
     }
 
-    for (let index = 0; index < 20; index += 1) {
-      const top = fillPairs[index % fillPairs.length];
-      let bottomIndex = (index + 2 + Math.floor(index / 4)) % fillPairs.length;
-      if (bottomIndex === index % fillPairs.length) {
-        bottomIndex = (bottomIndex + 1) % fillPairs.length;
-      }
-      const bottom = fillPairs[bottomIndex];
-      const stimulus = formatMatrix(top[0], top[1], bottom[0], "?");
+    for (let index = 0; index < 10; index += 1) {
+      const first = symbols[index % symbols.length];
+      const second = symbols[(index + 2) % symbols.length];
+      const stimulus = `${first}  ${first}  ${second}  ${first}  ${first}  ?`;
 
       questions.push(
         makeChoiceQuestion(
           section,
-          "Which choice completes the matrix?",
-          bottom[1],
-          [bottom[0], top[0], top[1]],
-          `Across each row, the outline shape changes into a filled shape.`,
+          "What comes next in the pattern?",
+          second,
+          symbolDistractors(second, 7100 + index),
+          `The pattern repeats ${first}, ${first}, ${second}, so the next symbol is ${second}.`,
           stimulus,
           7100 + index,
         ),
       );
     }
 
-    for (let index = 0; index < 20; index += 1) {
-      const firstCount = 1 + (index % 3);
-      const secondCount = firstCount + 1;
-      const topShape = shapes[index % shapes.length];
-      const bottomShape = shapes[(index + 1) % shapes.length];
-      const topLeft = repeatSymbol(topShape, firstCount);
-      const topRight = repeatSymbol(topShape, secondCount);
-      const bottomLeft = repeatSymbol(bottomShape, firstCount);
-      const correct = repeatSymbol(bottomShape, secondCount);
-      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
+    for (let index = 0; index < 10; index += 1) {
+      const first = symbols[index % symbols.length];
+      const second = symbols[(index + 1) % symbols.length];
+      const third = symbols[(index + 2) % symbols.length];
+      const stimulus = `${first}  ${second}  ${third}  ${first}  ${second}  ?`;
 
       questions.push(
         makeChoiceQuestion(
           section,
-          "Which choice completes the matrix?",
-          correct,
-          [
-            repeatSymbol(bottomShape, firstCount),
-            repeatSymbol(bottomShape, secondCount + 1),
-            repeatSymbol(topShape, secondCount),
-          ],
-          `Across each row, one more matching symbol is added.`,
+          "What comes next in the pattern?",
+          third,
+          symbolDistractors(third, 7200 + index),
+          `The three-symbol block repeats, so the next symbol is ${third}.`,
           stimulus,
           7200 + index,
         ),
       );
     }
 
-    for (let index = 0; index < 20; index += 1) {
-      const topLeft = directionPairs[index % directionPairs.length];
-      const topRight = directionPairs[(index + 1) % directionPairs.length];
-      const bottomLeft = directionPairs[(index + 2) % directionPairs.length];
-      const bottomRight = directionPairs[(index + 3) % directionPairs.length];
-      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
+    for (let index = 0; index < 10; index += 1) {
+      const first = symbols[index % symbols.length];
+      const second = symbols[(index + 1) % symbols.length];
+      const third = symbols[(index + 2) % symbols.length];
+      const stimulus = `${first}  ${second}  ${third}  ${second}  ${first}  ${second}  ${third}  ?`;
 
       questions.push(
         makeChoiceQuestion(
           section,
-          "Which choice completes the matrix?",
-          bottomRight,
-          directionPairs.filter((direction) => direction !== bottomRight),
-          `Each item turns one step to the right across the row.`,
+          "What comes next in the pattern?",
+          second,
+          symbolDistractors(second, 7300 + index),
+          `The four-symbol block repeats, so the next symbol is ${second}.`,
           stimulus,
           7300 + index,
         ),
       );
     }
 
-    for (let index = 0; index < 20; index += 1) {
-      const order = ["○", "□", "△", "☆", "◇"];
-      const topLeft = order[index % order.length];
-      const topRight = order[(index + 1) % order.length];
-      const bottomLeft = order[(index + 2) % order.length];
-      const bottomRight = order[(index + 3) % order.length];
-      const stimulus = formatMatrix(topLeft, topRight, bottomLeft, "?");
+    for (let index = 0; index < 10; index += 1) {
+      const first = symbols[index % symbols.length];
+      const second = symbols[(index + 1) % symbols.length];
+      const third = symbols[(index + 2) % symbols.length];
+      const fourth = symbols[(index + 3) % symbols.length];
+      const stimulus = `${first}  ${second}  ${third}  ${fourth}  ${first}  ${second}  ${third}  ?`;
 
       questions.push(
         makeChoiceQuestion(
           section,
-          "Which choice completes the matrix?",
-          bottomRight,
-          order.filter((shape) => shape !== bottomRight).slice(0, 3),
-          `The shapes move forward one step in order, so the next symbol is ${bottomRight}.`,
+          "What comes next in the pattern?",
+          fourth,
+          symbolDistractors(fourth, 7400 + index),
+          `The four-symbol block repeats, so the next symbol is ${fourth}.`,
           stimulus,
           7400 + index,
         ),
       );
     }
+
+    const numberRules = [
+      {
+        seedBase: 7500,
+        build(index) {
+          const first = 2 + index;
+          const second = 5 + index;
+          const third = 8 + index;
+
+          return {
+            correct: third + 2,
+            explanation: "Each output is 2 more than the input.",
+            stimulus: formatRows([
+              `${first} -> ${first + 2}`,
+              `${second} -> ${second + 2}`,
+              `${third} -> ?`,
+            ]),
+          };
+        },
+      },
+      {
+        seedBase: 7600,
+        build(index) {
+          const first = 3 + index;
+          const second = 6 + index;
+          const third = 9 + index;
+
+          return {
+            correct: third + 3,
+            explanation: "Each output is 3 more than the input.",
+            stimulus: formatRows([
+              `${first} -> ${first + 3}`,
+              `${second} -> ${second + 3}`,
+              `${third} -> ?`,
+            ]),
+          };
+        },
+      },
+      {
+        seedBase: 7700,
+        build(index) {
+          const first = 7 + index;
+          const second = 10 + index;
+          const third = 13 + index;
+
+          return {
+            correct: third - 2,
+            explanation: "Each output is 2 less than the input.",
+            stimulus: formatRows([
+              `${first} -> ${first - 2}`,
+              `${second} -> ${second - 2}`,
+              `${third} -> ?`,
+            ]),
+          };
+        },
+      },
+      {
+        seedBase: 7800,
+        build(index) {
+          const first = 2 + index;
+          const second = 4 + index;
+          const third = 6 + index;
+
+          return {
+            correct: third * 2,
+            explanation: "Each output is double the input.",
+            stimulus: formatRows([
+              `${first} -> ${first * 2}`,
+              `${second} -> ${second * 2}`,
+              `${third} -> ?`,
+            ]),
+          };
+        },
+      },
+      {
+        seedBase: 7900,
+        build(index) {
+          const first = 1 + index;
+          const second = 3 + index;
+          const third = 5 + index;
+
+          return {
+            correct: third * 3,
+            explanation: "Each output is triple the input.",
+            stimulus: formatRows([
+              `${first} -> ${first * 3}`,
+              `${second} -> ${second * 3}`,
+              `${third} -> ?`,
+            ]),
+          };
+        },
+      },
+    ];
+
+    numberRules.forEach((rule, ruleIndex) => {
+      for (let index = 0; index < 10; index += 1) {
+        const { correct, explanation, stimulus } = rule.build(index);
+
+        questions.push(
+          makeNumericQuestion(
+            section,
+            "Use the same rule in each row. What number should replace the question mark?",
+            correct,
+            explanation,
+            rule.seedBase + index + ruleIndex * 10,
+            stimulus,
+          ),
+        );
+      }
+    });
 
     return questions;
   }
@@ -1237,7 +1298,7 @@
       [SECTIONS[1]]: buildQuantitativeQuestions(),
       [SECTIONS[2]]: buildNonverbalQuestions(),
       [SECTIONS[3]]: buildSpatialQuestions(),
-      [SECTIONS[4]]: buildMatrixQuestions(),
+      [SECTIONS[4]]: buildPatternQuestions(),
       [SECTIONS[5]]: buildAnalogicalQuestions(),
       [SECTIONS[6]]: buildClassificationQuestions(),
       [SECTIONS[7]]: buildLogicalQuestions(),
