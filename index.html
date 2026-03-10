@@ -6,25 +6,23 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>Gifted Practice 100</title>
+    <title>Gifted & Talented</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260310-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260310-3" />
   </head>
   <body>
     <main class="app-shell">
       <section class="hero-card">
         <p class="eyebrow">Gifted Practice</p>
-        <h1>100 Questions for Verbal, Math, Pattern, and Spatial Training</h1>
+        <h1>Gifted & Talented</h1>
         <p class="hero-copy">
           A practice set for an 8-year-old preparing for common gifted screening
-          styles. It is not an official exam, but it mirrors the usual skill
-          areas: verbal reasoning, quantitative reasoning, and nonverbal
-          patterns.
+          styles.
         </p>
         <div class="hero-metrics">
           <span>100 Questions</span>
@@ -53,15 +51,10 @@
               </div>
               <div class="mini-stat">
                 <span>Live Score</span>
-                <strong id="scoreDisplay">0 correct</strong>
+                <strong id="scoreDisplay">0/100 (0%)</strong>
               </div>
             </div>
             <p class="dashboard-note">Suggested practice time: 50 minutes.</p>
-          </div>
-
-          <div class="dashboard-card">
-            <p class="card-kicker">Sections</p>
-            <div id="sectionStats" class="section-stats"></div>
           </div>
 
           <div class="dashboard-card">
@@ -75,10 +68,23 @@
 
         <section id="questionPanel" class="question-panel">
           <div class="quick-sections">
-            <p class="card-kicker">Choose A Section</p>
+            <p class="card-kicker">Start Test</p>
+            <div id="nameEntry" class="name-entry">
+              <label for="childNameInput" class="name-label">Child Name</label>
+              <input
+                id="childNameInput"
+                class="name-input"
+                type="text"
+                maxlength="40"
+                placeholder="Type your name here"
+                autocomplete="off"
+              />
+              <p id="nameHint" class="name-hint">Let's start with your name.</p>
+            </div>
+            <p id="playerNote" class="name-hint is-hidden"></p>
             <p id="sectionPickerNote" class="dashboard-note">
-              Start anywhere. When you switch sections later, the test opens at the
-              first unanswered question in that section.
+              Pick any section to begin. You can switch sections later without
+              losing progress.
             </p>
             <div id="sectionPicker" class="section-picker"></div>
           </div>
@@ -128,6 +134,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260310-2"></script>
+    <script src="./app.js?v=20260310-3"></script>
   </body>
 </html>

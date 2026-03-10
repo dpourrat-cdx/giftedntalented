@@ -7,9 +7,12 @@ const sections = [
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
-  sectionStats: document.getElementById("sectionStats"),
   sectionPicker: document.getElementById("sectionPicker"),
   sectionPickerNote: document.getElementById("sectionPickerNote"),
+  nameEntry: document.getElementById("nameEntry"),
+  childNameInput: document.getElementById("childNameInput"),
+  nameHint: document.getElementById("nameHint"),
+  playerNote: document.getElementById("playerNote"),
   timerDisplay: document.getElementById("timerDisplay"),
   scoreDisplay: document.getElementById("scoreDisplay"),
   questionPanel: document.getElementById("questionPanel"),
@@ -38,6 +41,7 @@ let validatedAnswers = [];
 let timerId = null;
 let isSubmitted = false;
 let hasStarted = false;
+let playerName = "";
 
 function makeQuestion(section, prompt, options, answer, explanation, stimulus = "") {
   return { section, prompt, options, answer, explanation, stimulus };
@@ -194,6 +198,14 @@ function liveCorrectTotal() {
   return validatedAnswers.filter((answer, index) => answer === questions[index].answer).length;
 }
 
+function scorePercent(correct, total = questions.length) {
+  return Math.round((correct / total) * 100);
+}
+
+function formatScore(correct, total = questions.length) {
+  return `${correct}/${total} (${scorePercent(correct, total)}%)`;
+}
+
 function formatTime(seconds) {
   const safeSeconds = Math.max(0, seconds);
   const minutes = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
@@ -252,6 +264,10 @@ function firstUnansweredIndexForSection(section) {
 }
 
 function goToSection(section) {
+  if (!playerName) {
+    return;
+  }
+
   currentIndex = firstUnansweredIndexForSection(section);
   if (!hasStarted) {
     hasStarted = true;
@@ -269,6 +285,7 @@ function buildSectionButton(section, isActive, buttonLabel) {
   const stat = document.createElement("button");
   stat.type = "button";
   stat.className = "section-button";
+  stat.disabled = !playerName;
 
   if (isActive) {
     stat.classList.add("is-active");
@@ -284,7 +301,6 @@ function buildSectionButton(section, isActive, buttonLabel) {
 }
 
 function renderSectionStats() {
-  dom.sectionStats.innerHTML = "";
   dom.sectionPicker.innerHTML = "";
 
   const activeSection = hasStarted ? questionAt(currentIndex).section : "";
@@ -292,7 +308,6 @@ function renderSectionStats() {
 
   for (const section of sections) {
     const isActive = activeSection === section;
-    dom.sectionStats.appendChild(buildSectionButton(section, isActive, buttonLabel));
     dom.sectionPicker.appendChild(buildSectionButton(section, isActive, buttonLabel));
   }
 }
@@ -301,7 +316,7 @@ function updateProgress() {
   const total = answeredTotal();
   dom.answeredCount.textContent = `${total} / ${questions.length}`;
   dom.progressFill.style.width = `${(total / questions.length) * 100}%`;
-  dom.scoreDisplay.textContent = `${liveCorrectTotal()} correct`;
+  dom.scoreDisplay.textContent = formatScore(liveCorrectTotal());
   renderSectionStats();
 }
 
@@ -329,17 +344,26 @@ function renderQuestion() {
 
   if (!hasStarted) {
     dom.questionPanel.classList.add("is-start-screen");
-    dom.sectionBadge.textContent = "Choose A Section";
+    dom.nameEntry.classList.remove("is-hidden");
+    dom.playerNote.classList.add("is-hidden");
+    dom.sectionBadge.textContent = playerName ? `Ready, ${playerName}` : "Start Here";
     dom.questionCounter.textContent = `${questions.length} total questions`;
-    dom.questionPrompt.textContent = "Tap any section above to begin the practice test.";
+    dom.questionPrompt.textContent = playerName
+      ? `Hi ${playerName}! Pick a section to begin the practice test.`
+      : "Type your name, then pick a section to begin the practice test.";
     dom.questionStimulus.textContent = "";
     dom.questionStimulus.classList.add("is-hidden");
     dom.optionsList.innerHTML = "";
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
     dom.sectionPickerNote.textContent =
-      "Start anywhere. When you switch sections later, the test opens at the first unanswered question in that section.";
-    dom.nextHint.textContent = "Your 50-minute timer starts when you choose a section.";
+      "Pick any section to begin. You can switch sections later without losing progress.";
+    dom.nameHint.textContent = playerName
+      ? "Great. Now choose a section to begin."
+      : "Let's start with your name.";
+    dom.nextHint.textContent = playerName
+      ? "Your 50-minute timer starts when you choose a section."
+      : "Enter your name to unlock the section buttons.";
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
@@ -347,6 +371,9 @@ function renderQuestion() {
   }
 
   dom.questionPanel.classList.remove("is-start-screen");
+  dom.nameEntry.classList.add("is-hidden");
+  dom.playerNote.textContent = `Playing as ${playerName}.`;
+  dom.playerNote.classList.remove("is-hidden");
   dom.sectionPickerNote.textContent =
     "Switch sections anytime. You will return to the first unanswered question in that section.";
 
@@ -483,8 +510,11 @@ function summaryText(score) {
 
 function renderResults() {
   const { correct, missed, sectionScores } = scoreQuestions();
+  const percentage = scorePercent(correct);
   dom.resultsSection.classList.remove("is-hidden");
-  dom.scoreHeadline.textContent = `You scored ${correct} out of ${questions.length}`;
+  dom.scoreHeadline.textContent = playerName
+    ? `${playerName} scored ${correct}/${questions.length} (${percentage}%)`
+    : `You scored ${correct}/${questions.length} (${percentage}%)`;
   dom.scoreSummary.textContent = summaryText(correct);
   dom.timeSummary.textContent = `Time used: ${formatTime(TEST_DURATION_SECONDS - timeRemaining)}.`;
 
@@ -539,6 +569,8 @@ function restartTest() {
   timeRemaining = TEST_DURATION_SECONDS;
   isSubmitted = false;
   hasStarted = false;
+  playerName = "";
+  dom.childNameInput.value = "";
   dom.resultsSection.classList.add("is-hidden");
   dom.timeSummary.textContent = "";
   updateProgress();
@@ -592,6 +624,10 @@ dom.nextButton.addEventListener("click", () => {
 
 dom.restartButton.addEventListener("click", restartTest);
 dom.retryButton.addEventListener("click", restartTest);
+dom.childNameInput.addEventListener("input", () => {
+  playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
+  renderQuestion();
+});
 dom.backToQuestionsButton.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
