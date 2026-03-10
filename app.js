@@ -33,7 +33,8 @@ const dom = {
 };
 
 let currentIndex = 0;
-let answers = [];
+let selectedAnswers = [];
+let validatedAnswers = [];
 let timerId = null;
 let isSubmitted = false;
 let hasStarted = false;
@@ -181,15 +182,16 @@ function buildQuestionBank() {
 
 const questions = buildQuestionBank();
 const TEST_DURATION_SECONDS = questions.length * 30;
-answers = Array(questions.length).fill(null);
+selectedAnswers = Array(questions.length).fill(null);
+validatedAnswers = Array(questions.length).fill(null);
 let timeRemaining = TEST_DURATION_SECONDS;
 
 function answeredTotal() {
-  return answers.filter((answer) => answer !== null).length;
+  return validatedAnswers.filter((answer) => answer !== null).length;
 }
 
 function liveCorrectTotal() {
-  return answers.filter((answer, index) => answer === questions[index].answer).length;
+  return validatedAnswers.filter((answer, index) => answer === questions[index].answer).length;
 }
 
 function formatTime(seconds) {
@@ -243,7 +245,7 @@ function firstIndexForSection(section) {
 
 function firstUnansweredIndexForSection(section) {
   const unanswered = questions.findIndex(
-    (question, index) => question.section === section && answers[index] === null,
+    (question, index) => question.section === section && validatedAnswers[index] === null,
   );
 
   return unanswered !== -1 ? unanswered : firstIndexForSection(section);
@@ -256,13 +258,12 @@ function goToSection(section) {
     startTimer();
   }
   renderQuestion();
-  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function buildSectionButton(section, isActive, buttonLabel) {
   const questionsInSection = sectionQuestions(section);
   const sectionAnswered = questionsInSection.filter(
-    (question) => answers[question.id - 1] !== null,
+    (question) => validatedAnswers[question.id - 1] !== null,
   ).length;
   const targetIndex = firstUnansweredIndexForSection(section) + 1;
   const stat = document.createElement("button");
@@ -308,14 +309,14 @@ function allQuestionsAnswered() {
   return answeredTotal() === questions.length;
 }
 
-function renderFeedback(question, savedAnswer) {
-  if (savedAnswer === null) {
+function renderFeedback(question, validatedAnswer) {
+  if (validatedAnswer === null) {
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
     return;
   }
 
-  const isCorrect = savedAnswer === question.answer;
+  const isCorrect = validatedAnswer === question.answer;
   const correctAnswer = question.options[question.answer];
   dom.feedbackPanel.className = `feedback-panel ${isCorrect ? "is-correct" : "is-wrong"}`;
   dom.feedbackPanel.innerHTML = isCorrect
@@ -340,7 +341,7 @@ function renderQuestion() {
       "Start anywhere. When you switch sections later, the test opens at the first unanswered question in that section.";
     dom.nextHint.textContent = "Your 50-minute timer starts when you choose a section.";
     dom.nextHint.classList.remove("is-hidden");
-    dom.nextButton.textContent = "Next";
+    dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
     return;
   }
@@ -350,8 +351,9 @@ function renderQuestion() {
     "Switch sections anytime. You will return to the first unanswered question in that section.";
 
   const question = questionAt(currentIndex);
-  const savedAnswer = answers[currentIndex];
-  const isLocked = savedAnswer !== null || isSubmitted;
+  const selectedAnswer = selectedAnswers[currentIndex];
+  const validatedAnswer = validatedAnswers[currentIndex];
+  const isLocked = validatedAnswer !== null || isSubmitted;
 
   dom.sectionBadge.textContent = question.section;
   dom.questionCounter.textContent = `Question ${question.id} of ${questions.length}`;
@@ -372,14 +374,14 @@ function renderQuestion() {
     button.type = "button";
     button.className = "option-button";
 
-    if (savedAnswer === optionIndex) {
+    if (selectedAnswer === optionIndex) {
       button.classList.add("is-selected");
     }
 
-    if (savedAnswer !== null) {
+    if (validatedAnswer !== null) {
       if (optionIndex === question.answer) {
         button.classList.add("is-correct");
-      } else if (savedAnswer === optionIndex) {
+      } else if (validatedAnswer === optionIndex) {
         button.classList.add("is-wrong");
       }
     }
@@ -390,8 +392,7 @@ function renderQuestion() {
 
     if (!isLocked) {
       button.addEventListener("click", () => {
-        answers[currentIndex] = optionIndex;
-        updateProgress();
+        selectedAnswers[currentIndex] = optionIndex;
         renderQuestion();
       });
     }
@@ -399,19 +400,35 @@ function renderQuestion() {
     dom.optionsList.appendChild(button);
   });
 
-  renderFeedback(question, savedAnswer);
-  dom.nextHint.textContent = "Pick one answer to unlock Next.";
-  dom.nextHint.classList.toggle("is-hidden", savedAnswer !== null || isSubmitted);
+  renderFeedback(question, validatedAnswer);
+
+  if (isSubmitted) {
+    dom.nextHint.classList.add("is-hidden");
+  } else if (validatedAnswer === null) {
+    dom.nextHint.textContent =
+      selectedAnswer === null
+        ? "Pick one answer to unlock Validate."
+        : "Click Validate to check this answer.";
+    dom.nextHint.classList.remove("is-hidden");
+  } else if (allQuestionsAnswered() || currentIndex === questions.length - 1) {
+    dom.nextHint.textContent = "This answer is locked. Open the results when you're ready.";
+    dom.nextHint.classList.remove("is-hidden");
+  } else {
+    dom.nextHint.textContent = "This answer is locked. Click Continue for the next question.";
+    dom.nextHint.classList.remove("is-hidden");
+  }
 
   dom.nextButton.textContent = isSubmitted
     ? currentIndex === questions.length - 1
       ? "Finished"
-      : "Next"
-    : allQuestionsAnswered() || currentIndex === questions.length - 1
-      ? "See Results"
-      : "Next";
+      : "Continue"
+    : validatedAnswer === null
+      ? "Validate"
+      : allQuestionsAnswered() || currentIndex === questions.length - 1
+        ? "See Results"
+        : "Continue";
   dom.nextButton.disabled =
-    (!isSubmitted && savedAnswer === null) ||
+    (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === questions.length - 1);
 }
 
@@ -425,7 +442,7 @@ function scoreQuestions() {
   }
 
   questions.forEach((question, index) => {
-    const chosen = answers[index];
+    const chosen = validatedAnswers[index];
     const isCorrect = chosen === question.answer;
     sectionScores[question.section].total += 1;
 
@@ -516,7 +533,8 @@ function renderResults() {
 
 function restartTest() {
   clearTimer();
-  answers = Array(questions.length).fill(null);
+  selectedAnswers = Array(questions.length).fill(null);
+  validatedAnswers = Array(questions.length).fill(null);
   currentIndex = 0;
   timeRemaining = TEST_DURATION_SECONDS;
   isSubmitted = false;
@@ -542,7 +560,17 @@ function submitTest() {
 }
 
 dom.nextButton.addEventListener("click", () => {
-  if (!isSubmitted && answers[currentIndex] === null) {
+  const selectedAnswer = selectedAnswers[currentIndex];
+  const validatedAnswer = validatedAnswers[currentIndex];
+
+  if (!isSubmitted && validatedAnswer === null) {
+    if (selectedAnswer === null) {
+      return;
+    }
+
+    validatedAnswers[currentIndex] = selectedAnswer;
+    updateProgress();
+    renderQuestion();
     return;
   }
 

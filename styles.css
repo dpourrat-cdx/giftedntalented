@@ -62,11 +62,29 @@ body::before {
 
 .hero-card,
 .results-section {
-  padding: 28px;
+  padding: 20px;
 }
 
 .hero-card {
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 24px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.hero-card .eyebrow,
+.hero-card h1,
+.hero-card .hero-copy,
+.hero-card .hero-metrics {
+  grid-column: 1;
+}
+
+.hero-card .hero-actions {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  align-self: center;
+  margin-top: 0;
 }
 
 .hero-card::after,
@@ -108,25 +126,25 @@ h3 {
 }
 
 h1 {
-  max-width: 860px;
-  margin-top: 8px;
-  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  max-width: 960px;
+  margin-top: 4px;
+  font-size: clamp(1.65rem, 3vw, 2.7rem);
 }
 
 .hero-copy,
 .dashboard-note,
 .review-header p {
-  margin: 12px 0 0;
-  max-width: 760px;
+  margin: 8px 0 0;
+  max-width: 660px;
   color: var(--ink-soft);
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .hero-metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .hero-metrics span,
@@ -147,7 +165,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 14px;
 }
 
 .primary-button,
@@ -541,6 +559,10 @@ h1 {
   .app-shell {
     width: min(100% - 16px, 100%);
     padding-top: 14px;
+  }
+
+  .hero-card {
+    display: block;
   }
 
   .hero-card,
