@@ -267,13 +267,39 @@ h1 {
   border: 1px solid var(--line);
 }
 
+.section-button {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--ink);
+  background: var(--card-strong);
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.section-button:hover,
+.section-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(24, 53, 61, 0.08);
+  outline: none;
+}
+
+.section-button.is-active {
+  border-color: rgba(42, 157, 143, 0.35);
+  background: linear-gradient(135deg, rgba(42, 157, 143, 0.14), rgba(255, 255, 255, 0.96));
+}
+
 .section-stat strong,
+.section-button strong,
 .breakdown-card strong {
   display: block;
   font-size: 1rem;
 }
 
 .section-stat span,
+.section-button span,
 .breakdown-card span {
   display: block;
   margin-top: 4px;
@@ -389,6 +415,10 @@ h1 {
   display: block;
   margin-bottom: 6px;
   font-size: 1rem;
+}
+
+.question-actions {
+  justify-content: flex-end;
 }
 
 .option-letter {

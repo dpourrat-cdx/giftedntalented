@@ -3,7 +3,6 @@ const sections = [
   "Quantitative Reasoning",
   "Pattern & Spatial",
 ];
-const TEST_DURATION_SECONDS = 75 * 60;
 
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
@@ -17,10 +16,8 @@ const dom = {
   questionStimulus: document.getElementById("questionStimulus"),
   optionsList: document.getElementById("optionsList"),
   feedbackPanel: document.getElementById("feedbackPanel"),
-  prevButton: document.getElementById("prevButton"),
   nextButton: document.getElementById("nextButton"),
   restartButton: document.getElementById("restartButton"),
-  submitTopButton: document.getElementById("submitTopButton"),
   resultsSection: document.getElementById("resultsSection"),
   scoreHeadline: document.getElementById("scoreHeadline"),
   scoreSummary: document.getElementById("scoreSummary"),
@@ -33,7 +30,6 @@ const dom = {
 
 let currentIndex = 0;
 let answers = [];
-let timeRemaining = TEST_DURATION_SECONDS;
 let timerId = null;
 let isSubmitted = false;
 
@@ -179,7 +175,9 @@ function buildQuestionBank() {
 }
 
 const questions = buildQuestionBank();
+const TEST_DURATION_SECONDS = questions.length * 30;
 answers = Array(questions.length).fill(null);
+let timeRemaining = TEST_DURATION_SECONDS;
 
 function answeredTotal() {
   return answers.filter((answer) => answer !== null).length;
@@ -230,21 +228,51 @@ function questionAt(index) {
   return questions[index];
 }
 
+function sectionQuestions(section) {
+  return questions.filter((question) => question.section === section);
+}
+
+function firstIndexForSection(section) {
+  return questions.findIndex((question) => question.section === section);
+}
+
+function firstUnansweredIndexForSection(section) {
+  const unanswered = questions.findIndex(
+    (question, index) => question.section === section && answers[index] === null,
+  );
+
+  return unanswered !== -1 ? unanswered : firstIndexForSection(section);
+}
+
+function goToSection(section) {
+  currentIndex = firstUnansweredIndexForSection(section);
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function renderSectionStats() {
   dom.sectionStats.innerHTML = "";
 
   for (const section of sections) {
-    const sectionQuestions = questions.filter((question) => question.section === section);
-    const sectionAnswered = sectionQuestions.filter(
+    const questionsInSection = sectionQuestions(section);
+    const sectionAnswered = questionsInSection.filter(
       (question) => answers[question.id - 1] !== null,
     ).length;
 
-    const stat = document.createElement("div");
-    stat.className = "section-stat";
+    const stat = document.createElement("button");
+    stat.type = "button";
+    stat.className = "section-button";
+    if (questionAt(currentIndex).section === section) {
+      stat.classList.add("is-active");
+    }
+
+    const targetIndex = firstUnansweredIndexForSection(section) + 1;
     stat.innerHTML = `
       <strong>${section}</strong>
-      <span>${sectionAnswered} / ${sectionQuestions.length} answered</span>
+      <span>${sectionAnswered} / ${questionsInSection.length} answered</span>
+      <span>Go to question ${targetIndex}</span>
     `;
+    stat.addEventListener("click", () => goToSection(section));
     dom.sectionStats.appendChild(stat);
   }
 }
@@ -255,6 +283,10 @@ function updateProgress() {
   dom.progressFill.style.width = `${(total / questions.length) * 100}%`;
   dom.scoreDisplay.textContent = `${liveCorrectTotal()} correct`;
   renderSectionStats();
+}
+
+function allQuestionsAnswered() {
+  return answeredTotal() === questions.length;
 }
 
 function renderFeedback(question, savedAnswer) {
@@ -325,10 +357,13 @@ function renderQuestion() {
 
   renderFeedback(question, savedAnswer);
 
-  dom.prevButton.disabled = currentIndex === 0;
-  dom.submitTopButton.disabled = isSubmitted;
-  dom.nextButton.textContent =
-    currentIndex === questions.length - 1 ? (isSubmitted ? "Finished" : "Finish Test") : "Next";
+  dom.nextButton.textContent = isSubmitted
+    ? currentIndex === questions.length - 1
+      ? "Finished"
+      : "Next"
+    : allQuestionsAnswered() || currentIndex === questions.length - 1
+      ? "See Results"
+      : "Next";
   dom.nextButton.disabled =
     (!isSubmitted && savedAnswer === null) ||
     (isSubmitted && currentIndex === questions.length - 1);
@@ -460,13 +495,13 @@ function submitTest() {
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-dom.prevButton.addEventListener("click", () => {
-  currentIndex = Math.max(0, currentIndex - 1);
-  renderQuestion();
-});
-
 dom.nextButton.addEventListener("click", () => {
   if (!isSubmitted && answers[currentIndex] === null) {
+    return;
+  }
+
+  if (!isSubmitted && (allQuestionsAnswered() || currentIndex === questions.length - 1)) {
+    submitTest();
     return;
   }
 
@@ -483,7 +518,6 @@ dom.nextButton.addEventListener("click", () => {
 
 dom.restartButton.addEventListener("click", restartTest);
 dom.retryButton.addEventListener("click", restartTest);
-dom.submitTopButton.addEventListener("click", submitTest);
 dom.backToQuestionsButton.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
