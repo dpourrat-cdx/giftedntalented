@@ -39,7 +39,6 @@ let currentIndex = 0;
 let selectedAnswers = [];
 let validatedAnswers = [];
 let timerId = null;
-let startDelayId = null;
 let isSubmitted = false;
 let hasStarted = false;
 let playerName = "";
@@ -94,13 +93,6 @@ function clearTimer() {
   if (timerId) {
     window.clearInterval(timerId);
     timerId = null;
-  }
-}
-
-function clearStartDelay() {
-  if (startDelayId) {
-    window.clearTimeout(startDelayId);
-    startDelayId = null;
   }
 }
 
@@ -236,7 +228,7 @@ function renderQuestion() {
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
     dom.nameHint.textContent = playerName
-      ? "Press Enter or click outside the box to begin."
+      ? "Press Enter to begin."
       : "Let's start with your name.";
     dom.nextHint.textContent = playerName
       ? "The test will start with the first Verbal question."
@@ -441,28 +433,14 @@ function startTestFromBeginning() {
     return;
   }
 
-  clearStartDelay();
   currentIndex = 0;
   hasStarted = true;
   startTimer();
   renderQuestion();
 }
 
-function scheduleStartFromName() {
-  clearStartDelay();
-
-  if (!playerName || hasStarted) {
-    return;
-  }
-
-  startDelayId = window.setTimeout(() => {
-    startTestFromBeginning();
-  }, 700);
-}
-
 function restartTest() {
   clearTimer();
-  clearStartDelay();
   createNewSession();
   playerName = "";
   dom.childNameInput.value = "";
@@ -521,9 +499,7 @@ dom.retryButton.addEventListener("click", restartTest);
 dom.childNameInput.addEventListener("input", () => {
   playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
   renderQuestion();
-  scheduleStartFromName();
 });
-dom.childNameInput.addEventListener("change", startTestFromBeginning);
 dom.childNameInput.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") {
     return;
