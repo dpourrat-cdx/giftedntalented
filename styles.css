@@ -204,6 +204,25 @@ h1 {
   padding: 22px;
 }
 
+.quick-sections {
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+}
+
+.section-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.section-picker .section-button {
+  min-height: 100%;
+}
+
 .big-progress {
   margin: 10px 0 0;
   font-size: clamp(2rem, 4vw, 3.2rem);
@@ -325,6 +344,10 @@ h1 {
 .question-counter {
   font-weight: 700;
   color: var(--ink-soft);
+}
+
+.question-panel.is-start-screen .question-prompt {
+  margin-top: 12px;
 }
 
 .question-prompt {
@@ -502,6 +525,10 @@ h1 {
 
 @media (max-width: 960px) {
   .test-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .section-picker {
     grid-template-columns: 1fr;
   }
 

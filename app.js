@@ -8,8 +8,11 @@ const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
   sectionStats: document.getElementById("sectionStats"),
+  sectionPicker: document.getElementById("sectionPicker"),
+  sectionPickerNote: document.getElementById("sectionPickerNote"),
   timerDisplay: document.getElementById("timerDisplay"),
   scoreDisplay: document.getElementById("scoreDisplay"),
+  questionPanel: document.getElementById("questionPanel"),
   sectionBadge: document.getElementById("sectionBadge"),
   questionCounter: document.getElementById("questionCounter"),
   questionPrompt: document.getElementById("questionPrompt"),
@@ -33,6 +36,7 @@ let currentIndex = 0;
 let answers = [];
 let timerId = null;
 let isSubmitted = false;
+let hasStarted = false;
 
 function makeQuestion(section, prompt, options, answer, explanation, stimulus = "") {
   return { section, prompt, options, answer, explanation, stimulus };
@@ -247,34 +251,48 @@ function firstUnansweredIndexForSection(section) {
 
 function goToSection(section) {
   currentIndex = firstUnansweredIndexForSection(section);
+  if (!hasStarted) {
+    hasStarted = true;
+    startTimer();
+  }
   renderQuestion();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function buildSectionButton(section, isActive, buttonLabel) {
+  const questionsInSection = sectionQuestions(section);
+  const sectionAnswered = questionsInSection.filter(
+    (question) => answers[question.id - 1] !== null,
+  ).length;
+  const targetIndex = firstUnansweredIndexForSection(section) + 1;
+  const stat = document.createElement("button");
+  stat.type = "button";
+  stat.className = "section-button";
+
+  if (isActive) {
+    stat.classList.add("is-active");
+  }
+
+  stat.innerHTML = `
+    <strong>${section}</strong>
+    <span>${sectionAnswered} / ${questionsInSection.length} answered</span>
+    <span>${buttonLabel} question ${targetIndex}</span>
+  `;
+  stat.addEventListener("click", () => goToSection(section));
+  return stat;
+}
+
 function renderSectionStats() {
   dom.sectionStats.innerHTML = "";
+  dom.sectionPicker.innerHTML = "";
+
+  const activeSection = hasStarted ? questionAt(currentIndex).section : "";
+  const buttonLabel = hasStarted ? "Go to" : "Start at";
 
   for (const section of sections) {
-    const questionsInSection = sectionQuestions(section);
-    const sectionAnswered = questionsInSection.filter(
-      (question) => answers[question.id - 1] !== null,
-    ).length;
-
-    const stat = document.createElement("button");
-    stat.type = "button";
-    stat.className = "section-button";
-    if (questionAt(currentIndex).section === section) {
-      stat.classList.add("is-active");
-    }
-
-    const targetIndex = firstUnansweredIndexForSection(section) + 1;
-    stat.innerHTML = `
-      <strong>${section}</strong>
-      <span>${sectionAnswered} / ${questionsInSection.length} answered</span>
-      <span>Go to question ${targetIndex}</span>
-    `;
-    stat.addEventListener("click", () => goToSection(section));
-    dom.sectionStats.appendChild(stat);
+    const isActive = activeSection === section;
+    dom.sectionStats.appendChild(buildSectionButton(section, isActive, buttonLabel));
+    dom.sectionPicker.appendChild(buildSectionButton(section, isActive, buttonLabel));
   }
 }
 
@@ -306,6 +324,31 @@ function renderFeedback(question, savedAnswer) {
 }
 
 function renderQuestion() {
+  renderSectionStats();
+
+  if (!hasStarted) {
+    dom.questionPanel.classList.add("is-start-screen");
+    dom.sectionBadge.textContent = "Choose A Section";
+    dom.questionCounter.textContent = `${questions.length} total questions`;
+    dom.questionPrompt.textContent = "Tap any section above to begin the practice test.";
+    dom.questionStimulus.textContent = "";
+    dom.questionStimulus.classList.add("is-hidden");
+    dom.optionsList.innerHTML = "";
+    dom.feedbackPanel.className = "feedback-panel is-hidden";
+    dom.feedbackPanel.innerHTML = "";
+    dom.sectionPickerNote.textContent =
+      "Start anywhere. When you switch sections later, the test opens at the first unanswered question in that section.";
+    dom.nextHint.textContent = "Your 50-minute timer starts when you choose a section.";
+    dom.nextHint.classList.remove("is-hidden");
+    dom.nextButton.textContent = "Next";
+    dom.nextButton.disabled = true;
+    return;
+  }
+
+  dom.questionPanel.classList.remove("is-start-screen");
+  dom.sectionPickerNote.textContent =
+    "Switch sections anytime. You will return to the first unanswered question in that section.";
+
   const question = questionAt(currentIndex);
   const savedAnswer = answers[currentIndex];
   const isLocked = savedAnswer !== null || isSubmitted;
@@ -357,6 +400,7 @@ function renderQuestion() {
   });
 
   renderFeedback(question, savedAnswer);
+  dom.nextHint.textContent = "Pick one answer to unlock Next.";
   dom.nextHint.classList.toggle("is-hidden", savedAnswer !== null || isSubmitted);
 
   dom.nextButton.textContent = isSubmitted
@@ -476,12 +520,12 @@ function restartTest() {
   currentIndex = 0;
   timeRemaining = TEST_DURATION_SECONDS;
   isSubmitted = false;
+  hasStarted = false;
   dom.resultsSection.classList.add("is-hidden");
   dom.timeSummary.textContent = "";
   updateProgress();
   updateTimerDisplay();
   renderQuestion();
-  startTimer();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -527,4 +571,3 @@ dom.backToQuestionsButton.addEventListener("click", () => {
 updateProgress();
 updateTimerDisplay();
 renderQuestion();
-startTimer();

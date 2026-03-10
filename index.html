@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260309-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260310-1" />
   </head>
   <body>
     <main class="app-shell">
@@ -73,7 +73,15 @@
           </div>
         </aside>
 
-        <section class="question-panel">
+        <section id="questionPanel" class="question-panel">
+          <div class="quick-sections">
+            <p class="card-kicker">Choose A Section</p>
+            <p id="sectionPickerNote" class="dashboard-note">
+              Start anywhere. When you switch sections later, the test opens at the
+              first unanswered question in that section.
+            </p>
+            <div id="sectionPicker" class="section-picker"></div>
+          </div>
           <div class="question-meta">
             <span id="sectionBadge" class="section-badge">Verbal Reasoning</span>
             <span id="questionCounter" class="question-counter">Question 1 of 100</span>
@@ -120,6 +128,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260309-1"></script>
+    <script src="./app.js?v=20260310-1"></script>
   </body>
 </html>
