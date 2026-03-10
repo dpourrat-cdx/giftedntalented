@@ -14,6 +14,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css?v=20260310-8" />
+    <link rel="stylesheet" href="./gamification.css?v=20260310-1" />
   </head>
   <body>
     <main class="app-shell">
@@ -88,6 +89,21 @@
             </div>
             <p id="playerNote" class="name-hint is-hidden"></p>
           </div>
+          <section
+            id="gamificationHud"
+            class="gamification-hud is-hidden"
+            aria-label="Mission progress"
+          >
+            <div id="sectionProgressRoot" class="gamification-slot"></div>
+            <div id="overallProgressRoot" class="gamification-slot"></div>
+            <div id="rocketProgressRoot" class="gamification-slot"></div>
+          </section>
+          <div
+            id="questionFeedbackRoot"
+            class="question-feedback-root"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
           <div class="question-meta">
             <span id="sectionBadge" class="section-badge">Verbal</span>
             <span id="questionCounter" class="question-counter">Question 1 of 64</span>
@@ -134,7 +150,15 @@
       </section>
     </main>
 
+    <div
+      id="gamificationOverlayRoot"
+      class="celebration-layer"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
     <script src="./question-bank.js?v=20260310-8"></script>
-    <script src="./app.js?v=20260310-8"></script>
+    <script src="./gamification.js?v=20260310-1"></script>
+    <script src="./app.js?v=20260310-9"></script>
   </body>
 </html>

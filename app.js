@@ -8,6 +8,12 @@ const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
   sectionStats: document.getElementById("sectionStats"),
+  gamificationHud: document.getElementById("gamificationHud"),
+  sectionProgressRoot: document.getElementById("sectionProgressRoot"),
+  overallProgressRoot: document.getElementById("overallProgressRoot"),
+  rocketProgressRoot: document.getElementById("rocketProgressRoot"),
+  questionFeedbackRoot: document.getElementById("questionFeedbackRoot"),
+  gamificationOverlayRoot: document.getElementById("gamificationOverlayRoot"),
   nameEntry: document.getElementById("nameEntry"),
   childNameInput: document.getElementById("childNameInput"),
   nameHint: document.getElementById("nameHint"),
@@ -43,9 +49,31 @@ let isSubmitted = false;
 let hasStarted = false;
 let playerName = "";
 let timeRemaining = 0;
+let gamificationController = null;
 
 function totalQuestions() {
   return sessionQuestions.length;
+}
+
+function buildGamificationSnapshot() {
+  return {
+    sections,
+    questionsPerSection: QUESTIONS_PER_TEST_SECTION,
+    sessionQuestions,
+    validatedAnswers,
+    currentIndex,
+    hasStarted,
+    isSubmitted,
+    playerName,
+  };
+}
+
+function syncGamification() {
+  if (!gamificationController) {
+    return;
+  }
+
+  gamificationController.sync(buildGamificationSnapshot());
 }
 
 function testDurationSeconds() {
@@ -189,6 +217,7 @@ function updateProgress() {
   dom.progressFill.style.width = `${(totalAnswered / totalQuestions()) * 100}%`;
   dom.scoreDisplay.textContent = formatScore(liveCorrectTotal());
   renderSectionStats();
+  syncGamification();
 }
 
 function allQuestionsAnswered() {
@@ -236,6 +265,7 @@ function renderQuestion() {
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
+    syncGamification();
     return;
   }
 
@@ -324,6 +354,7 @@ function renderQuestion() {
   dom.nextButton.disabled =
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === totalQuestions() - 1);
+  syncGamification();
 }
 
 function scoreQuestions() {
@@ -441,6 +472,9 @@ function startTestFromBeginning() {
 
 function restartTest() {
   clearTimer();
+  if (gamificationController) {
+    gamificationController.reset();
+  }
   createNewSession();
   playerName = "";
   dom.childNameInput.value = "";
@@ -461,12 +495,16 @@ function submitTest() {
   clearTimer();
   renderQuestion();
   renderResults();
+  if (gamificationController) {
+    gamificationController.onTestCompleted(buildGamificationSnapshot());
+  }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 dom.nextButton.addEventListener("click", () => {
   const selectedAnswer = selectedAnswers[currentIndex];
   const validatedAnswer = validatedAnswers[currentIndex];
+  const question = questionAt(currentIndex);
 
   if (!isSubmitted && validatedAnswer === null) {
     if (selectedAnswer === null) {
@@ -476,6 +514,13 @@ dom.nextButton.addEventListener("click", () => {
     validatedAnswers[currentIndex] = selectedAnswer;
     updateProgress();
     renderQuestion();
+    if (gamificationController) {
+      gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
+        questionId: question.id,
+        section: question.section,
+        isCorrect: selectedAnswer === question.answer,
+      });
+    }
     return;
   }
 
@@ -512,6 +557,21 @@ dom.childNameInput.addEventListener("keydown", (event) => {
 dom.backToQuestionsButton.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
+
+if (window.GiftedGamification) {
+  gamificationController = window.GiftedGamification.createGamificationController({
+    themeId: "rocketAdventure",
+    roots: {
+      hudRoot: dom.gamificationHud,
+      sectionProgressRoot: dom.sectionProgressRoot,
+      overallProgressRoot: dom.overallProgressRoot,
+      rocketProgressRoot: dom.rocketProgressRoot,
+      questionFeedbackRoot: dom.questionFeedbackRoot,
+      questionPanel: dom.questionPanel,
+      overlayRoot: dom.gamificationOverlayRoot,
+    },
+  });
+}
 
 createNewSession();
 updateProgress();

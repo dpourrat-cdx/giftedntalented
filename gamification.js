@@ -1,0 +1,547 @@
+(function () {
+  const GAME_THEMES = {
+    rocketAdventure: {
+      id: "rocket-adventure",
+      missionLabel: "Mission",
+      adventureLabel: "Adventure",
+      rewardStages: [
+        { key: "base", label: "rocket base" },
+        { key: "body", label: "rocket body" },
+        { key: "window", label: "rocket window" },
+        { key: "wings", label: "rocket wings" },
+        { key: "engine", label: "rocket engine" },
+        { key: "astronaut", label: "astronaut seat" },
+        { key: "flames", label: "launch flames" },
+        { key: "launch", label: "launch glow" },
+      ],
+      messages: {
+        correct: ["Great job!", "Nice work!", "Awesome!", "You got it!"],
+        gentle: ["Good try!", "Keep going!", "Let's do the next one!", "You're doing great!"],
+        midpoint: [
+          "Halfway through this mission!",
+          "Great progress!",
+          "You unlocked a boost!",
+          "You're doing awesome!",
+        ],
+        sectionComplete: [
+          "Mission complete!",
+          "Great work!",
+          "On to the next adventure!",
+          "You unlocked a new rocket piece!",
+        ],
+        final: [
+          "You did it!",
+          "Adventure complete!",
+          "Amazing job finishing all 8 missions!",
+          "Your rocket is ready to launch!",
+        ],
+      },
+    },
+  };
+
+  function prefersReducedMotion() {
+    return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function sectionStateFromSnapshot(snapshot, section, sectionIndex) {
+    const questions = snapshot.sessionQuestions
+      .filter((question) => question.section === section)
+      .map((question, questionIndex) => {
+        const isAnswered = snapshot.validatedAnswers[question.id - 1] !== null;
+        const isCurrent = snapshot.hasStarted && snapshot.currentIndex === question.id - 1;
+
+        return {
+          id: question.id,
+          questionIndex,
+          isAnswered,
+          isCurrent,
+        };
+      });
+
+    const answeredCount = questions.filter((question) => question.isAnswered).length;
+    const currentQuestionIndex = questions.findIndex((question) => question.isCurrent);
+
+    return {
+      key: section,
+      label: section,
+      index: sectionIndex,
+      totalQuestions: questions.length,
+      answeredCount,
+      midpointReached: answeredCount >= Math.ceil(questions.length / 2),
+      isCompleted: answeredCount === questions.length && questions.length > 0,
+      questions,
+      currentQuestionIndex: currentQuestionIndex === -1 ? 0 : currentQuestionIndex,
+    };
+  }
+
+  function buildGamificationState(snapshot, theme) {
+    const totalQuestions = snapshot.sessionQuestions.length;
+    const answeredTotal = snapshot.validatedAnswers.filter((answer) => answer !== null).length;
+    const sectionStates = snapshot.sections.map((section, index) =>
+      sectionStateFromSnapshot(snapshot, section, index),
+    );
+    const completedSections = sectionStates.filter((section) => section.isCompleted).length;
+    const midpointBoosts = sectionStates.filter((section) => section.midpointReached).length;
+    const currentQuestion = snapshot.hasStarted ? snapshot.sessionQuestions[snapshot.currentIndex] : null;
+    const currentSectionIndex = currentQuestion
+      ? snapshot.sections.indexOf(currentQuestion.section)
+      : 0;
+    const currentSection = sectionStates[currentSectionIndex] || sectionStates[0] || null;
+    const currentQuestionNumber = currentSection
+      ? currentSection.currentQuestionIndex + 1
+      : 1;
+
+    return {
+      theme,
+      hasStarted: snapshot.hasStarted,
+      isSubmitted: snapshot.isSubmitted,
+      playerName: snapshot.playerName,
+      sections: sectionStates,
+      totalSections: snapshot.sections.length,
+      totalQuestions,
+      answeredTotal,
+      completedSections,
+      midpointBoosts,
+      overallPercent: totalQuestions === 0 ? 0 : Math.round((answeredTotal / totalQuestions) * 100),
+      currentSectionIndex,
+      currentSection,
+      currentQuestionNumber,
+      allQuestionsAnswered: totalQuestions > 0 && answeredTotal === totalQuestions,
+    };
+  }
+
+  function renderRocketScene(stageCount, boostCount, isLaunching) {
+    const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
+      return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
+    }).join("");
+
+    const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
+
+    return `
+      <div class="rocket-scene ${isLaunching ? "is-launching" : ""}">
+        <div class="rocket-stars" aria-hidden="true">${stars}</div>
+        <div class="rocket-fuel">
+          <span class="rocket-fuel-fill" style="height: ${Math.round((clamp(boostCount, 0, 8) / 8) * 100)}%"></span>
+        </div>
+        <div class="rocket-pad rocket-part ${partClass(stageCount >= 1)}"></div>
+        <div class="rocket-body rocket-part ${partClass(stageCount >= 2)}"></div>
+        <div class="rocket-window rocket-part ${partClass(stageCount >= 3)}"></div>
+        <div class="rocket-wing rocket-wing-left rocket-part ${partClass(stageCount >= 4)}"></div>
+        <div class="rocket-wing rocket-wing-right rocket-part ${partClass(stageCount >= 4)}"></div>
+        <div class="rocket-engine rocket-part ${partClass(stageCount >= 5)}"></div>
+        <div class="rocket-astronaut rocket-part ${partClass(stageCount >= 6)}"></div>
+        <div class="rocket-flames rocket-part ${partClass(stageCount >= 7)}"></div>
+      </div>
+    `;
+  }
+
+  class EncouragementMessageManager {
+    constructor(theme) {
+      this.theme = theme;
+      this.lastIndexByPool = {};
+    }
+
+    pick(poolName) {
+      const pool = this.theme.messages[poolName] || [];
+
+      if (pool.length === 0) {
+        return "";
+      }
+
+      if (pool.length === 1) {
+        return pool[0];
+      }
+
+      let index = Math.floor(Math.random() * pool.length);
+      if (index === this.lastIndexByPool[poolName]) {
+        index = (index + 1) % pool.length;
+      }
+
+      this.lastIndexByPool[poolName] = index;
+      return pool[index];
+    }
+  }
+
+  class ProgressIndicator {
+    constructor(root, theme) {
+      this.root = root;
+      this.theme = theme;
+    }
+
+    render(state) {
+      if (!state.hasStarted || !state.currentSection) {
+        this.root.innerHTML = "";
+        return;
+      }
+
+      const section = state.currentSection;
+      const dots = section.questions
+        .map((question) => {
+          const classes = [
+            "mission-dot",
+            question.isAnswered ? "is-complete" : "",
+            question.isCurrent ? "is-current" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return `<span class="${classes}" aria-hidden="true"><span class="mission-dot-core"></span></span>`;
+        })
+        .join("");
+
+      this.root.innerHTML = `
+        <article class="gamification-panel mission-panel">
+          <p class="gamification-kicker">${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}</p>
+          <strong>Question ${state.currentQuestionNumber} of ${section.totalQuestions}</strong>
+          <span>${section.answeredCount} of ${section.totalQuestions} mission steps done</span>
+          <div
+            class="mission-dots"
+            role="img"
+            aria-label="${section.answeredCount} of ${section.totalQuestions} questions finished in this mission"
+          >
+            ${dots}
+          </div>
+        </article>
+      `;
+    }
+  }
+
+  class OverallProgressBar {
+    constructor(root, theme) {
+      this.root = root;
+      this.theme = theme;
+    }
+
+    render(state) {
+      if (!state.hasStarted) {
+        this.root.innerHTML = "";
+        return;
+      }
+
+      this.root.innerHTML = `
+        <article class="gamification-panel overall-panel">
+          <p class="gamification-kicker">${state.answeredTotal} of ${state.totalQuestions} questions</p>
+          <strong>${state.completedSections} of ${state.totalSections} missions completed</strong>
+          <div class="overall-progress-rail" aria-hidden="true">
+            <span class="overall-progress-fill" style="width: ${state.overallPercent}%"></span>
+          </div>
+          <span>${state.totalQuestions - state.answeredTotal} questions left in the adventure</span>
+        </article>
+      `;
+    }
+  }
+
+  class RocketProgressVisual {
+    constructor(root, theme) {
+      this.root = root;
+      this.theme = theme;
+    }
+
+    render(state) {
+      if (!state.hasStarted) {
+        this.root.innerHTML = "";
+        return;
+      }
+
+      const stageCount = clamp(state.completedSections, 0, this.theme.rewardStages.length);
+      const nextStage = this.theme.rewardStages[state.completedSections];
+      const statusLine =
+        stageCount === this.theme.rewardStages.length
+          ? "All rocket parts are ready for lift-off."
+          : `Next unlock: ${nextStage.label}.`;
+      const rewardLine =
+        state.midpointBoosts === 0
+          ? "Star boosts appear at each mission halfway point."
+          : `${state.midpointBoosts} star boosts unlocked so far.`;
+
+      this.root.innerHTML = `
+        <article class="gamification-panel rocket-panel ${stageCount === this.theme.rewardStages.length ? "is-finished" : ""}">
+          <div class="rocket-copy">
+            <p class="gamification-kicker">Rocket reward</p>
+            <strong>${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked</strong>
+            <span>${statusLine}</span>
+            <span>${rewardLine}</span>
+          </div>
+          ${renderRocketScene(stageCount, state.midpointBoosts, stageCount === this.theme.rewardStages.length)}
+        </article>
+      `;
+    }
+  }
+
+  class QuestionFeedback {
+    constructor(root, panelRoot, messageManager) {
+      this.root = root;
+      this.panelRoot = panelRoot;
+      this.messageManager = messageManager;
+      this.timeoutId = null;
+    }
+
+    clear() {
+      if (this.timeoutId) {
+        window.clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+
+      this.root.innerHTML = "";
+      this.panelRoot.classList.remove("is-feedback-correct", "is-feedback-gentle");
+    }
+
+    show(event) {
+      this.clear();
+
+      const isCorrect = event.isCorrect;
+      const tone = isCorrect ? "correct" : "gentle";
+      const message = this.messageManager.pick(isCorrect ? "correct" : "gentle");
+      const effectLabel = isCorrect ? "sparkle" : "boost";
+      const duration = prefersReducedMotion() ? 300 : isCorrect ? 850 : 700;
+
+      this.root.innerHTML = `
+        <div class="question-feedback-toast is-${tone}" role="status">
+          <span class="question-feedback-effect" aria-hidden="true">${effectLabel}</span>
+          <strong>${escapeHtml(message)}</strong>
+        </div>
+      `;
+
+      this.panelRoot.classList.add(isCorrect ? "is-feedback-correct" : "is-feedback-gentle");
+      this.timeoutId = window.setTimeout(() => this.clear(), duration);
+    }
+  }
+
+  class CelebrationOverlay {
+    constructor(root) {
+      this.root = root;
+      this.queue = [];
+      this.current = null;
+      this.timeoutId = null;
+      this.boundClick = this.handleClick.bind(this);
+      this.root.addEventListener("click", this.boundClick);
+    }
+
+    handleClick(event) {
+      const dismissButton = event.target.closest("[data-dismiss-celebration]");
+      if (!dismissButton) {
+        return;
+      }
+
+      this.dismiss();
+    }
+
+    enqueue(event) {
+      this.queue.push(event);
+      this.showNext();
+    }
+
+    showNext() {
+      if (this.current || this.queue.length === 0) {
+        return;
+      }
+
+      this.current = this.queue.shift();
+      const reducedMotion = prefersReducedMotion();
+      const autoDismissMs = reducedMotion
+        ? Math.min(this.current.autoDismissMs, 700)
+        : this.current.autoDismissMs;
+      const confetti = this.current.variant === "final"
+        ? Array.from({ length: 10 }, (_, index) => {
+            return `<span class="celebration-confetti celebration-confetti-${index + 1}"></span>`;
+          }).join("")
+        : "";
+
+      this.root.innerHTML = `
+        <div class="celebration-overlay is-${this.current.variant}">
+          ${confetti}
+          <div class="celebration-card">
+            <p class="celebration-kicker">${escapeHtml(this.current.kicker)}</p>
+            <h3>${escapeHtml(this.current.title)}</h3>
+            <p>${escapeHtml(this.current.body)}</p>
+            ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
+            <div class="celebration-rocket-wrap">
+              ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
+            </div>
+            ${this.current.showButton ? '<button class="celebration-button" type="button" data-dismiss-celebration>Continue</button>' : ""}
+          </div>
+        </div>
+      `;
+
+      if (autoDismissMs > 0) {
+        this.timeoutId = window.setTimeout(() => this.dismiss(), autoDismissMs);
+      }
+    }
+
+    dismiss() {
+      if (this.timeoutId) {
+        window.clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+
+      this.current = null;
+      this.root.innerHTML = "";
+
+      if (this.queue.length > 0) {
+        window.setTimeout(() => this.showNext(), 80);
+      }
+    }
+
+    reset() {
+      if (this.timeoutId) {
+        window.clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+
+      this.queue = [];
+      this.current = null;
+      this.root.innerHTML = "";
+    }
+  }
+
+  class GamificationController {
+    constructor(options) {
+      this.theme = options.theme || GAME_THEMES.rocketAdventure;
+      this.roots = options.roots;
+      this.messageManager = new EncouragementMessageManager(this.theme);
+      this.progressIndicator = new ProgressIndicator(options.roots.sectionProgressRoot, this.theme);
+      this.overallProgressBar = new OverallProgressBar(options.roots.overallProgressRoot, this.theme);
+      this.rocketProgressVisual = new RocketProgressVisual(options.roots.rocketProgressRoot, this.theme);
+      this.questionFeedback = new QuestionFeedback(
+        options.roots.questionFeedbackRoot,
+        options.roots.questionPanel,
+        this.messageManager,
+      );
+      this.celebrationOverlay = new CelebrationOverlay(options.roots.overlayRoot);
+      this.midpointSeen = new Set();
+      this.sectionCompletionSeen = new Set();
+      this.finalSeen = false;
+      this.state = null;
+    }
+
+    sync(snapshot) {
+      this.state = buildGamificationState(snapshot, this.theme);
+      const shouldShowHud = this.state.hasStarted;
+      this.roots.hudRoot.classList.toggle("is-hidden", !shouldShowHud);
+      this.progressIndicator.render(this.state);
+      this.overallProgressBar.render(this.state);
+      this.rocketProgressVisual.render(this.state);
+      return this.state;
+    }
+
+    onAnswerEvaluated(snapshot, answerEvent) {
+      const state = this.sync(snapshot);
+      if (!state.hasStarted || !state.currentSection) {
+        return state;
+      }
+
+      this.questionFeedback.show(answerEvent);
+      this.maybeTriggerMidpoint(state);
+      this.maybeTriggerSectionCompletion(state);
+      this.maybeTriggerFinalCelebration(state);
+      return state;
+    }
+
+    onTestCompleted(snapshot) {
+      const state = this.sync(snapshot);
+      this.maybeTriggerFinalCelebration(state);
+      return state;
+    }
+
+    maybeTriggerMidpoint(state) {
+      const section = state.currentSection;
+      const midpointTarget = Math.ceil(section.totalQuestions / 2);
+      if (section.answeredCount !== midpointTarget || this.midpointSeen.has(section.key)) {
+        return;
+      }
+
+      this.midpointSeen.add(section.key);
+      this.celebrationOverlay.enqueue({
+        variant: "midpoint",
+        kicker: `${this.theme.missionLabel} ${section.index + 1}`,
+        title: this.messageManager.pick("midpoint"),
+        body: "You are halfway through this mission and your rocket just got a boost.",
+        reward: "Star boost unlocked",
+        stageCount: state.completedSections,
+        boostCount: state.midpointBoosts,
+        autoDismissMs: 1500,
+        showButton: false,
+      });
+    }
+
+    maybeTriggerSectionCompletion(state) {
+      const section = state.currentSection;
+      if (!section.isCompleted || this.sectionCompletionSeen.has(section.key)) {
+        return;
+      }
+
+      this.sectionCompletionSeen.add(section.key);
+      const reward = this.theme.rewardStages[section.index];
+
+      this.celebrationOverlay.enqueue({
+        variant: "section",
+        kicker: `${this.theme.missionLabel} ${section.index + 1} complete`,
+        title: this.messageManager.pick("sectionComplete"),
+        body: "Great work finishing this mission. Your rocket is growing piece by piece.",
+        reward: `Unlocked: ${reward.label}`,
+        stageCount: state.completedSections,
+        boostCount: state.midpointBoosts,
+        autoDismissMs: 2400,
+        showButton: true,
+      });
+    }
+
+    maybeTriggerFinalCelebration(state) {
+      if (!state.allQuestionsAnswered || this.finalSeen) {
+        return;
+      }
+
+      this.finalSeen = true;
+      this.celebrationOverlay.enqueue({
+        variant: "final",
+        kicker: `${this.theme.adventureLabel} complete`,
+        title: this.messageManager.pick("final"),
+        body: "Amazing job finishing all 8 missions. Your rocket is ready for launch.",
+        reward: "Full rocket launch unlocked",
+        stageCount: this.theme.rewardStages.length,
+        boostCount: state.midpointBoosts,
+        autoDismissMs: 3000,
+        showButton: true,
+      });
+    }
+
+    reset() {
+      this.state = null;
+      this.midpointSeen.clear();
+      this.sectionCompletionSeen.clear();
+      this.finalSeen = false;
+      this.questionFeedback.clear();
+      this.celebrationOverlay.reset();
+      this.roots.hudRoot.classList.add("is-hidden");
+      this.progressIndicator.render({ hasStarted: false });
+      this.overallProgressBar.render({ hasStarted: false });
+      this.rocketProgressVisual.render({ hasStarted: false });
+    }
+  }
+
+  function createGamificationController(options) {
+    const theme = GAME_THEMES[options.themeId] || GAME_THEMES.rocketAdventure;
+    return new GamificationController({
+      theme,
+      roots: options.roots,
+    });
+  }
+
+  window.GiftedGamification = Object.freeze({
+    themes: GAME_THEMES,
+    createGamificationController,
+  });
+})();
