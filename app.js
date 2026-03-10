@@ -3,16 +3,20 @@ const sections = [
   "Quantitative Reasoning",
   "Pattern & Spatial",
 ];
+const TEST_DURATION_SECONDS = 75 * 60;
 
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
   sectionStats: document.getElementById("sectionStats"),
+  timerDisplay: document.getElementById("timerDisplay"),
+  scoreDisplay: document.getElementById("scoreDisplay"),
   sectionBadge: document.getElementById("sectionBadge"),
   questionCounter: document.getElementById("questionCounter"),
   questionPrompt: document.getElementById("questionPrompt"),
   questionStimulus: document.getElementById("questionStimulus"),
   optionsList: document.getElementById("optionsList"),
+  feedbackPanel: document.getElementById("feedbackPanel"),
   prevButton: document.getElementById("prevButton"),
   nextButton: document.getElementById("nextButton"),
   restartButton: document.getElementById("restartButton"),
@@ -20,6 +24,7 @@ const dom = {
   resultsSection: document.getElementById("resultsSection"),
   scoreHeadline: document.getElementById("scoreHeadline"),
   scoreSummary: document.getElementById("scoreSummary"),
+  timeSummary: document.getElementById("timeSummary"),
   resultsBreakdown: document.getElementById("resultsBreakdown"),
   retryButton: document.getElementById("retryButton"),
   backToQuestionsButton: document.getElementById("backToQuestionsButton"),
@@ -28,6 +33,9 @@ const dom = {
 
 let currentIndex = 0;
 let answers = [];
+let timeRemaining = TEST_DURATION_SECONDS;
+let timerId = null;
+let isSubmitted = false;
 
 function makeQuestion(section, prompt, options, answer, explanation, stimulus = "") {
   return { section, prompt, options, answer, explanation, stimulus };
@@ -177,6 +185,47 @@ function answeredTotal() {
   return answers.filter((answer) => answer !== null).length;
 }
 
+function liveCorrectTotal() {
+  return answers.filter((answer, index) => answer === questions[index].answer).length;
+}
+
+function formatTime(seconds) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+  const remainder = String(safeSeconds % 60).padStart(2, "0");
+  return `${minutes}:${remainder}`;
+}
+
+function updateTimerDisplay() {
+  dom.timerDisplay.textContent = formatTime(timeRemaining);
+}
+
+function clearTimer() {
+  if (timerId) {
+    window.clearInterval(timerId);
+    timerId = null;
+  }
+}
+
+function startTimer() {
+  clearTimer();
+  timerId = window.setInterval(() => {
+    if (isSubmitted) {
+      clearTimer();
+      return;
+    }
+
+    timeRemaining -= 1;
+    updateTimerDisplay();
+
+    if (timeRemaining <= 0) {
+      timeRemaining = 0;
+      updateTimerDisplay();
+      submitTest();
+    }
+  }, 1000);
+}
+
 function questionAt(index) {
   return questions[index];
 }
@@ -204,12 +253,29 @@ function updateProgress() {
   const total = answeredTotal();
   dom.answeredCount.textContent = `${total} / ${questions.length}`;
   dom.progressFill.style.width = `${(total / questions.length) * 100}%`;
+  dom.scoreDisplay.textContent = `${liveCorrectTotal()} correct`;
   renderSectionStats();
+}
+
+function renderFeedback(question, savedAnswer) {
+  if (savedAnswer === null) {
+    dom.feedbackPanel.className = "feedback-panel is-hidden";
+    dom.feedbackPanel.innerHTML = "";
+    return;
+  }
+
+  const isCorrect = savedAnswer === question.answer;
+  const correctAnswer = question.options[question.answer];
+  dom.feedbackPanel.className = `feedback-panel ${isCorrect ? "is-correct" : "is-wrong"}`;
+  dom.feedbackPanel.innerHTML = isCorrect
+    ? `<strong>Correct</strong><span>${question.explanation}</span>`
+    : `<strong>Not quite</strong><span>Correct answer: ${correctAnswer}. ${question.explanation}</span>`;
 }
 
 function renderQuestion() {
   const question = questionAt(currentIndex);
   const savedAnswer = answers[currentIndex];
+  const isLocked = savedAnswer !== null || isSubmitted;
 
   dom.sectionBadge.textContent = question.section;
   dom.questionCounter.textContent = `Question ${question.id} of ${questions.length}`;
@@ -229,24 +295,43 @@ function renderQuestion() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "option-button";
+
     if (savedAnswer === optionIndex) {
       button.classList.add("is-selected");
     }
 
+    if (savedAnswer !== null) {
+      if (optionIndex === question.answer) {
+        button.classList.add("is-correct");
+      } else if (savedAnswer === optionIndex) {
+        button.classList.add("is-wrong");
+      }
+    }
+
     const letter = String.fromCharCode(65 + optionIndex);
     button.innerHTML = `<span class="option-letter">${letter}</span>${option}`;
-    button.addEventListener("click", () => {
-      answers[currentIndex] = optionIndex;
-      updateProgress();
-      renderQuestion();
-    });
+    button.disabled = isLocked;
+
+    if (!isLocked) {
+      button.addEventListener("click", () => {
+        answers[currentIndex] = optionIndex;
+        updateProgress();
+        renderQuestion();
+      });
+    }
 
     dom.optionsList.appendChild(button);
   });
 
+  renderFeedback(question, savedAnswer);
+
   dom.prevButton.disabled = currentIndex === 0;
+  dom.submitTopButton.disabled = isSubmitted;
   dom.nextButton.textContent =
-    currentIndex === questions.length - 1 ? "Finish Test" : "Next";
+    currentIndex === questions.length - 1 ? (isSubmitted ? "Finished" : "Finish Test") : "Next";
+  dom.nextButton.disabled =
+    (!isSubmitted && savedAnswer === null) ||
+    (isSubmitted && currentIndex === questions.length - 1);
 }
 
 function scoreQuestions() {
@@ -303,6 +388,7 @@ function renderResults() {
   dom.resultsSection.classList.remove("is-hidden");
   dom.scoreHeadline.textContent = `You scored ${correct} out of ${questions.length}`;
   dom.scoreSummary.textContent = summaryText(correct);
+  dom.timeSummary.textContent = `Time used: ${formatTime(TEST_DURATION_SECONDS - timeRemaining)}.`;
 
   dom.resultsBreakdown.innerHTML = "";
   for (const section of sections) {
@@ -348,15 +434,28 @@ function renderResults() {
 }
 
 function restartTest() {
+  clearTimer();
   answers = Array(questions.length).fill(null);
   currentIndex = 0;
+  timeRemaining = TEST_DURATION_SECONDS;
+  isSubmitted = false;
   dom.resultsSection.classList.add("is-hidden");
+  dom.timeSummary.textContent = "";
   updateProgress();
+  updateTimerDisplay();
   renderQuestion();
+  startTimer();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function submitTest() {
+  if (isSubmitted) {
+    return;
+  }
+
+  isSubmitted = true;
+  clearTimer();
+  renderQuestion();
   renderResults();
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -367,8 +466,14 @@ dom.prevButton.addEventListener("click", () => {
 });
 
 dom.nextButton.addEventListener("click", () => {
+  if (!isSubmitted && answers[currentIndex] === null) {
+    return;
+  }
+
   if (currentIndex === questions.length - 1) {
-    submitTest();
+    if (!isSubmitted) {
+      submitTest();
+    }
     return;
   }
 
@@ -384,4 +489,6 @@ dom.backToQuestionsButton.addEventListener("click", () => {
 });
 
 updateProgress();
+updateTimerDisplay();
 renderQuestion();
+startTimer();

@@ -46,6 +46,16 @@
             <div class="progress-track" aria-hidden="true">
               <div id="progressFill" class="progress-fill"></div>
             </div>
+            <div class="status-strip">
+              <div class="mini-stat">
+                <span>Timer</span>
+                <strong id="timerDisplay">75:00</strong>
+              </div>
+              <div class="mini-stat">
+                <span>Live Score</span>
+                <strong id="scoreDisplay">0 correct</strong>
+              </div>
+            </div>
             <p class="dashboard-note">Suggested practice time: 60 to 75 minutes.</p>
           </div>
 
@@ -71,6 +81,7 @@
           <h2 id="questionPrompt" class="question-prompt"></h2>
           <pre id="questionStimulus" class="question-stimulus is-hidden"></pre>
           <div id="optionsList" class="options-list" role="list"></div>
+          <div id="feedbackPanel" class="feedback-panel is-hidden"></div>
           <div class="question-actions">
             <button id="prevButton" class="secondary-button" type="button">
               Previous
@@ -87,6 +98,7 @@
           <p class="eyebrow">Results</p>
           <h2 id="scoreHeadline">You scored 0 out of 100</h2>
           <p id="scoreSummary" class="hero-copy"></p>
+          <p id="timeSummary" class="dashboard-note"></p>
         </div>
 
         <div id="resultsBreakdown" class="results-breakdown"></div>
