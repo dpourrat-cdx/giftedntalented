@@ -16,6 +16,7 @@ const dom = {
   questionStimulus: document.getElementById("questionStimulus"),
   optionsList: document.getElementById("optionsList"),
   feedbackPanel: document.getElementById("feedbackPanel"),
+  nextHint: document.getElementById("nextHint"),
   nextButton: document.getElementById("nextButton"),
   restartButton: document.getElementById("restartButton"),
   resultsSection: document.getElementById("resultsSection"),
@@ -356,6 +357,7 @@ function renderQuestion() {
   });
 
   renderFeedback(question, savedAnswer);
+  dom.nextHint.classList.toggle("is-hidden", savedAnswer !== null || isSubmitted);
 
   dom.nextButton.textContent = isSubmitted
     ? currentIndex === questions.length - 1

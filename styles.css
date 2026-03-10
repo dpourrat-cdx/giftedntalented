@@ -417,6 +417,17 @@ h1 {
   font-size: 1rem;
 }
 
+.next-hint {
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.next-hint.is-hidden {
+  display: none;
+}
+
 .question-actions {
   justify-content: flex-end;
 }
@@ -492,10 +503,6 @@ h1 {
 @media (max-width: 960px) {
   .test-layout {
     grid-template-columns: 1fr;
-  }
-
-  .dashboard {
-    order: 2;
   }
 
   .results-breakdown {
