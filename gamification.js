@@ -279,15 +279,9 @@
       this.root = root;
       this.panelRoot = panelRoot;
       this.messageManager = messageManager;
-      this.timeoutId = null;
     }
 
     clear() {
-      if (this.timeoutId) {
-        window.clearTimeout(this.timeoutId);
-        this.timeoutId = null;
-      }
-
       this.root.innerHTML = "";
       this.panelRoot.classList.remove("is-feedback-correct", "is-feedback-gentle");
     }
@@ -299,7 +293,6 @@
       const tone = isCorrect ? "correct" : "gentle";
       const message = this.messageManager.pick(isCorrect ? "correct" : "gentle");
       const effectLabel = isCorrect ? "sparkle" : "boost";
-      const duration = prefersReducedMotion() ? 300 : isCorrect ? 850 : 700;
 
       this.root.innerHTML = `
         <div class="question-feedback-toast is-${tone}" role="status">
@@ -309,7 +302,6 @@
       `;
 
       this.panelRoot.classList.add(isCorrect ? "is-feedback-correct" : "is-feedback-gentle");
-      this.timeoutId = window.setTimeout(() => this.clear(), duration);
     }
   }
 
@@ -343,10 +335,6 @@
       }
 
       this.current = this.queue.shift();
-      const reducedMotion = prefersReducedMotion();
-      const autoDismissMs = reducedMotion
-        ? Math.min(this.current.autoDismissMs, 700)
-        : this.current.autoDismissMs;
       const confetti = this.current.variant === "final"
         ? Array.from({ length: 10 }, (_, index) => {
             return `<span class="celebration-confetti celebration-confetti-${index + 1}"></span>`;
@@ -368,10 +356,6 @@
           </div>
         </div>
       `;
-
-      if (autoDismissMs > 0) {
-        this.timeoutId = window.setTimeout(() => this.dismiss(), autoDismissMs);
-      }
     }
 
     dismiss() {
@@ -386,6 +370,17 @@
       if (this.queue.length > 0) {
         window.setTimeout(() => this.showNext(), 80);
       }
+    }
+
+    clearAll() {
+      if (this.timeoutId) {
+        window.clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+
+      this.queue = [];
+      this.current = null;
+      this.root.innerHTML = "";
     }
 
     reset() {
@@ -439,7 +434,6 @@
       this.questionFeedback.show(answerEvent);
       this.maybeTriggerMidpoint(state);
       this.maybeTriggerSectionCompletion(state);
-      this.maybeTriggerFinalCelebration(state);
       return state;
     }
 
@@ -447,6 +441,11 @@
       const state = this.sync(snapshot);
       this.maybeTriggerFinalCelebration(state);
       return state;
+    }
+
+    clearTransientFeedback() {
+      this.questionFeedback.clear();
+      this.celebrationOverlay.clearAll();
     }
 
     maybeTriggerMidpoint(state) {
@@ -465,7 +464,6 @@
         reward: "Star boost unlocked",
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
-        autoDismissMs: 1500,
         showButton: false,
       });
     }
@@ -491,7 +489,6 @@
         reward: `Unlocked: ${reward.label}`,
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
-        autoDismissMs: 2400,
         showButton: true,
       });
     }
@@ -512,7 +509,6 @@
         reward: "Full rocket launch unlocked",
         stageCount: this.theme.rewardStages.length,
         boostCount: state.midpointBoosts,
-        autoDismissMs: 3000,
         showButton: true,
       });
     }

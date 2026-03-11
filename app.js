@@ -996,6 +996,12 @@ function restartTest() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+function clearTransientGamificationUi() {
+  if (gamificationController && typeof gamificationController.clearTransientFeedback === "function") {
+    gamificationController.clearTransientFeedback();
+  }
+}
+
 function submitTest() {
   if (isSubmitted) {
     return;
@@ -1041,16 +1047,19 @@ dom.nextButton.addEventListener("click", () => {
   }
 
   if (!isSubmitted && allQuestionsAnswered()) {
+    clearTransientGamificationUi();
     submitTest();
     return;
   }
 
   const nextIndex = nextUnansweredIndexAfterCurrent();
   if (nextIndex === -1) {
+    clearTransientGamificationUi();
     submitTest();
     return;
   }
 
+  clearTransientGamificationUi();
   currentIndex = nextIndex;
   renderQuestion();
 });
