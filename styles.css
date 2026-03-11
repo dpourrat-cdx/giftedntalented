@@ -843,22 +843,9 @@ h1 {
 }
 
 .question-stage {
-  max-height: min(62vh, 500px);
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-.question-stage::-webkit-scrollbar {
-  width: 10px;
-}
-
-.question-stage::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(24, 53, 61, 0.16);
-}
-
-.question-stage::-webkit-scrollbar-track {
-  background: transparent;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .section-badge {
@@ -1208,7 +1195,7 @@ h1 {
   }
 
   .question-stage {
-    max-height: min(56vh, 420px);
+    max-height: none;
   }
 
   .question-panel.is-start-screen .question-stage {
