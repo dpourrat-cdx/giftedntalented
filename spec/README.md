@@ -9,6 +9,8 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 ## Current Feature Specs
 
 - `captain-nova-ux-refresh.md` - story-first UX refresh for the Captain Nova rocket mission flow
+- `captain-nova-current-product-spec.md` - current shipped behavior for story flow, mission UI, score saving, and parent controls
+- `next-implementation-todo.md` - prioritized backlog for security hardening, product improvements, and engineering follow-up
 
 Instead of jumping straight into implementation, we write down:
 
