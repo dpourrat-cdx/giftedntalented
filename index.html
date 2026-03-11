@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260311-9" />
+    <link rel="stylesheet" href="./styles.css?v=20260311-10" />
     <link rel="stylesheet" href="./gamification.css?v=20260311-3" />
     <link rel="stylesheet" href="./scoreboard.css?v=20260311-4" />
   </head>
@@ -98,7 +98,14 @@
 
         <section id="questionPanel" class="question-panel">
           <div class="quick-sections">
-            <p id="briefingKicker" class="card-kicker">Mission Briefing</p>
+            <div class="start-briefing-row">
+              <span id="startBriefBadge" class="section-badge section-badge-briefing">
+                Mission Briefing
+              </span>
+              <span id="startCounterBadge" class="section-badge section-badge-soft">
+                64 mission steps across 8 missions
+              </span>
+            </div>
             <div id="nameEntry" class="name-entry">
               <label id="nameLabel" for="childNameInput" class="name-label">Explorer Name</label>
               <input
@@ -199,6 +206,6 @@
     <script src="./content.js?v=20260311-1"></script>
     <script src="./gamification.js?v=20260311-3"></script>
     <script src="./scoreboard.js?v=20260311-11"></script>
-    <script src="./app.js?v=20260311-8"></script>
+    <script src="./app.js?v=20260311-9"></script>
   </body>
 </html>

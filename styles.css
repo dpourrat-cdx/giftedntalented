@@ -314,6 +314,23 @@ h1 {
   border: 1px solid var(--line);
 }
 
+.start-briefing-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-badge-briefing {
+  color: var(--accent-deep);
+  background: rgba(231, 111, 81, 0.12);
+}
+
+.section-badge-soft {
+  color: var(--ink-soft);
+  background: rgba(42, 157, 143, 0.1);
+}
+
 .story-panel {
   margin-bottom: 20px;
   padding: 20px;
@@ -892,12 +909,16 @@ h1 {
 }
 
 .question-panel.is-start-screen .question-body {
-  min-height: 0;
+  display: none;
 }
 
 .question-panel.is-start-screen .question-stage {
   max-height: none;
   overflow: visible;
+}
+
+.question-panel.is-start-screen .question-feedback-root {
+  display: none;
 }
 
 .question-panel.is-start-screen .question-dock {
@@ -1027,6 +1048,10 @@ h1 {
 
   .question-panel.is-start-screen .question-stage {
     max-height: none;
+  }
+
+  .start-briefing-row {
+    display: grid;
   }
 
   .hero-actions,

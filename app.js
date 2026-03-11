@@ -50,7 +50,8 @@ const dom = {
   nameLabel: document.getElementById("nameLabel"),
   nameHint: document.getElementById("nameHint"),
   playerNote: document.getElementById("playerNote"),
-  briefingKicker: document.getElementById("briefingKicker"),
+  startBriefBadge: document.getElementById("startBriefBadge"),
+  startCounterBadge: document.getElementById("startCounterBadge"),
   storyPanel: document.getElementById("storyPanel"),
   questionStage: document.getElementById("questionStage"),
   leaderboardName: document.getElementById("leaderboardName"),
@@ -285,7 +286,11 @@ function applyStaticCopy() {
   dom.tipKicker.textContent = dashboardContent.tipTitle;
   dom.tipCopy.textContent = dashboardContent.tipCopy;
 
-  dom.briefingKicker.textContent = startContent.briefingTitle;
+  dom.startBriefBadge.textContent = startContent.badge;
+  dom.startCounterBadge.textContent = formatTemplate(startContent.counter, {
+    count: sections.length * QUESTIONS_PER_TEST_SECTION,
+    missions: sections.length,
+  });
   dom.nameLabel.textContent = startContent.nameLabel;
   dom.childNameInput.placeholder = startContent.namePlaceholder;
 
@@ -561,11 +566,6 @@ function renderQuestion() {
     dom.questionPanel.classList.add("is-start-screen");
     dom.nameEntry.classList.remove("is-hidden");
     dom.playerNote.classList.add("is-hidden");
-    dom.sectionBadge.textContent = startContent.badge;
-    dom.questionCounter.textContent = formatTemplate(startContent.counter, {
-      count: totalQuestions(),
-      missions: sections.length,
-    });
     dom.questionPrompt.textContent = playerName
       ? formatTemplate(startContent.readyPrompt, { name: playerName })
       : startContent.emptyPrompt;
