@@ -49,6 +49,10 @@
     });
   }
 
+  function storyMissionForSection(sectionKey) {
+    return content?.story?.missions?.find((mission) => mission.section === sectionKey) || null;
+  }
+
   function sectionStateFromSnapshot(snapshot, section, sectionIndex) {
     const questions = snapshot.sessionQuestions
       .filter((question) => question.section === section)
@@ -456,12 +460,16 @@
       }
 
       this.midpointSeen.add(section.key);
+      const mission = storyMissionForSection(section.key);
       this.celebrationOverlay.enqueue({
         variant: "midpoint",
         kicker: `${this.theme.missionLabel} ${section.index + 1}`,
-        title: this.messageManager.pick("midpoint"),
-        body: content?.gamification?.midpointBody || "You are halfway through this mission and your rocket just got a boost.",
-        reward: "Star boost unlocked",
+        title: content?.gamification?.midpointTitle || "Mission Control Update",
+        body:
+          mission?.midMissionUpdate ||
+          content?.gamification?.midpointBody ||
+          "You are halfway through this mission and your rocket just got a boost.",
+        reward: content?.gamification?.midpointReward || "Star boost unlocked",
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: false,
@@ -476,17 +484,26 @@
 
       this.sectionCompletionSeen.add(section.key);
       const reward = this.theme.rewardStages[section.index];
+      const mission = storyMissionForSection(section.key);
+      const rewardLabel = mission?.rocketPart || reward.label;
 
       this.celebrationOverlay.enqueue({
         variant: "section",
         kicker: `${this.theme.missionLabel} ${section.index + 1} complete`,
-        title: this.messageManager.pick("sectionComplete"),
-        body: formatTemplate(
-          content?.gamification?.sectionCompleteBody ||
-            "Mission complete. Captain Nova just locked {reward} into place.",
-          { reward: reward.label },
+        title: formatTemplate(
+          content?.gamification?.sectionCompleteTitle || "{reward} unlocked!",
+          { reward: rewardLabel },
         ),
-        reward: `Unlocked: ${reward.label}`,
+        body:
+          mission?.rewardDebrief ||
+          formatTemplate(
+            content?.gamification?.sectionCompleteBody ||
+              "Mission complete. Captain Nova just locked {reward} into place.",
+            { reward: rewardLabel },
+          ),
+        reward: formatTemplate(content?.gamification?.sectionCompleteReward || "Unlocked: {reward}", {
+          reward: rewardLabel,
+        }),
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,
@@ -502,11 +519,11 @@
       this.celebrationOverlay.enqueue({
         variant: "final",
         kicker: `${this.theme.adventureLabel} complete`,
-        title: this.messageManager.pick("final"),
+        title: content?.gamification?.finalTitle || "All missions complete!",
         body:
           content?.gamification?.finalBody ||
           "Amazing job finishing all 8 missions. Your rocket is ready for launch.",
-        reward: "Full rocket launch unlocked",
+        reward: content?.gamification?.finalReward || "Full rocket launch unlocked",
         stageCount: this.theme.rewardStages.length,
         boostCount: state.midpointBoosts,
         showButton: true,

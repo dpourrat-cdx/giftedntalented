@@ -319,8 +319,20 @@ function endingStoryForPercentage(percentage) {
   );
 }
 
+function storyLines(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  return [String(value)];
+}
+
 function buildStoryParagraphs(lines) {
-  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  return storyLines(lines).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
 }
 
 function buildMissionUiState(section) {
@@ -497,7 +509,7 @@ function renderIntroductionStory() {
     title: storyContent.title,
     pill: storyContent.introduction.pill,
     secondaryPill: storyContent.introduction.secondaryPill,
-    lines: storyContent.introduction.text,
+    lines: storyLines(storyContent.introduction.text),
   });
 }
 
@@ -515,7 +527,7 @@ function renderMissionStory(section) {
     title: mission.title,
     pill: `Unlock: ${mission.rocketPart}`,
     secondaryPill: section,
-    lines: mission.text && mission.text.length ? mission.text : [mission.summary],
+    lines: storyLines(mission.introduction || mission.text || mission.summary),
     compact: true,
     iconKey: reward.key,
     footerHtml: renderMissionDots(missionState),

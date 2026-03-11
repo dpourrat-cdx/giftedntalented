@@ -114,16 +114,10 @@
       title: "Captain Nova's Rocket Mission",
       introduction: {
         kicker: "Introduction",
-        pill: "8 Missions to Build the Rocket",
-        secondaryPill: "Captain Nova Needs You",
-        text: [
-          "Welcome, Explorer! Mission Control has an important assignment for you.",
-          "Captain Nova is preparing a rocket to explore a mysterious new planet far beyond Earth.",
-          "But the rocket is not built yet, and only a brilliant young engineer can assemble it.",
-          "Eight missions stand between you and liftoff.",
-          "Each mission unlocks a new part of the rocket.",
-          "Complete them all, and we launch for the stars!",
-        ],
+        pill: "Before Mission 1",
+        secondaryPill: "8 Rocket Parts to Unlock",
+        text:
+          "Welcome, Explorer! Mission Control needs your help. Captain Nova has discovered a mysterious new planet far beyond Earth, but there is one big problem — the rocket is not ready yet. To build it, you must complete eight important missions across the space station. Each mission protects a different rocket part, and only a sharp young engineer can unlock them. Solve the challenges, collect every piece, and prepare the ship for liftoff. When all eight missions are complete, Captain Nova can begin the greatest journey in the galaxy!",
       },
       missions: [
         {
@@ -131,96 +125,96 @@
           number: 1,
           title: "Verbal Challenge",
           rocketPart: "Rocket Base",
-          summary: "Glowing words guard the rocket base. Pick the right ones to start the build.",
-          text: [
-            "Captain Nova enters the first chamber of the space station.",
-            "Glowing words float in the air, hiding the foundation of the rocket.",
-            "Choose the right words to unlock the rocket base and start building the ship.",
-          ],
+          introduction:
+            "Captain Nova steps into the Word Vault, where glowing letters drift through the air like fireflies. Hidden beneath the swirling words is the rocket base — the strong foundation that holds the whole ship together. But the vault only opens for explorers who can choose the correct words. Pick carefully, stay focused, and break the word lock. Win this mission, and the rocket base will rise into place.",
+          midMissionUpdate:
+            "Mission Control checking in! The Word Vault is shaking, and some of the glowing letters are starting to scramble out of order. If the wrong words take over, the rocket base could stay locked inside forever. Stay focused, Explorer — you are close to breaking the word lock.",
+          rewardDebrief:
+            "You did it! Just as the letter storm grows wild, the correct words flash into place and the vault unlocks. The rocket base rises safely from the floor of the station, solid and strong. Captain Nova secures it with relief — the mission is back on track.",
         },
         {
           section: "Math",
           number: 2,
           title: "Math Challenge",
           rocketPart: "Rocket Body",
-          summary: "Solve the number puzzle to snap the rocket body onto the base.",
-          text: [
-            "With the base secured, Captain Nova moves into the Number Chamber.",
-            "Floating numbers spin slowly around the room.",
-            "Solve the math puzzle to reveal the rocket body and connect it to the base.",
-          ],
+          introduction:
+            "Captain Nova enters the Number Chamber, where shining numbers spin in great rings around the room. At the center floats the rocket body, locked behind a field of math energy. To release it, you must solve the puzzles and steady the spinning number patterns. Every correct answer weakens the lock. Complete the mission, and the rocket body will connect to the base.",
+          midMissionUpdate:
+            "Mission Control update! The number rings are spinning faster again, and the math field is becoming unstable. If it overloads, the rocket body could drift out of reach before it can connect to the base. Keep calculating carefully — there is still time to bring it under control.",
+          rewardDebrief:
+            "Great work! Your answers steady the number rings, and the crackling math field suddenly collapses. The rocket body lowers into position with a heavy metallic clang and locks onto the base. Captain Nova checks the structure and smiles — disaster avoided.",
         },
         {
           section: "Nonverbal",
           number: 3,
           title: "Pattern Vision",
           rocketPart: "Rocket Window",
-          summary: "Find the hidden pattern to unlock the bright window for star watching.",
-          text: [
-            "In the next room, there are no words and no numbers.",
-            "Only shapes and pictures form a mysterious pattern on the walls.",
-            "Find the pattern to unlock the bright window that will let Captain Nova see the stars.",
-          ],
+          introduction:
+            "Captain Nova moves into the Hall of Patterns, a silent room covered in glowing shapes and strange pictures. No words appear here, and no numbers can help. Only explorers who can spot the hidden pattern may claim the next rocket part. Solve the visual puzzle, and you will unlock the bright rocket window. With it, Captain Nova will be able to look out into deep space.",
+          midMissionUpdate:
+            "Mission Control here! The wall patterns are shifting more quickly now, and some of the glowing shapes are starting to fade. If the pattern disappears completely, the rocket window may remain hidden behind the wall. Look closely, Explorer — the answer is still there.",
+          rewardDebrief:
+            "Success! At the last moment, the hidden pattern snaps into perfect alignment and the wall slides open. A shining rocket window glides free, bright and clear. Captain Nova installs it carefully, and the stars become visible once again.",
         },
         {
           section: "Spatial",
           number: 4,
           title: "Spatial Assembly",
           rocketPart: "Rocket Wings",
-          summary: "Fit the floating parts together and unfold the rocket wings.",
-          text: [
-            "The rocket now needs wings to travel safely through the sky.",
-            "Pieces of metal float around like a puzzle waiting to be assembled.",
-            "Fit them together correctly and the rocket wings unfold into place.",
-          ],
+          introduction:
+            "Captain Nova enters the Assembly Bay, where metal pieces drift weightlessly in every direction. Some are curved, some are sharp, and some look like they fit together in unexpected ways. Somewhere inside this floating puzzle are the rocket wings, needed to guide the ship safely. Turn the pieces in your mind and find how they belong. Solve the challenge, and the wings will unfold into position.",
+          midMissionUpdate:
+            "Mission Control update! The floating metal pieces are starting to spin into a wild storm inside the Assembly Bay. If they scatter too far apart, the rocket wings may never form correctly. Think fast and fit the shapes together before the puzzle breaks apart.",
+          rewardDebrief:
+            "Excellent! The final pieces click together just before the metal storm tears them away. With a powerful snap, the rocket wings unfold into place on both sides of the ship. Captain Nova secures them and reports that the rocket is stable again.",
         },
         {
           section: "Patterns",
           number: 5,
           title: "Pattern Reactor",
           rocketPart: "Rocket Engine",
-          summary: "Complete the glowing pattern to wake up the rocket engine.",
-          text: [
-            "Deep inside the station, glowing symbols pulse with energy.",
-            "They form a repeating pattern that controls the rocket engine.",
-            "Find the missing symbol and the powerful engine will activate.",
-          ],
+          introduction:
+            "Captain Nova descends into the Reactor Core, where glowing symbols pulse with deep mechanical energy. These symbols control the rocket engine, but one part of the pattern is missing. Without it, the ship cannot generate the power needed for space travel. Study the sequence, find the missing symbol, and restore the reactor code. Complete the mission, and the engine will roar to life.",
+          midMissionUpdate:
+            "Mission Control calling! The reactor lights are flashing red, and the engine core is pulsing unevenly. If the missing symbol is not restored soon, the engine could shut down completely. Stay sharp, Explorer — the rocket’s power is hanging by a thread.",
+          rewardDebrief:
+            "Outstanding! The missing symbol locks into place just in time, and the reactor surges with brilliant light. The warning alarms stop, and deep below the station the rocket engine hums awake. Captain Nova grins as the power levels rise — the engine is saved.",
         },
         {
           section: "Analogies",
           number: 6,
           title: "Analogy Link",
           rocketPart: "Astronaut Seat",
-          summary: "Solve the connection between ideas to unlock Captain Nova's seat.",
-          text: [
-            "Captain Nova reaches the control room.",
-            "Two ideas appear on the main screen, connected in a special way.",
-            "Solve the analogy to unlock the astronaut seat inside the rocket.",
-          ],
+          introduction:
+            "Captain Nova reaches the Command Chamber, where the next lock is hidden inside a chain of connected ideas. On the main screen, two things appear linked in a special way, and a second pair waits to be completed. Only explorers who can understand the connection may unlock the reward. Solve the analogy puzzle, and the astronaut seat will be released. Then Captain Nova will finally have a place to command the mission.",
+          midMissionUpdate:
+            "Mission Control update! The Command Chamber does not like broken connections, and the main screen is beginning to flicker. If the idea links fail, the astronaut seat could remain trapped behind the control wall. Keep thinking carefully — one strong insight could restore the whole system.",
+          rewardDebrief:
+            "Brilliant thinking! The missing connection becomes clear, and the flickering screen suddenly turns bright green. A hidden platform rises from the floor, carrying the astronaut seat safely into view. Captain Nova installs it in the cockpit and regains full control of the mission.",
         },
         {
           section: "Categories",
           number: 7,
           title: "Sorting Protocol",
           rocketPart: "Launch Flames",
-          summary: "Sort the objects correctly and ignite the launch flames.",
-          text: [
-            "The rocket is nearly ready.",
-            "Different objects float through the air, but only some belong together.",
-            "Sort them correctly and bright launch flames ignite beneath the rocket.",
-          ],
+          introduction:
+            "Captain Nova enters the Launch Grid, where objects drift through the air in glowing streams. Some belong together, but others do not, and the launch system will only activate if everything is sorted correctly. This final preparation controls the rocket’s launch flames. Choose wisely, group carefully, and clear the confusion from the grid. Complete the protocol, and the flames will ignite beneath the ship.",
+          midMissionUpdate:
+            "Mission Control checking in! The Launch Grid is getting crowded, and the drifting objects are beginning to cross into the wrong streams. If the sorting system jams, the launch flames may fail to ignite at all. Hurry, Explorer — the launch sequence is in danger.",
+          rewardDebrief:
+            "Amazing work! Just before the grid locks up, the final groups fall into the correct places. The system clears with a bright flash, and powerful launch flames burst to life beneath the rocket. Captain Nova watches the platform glow — the countdown can continue.",
         },
         {
           section: "Logic",
           number: 8,
           title: "Final Logic System",
           rocketPart: "Launch Glow",
-          summary: "Solve the final clues so the launch system glows and the rocket is ready.",
-          text: [
-            "Only one system remains before liftoff.",
-            "A series of clues guards the final launch control.",
-            "Solve the logic puzzle and the rocket begins to glow, fully ready for launch.",
-          ],
+          introduction:
+            "Captain Nova enters the Final Control Room, where the last challenge protects the launch sequence itself. A chain of clues appears across the main console, and each one must be understood in the right order. This is the final test of logic, focus, and problem-solving. Solve the puzzle, and the launch system will fully awaken. Then the rocket will glow with all systems ready for liftoff.",
+          midMissionUpdate:
+            "Mission Control here! The final control lights are blinking on and off, and the launch sequence keeps pausing. If the last clues are not solved soon, the entire rocket may power down before liftoff. Stay calm, Explorer — this is the final test.",
+          rewardDebrief:
+            "Mission complete! The final clue clicks into place, and the control system roars fully awake. A brilliant launch glow spreads across the entire rocket as every system connects at once. Captain Nova climbs aboard with confidence — the ship is finally ready.",
         },
       ],
       endings: [
@@ -229,70 +223,40 @@
           label: "Legendary Launch",
           minScore: 95,
           maxScore: 100,
-          text: [
-            "Captain Nova climbs into the astronaut seat and begins the countdown.",
-            "Every rocket system works perfectly.",
-            "The engines ignite with a thunderous roar and the rocket blasts into space.",
-            "It races past the Moon and flies toward worlds no explorer has ever seen.",
-            "Bright comets, strange planets, and sparkling galaxies appear outside the window.",
-            "Thanks to your incredible work, this mission becomes a legendary space adventure.",
-          ],
+          text:
+            "Captain Nova straps into the astronaut seat and begins the final countdown. Every rocket system responds perfectly, and the ship blasts upward with incredible power. It races past the Moon, beyond the planets, and into regions of space no explorer has ever reached before. Strange worlds, sparkling comets, and glowing galaxies fill the window. Because of your amazing skill, this mission becomes one for the history books. You did not just build a rocket — you launched a legendary adventure.",
         },
         {
           id: "ending_85_94",
-          label: "Strong Mission",
+          label: "Great Galactic Mission",
           minScore: 85,
           maxScore: 94,
-          text: [
-            "The engines roar and the rocket launches smoothly into the sky.",
-            "Captain Nova reaches space and begins exploring among the stars.",
-            "Most rocket systems work well, though a few parts are not perfectly tuned.",
-            "Because of this, the rocket cannot travel quite as far as planned.",
-            "Even so, the mission is exciting and successful.",
-            "With just a little more precision, the next rocket could reach even deeper space.",
-          ],
+          text:
+            "The engines ignite, and the rocket lifts smoothly into the sky. Captain Nova reaches deep space and begins exploring far beyond Earth. Most systems work extremely well, though a few parts are not perfectly tuned. Because of that, the rocket cannot travel as far as its full potential. Even so, the mission is exciting, successful, and full of discovery. With a little more precision, your next rocket could go even farther into the unknown.",
         },
         {
           id: "ending_75_84",
-          label: "Early Return",
+          label: "Good Mission, Shorter Journey",
           minScore: 75,
           maxScore: 84,
-          text: [
-            "The rocket lifts off and climbs high above Earth.",
-            "Captain Nova reaches space and sees distant planets glowing in the darkness.",
-            "However, some rocket parts are not working at full power.",
-            "The engines cannot push the ship deeper into the solar system.",
-            "Mission Control asks Captain Nova to return earlier than planned.",
-            "With better answers during the missions, the next rocket could travel much farther.",
-          ],
+          text:
+            "The rocket launches strongly and climbs high above Earth. Captain Nova reaches space and sees distant planets shining through the darkness. But a few rocket systems are not working at full strength, so the ship cannot continue as far as planned. Mission Control calls Captain Nova back sooner than hoped. It is still a real space mission — but a better-built rocket could have explored much more. Next time, your answers could power an even greater journey.",
         },
         {
           id: "ending_60_74",
-          label: "Edge of Space",
+          label: "Partial Success",
           minScore: 60,
           maxScore: 74,
-          text: [
-            "The rocket shakes as it launches, but Captain Nova manages to guide it upward.",
-            "Soon the rocket reaches the edge of space and Earth shines below like a blue marble.",
-            "Several systems struggle to keep the rocket flying smoothly.",
-            "The engines cannot maintain full power for long.",
-            "Mission Control orders an early return to keep everyone safe.",
-            "Stronger solutions in the missions would have built a much better rocket.",
-          ],
+          text:
+            "The rocket shakes during launch, but Captain Nova manages to guide it safely upward. For a moment, the ship reaches the edge of space, and Earth glows below like a giant blue marble. Still, several important systems struggle, and the rocket cannot keep full power for long. Mission Control orders an early return before the journey can truly begin. You helped the rocket fly, but a stronger performance would have built a much better ship. Next mission, you can aim much higher.",
         },
         {
           id: "ending_below_60",
-          label: "Launch Attempt",
+          label: "Launch Day Setback",
           minScore: 0,
           maxScore: 59,
-          text: [
-            "Captain Nova starts the engines, but something is clearly wrong.",
-            "The rocket rises only a short distance before warning lights begin flashing.",
-            "Several important rocket parts were not built correctly.",
-            "Captain Nova carefully brings the rocket back to the launch pad.",
-            "This mission cannot reach space today.",
-            "But with better problem solving, the next rocket could be powerful enough to reach the stars.",
-          ],
+          text:
+            "Captain Nova starts the engines, but warning lights flash across the control panel almost immediately. The rocket lifts only a short distance before unstable systems force the mission to stop. Several key parts were not strong enough for the journey ahead. Captain Nova carefully guides the ship back to the launch pad. The rocket is not ready to reach space today. But this is not the end — with better problem-solving next time, your rocket could one day soar to the stars.",
         },
       ],
     },
@@ -329,9 +293,15 @@
           "Adventure complete!",
         ],
       },
-      midpointBody: "You reached the halfway point and Mission Control unlocked a star boost.",
+      midpointTitle: "Mission Control Update",
+      midpointBody: "The mission is halfway complete, and Captain Nova needs one more strong push.",
+      midpointReward: "Star boost unlocked",
+      sectionCompleteTitle: "{reward} unlocked!",
       sectionCompleteBody: "Mission complete. Captain Nova just locked {reward} into place.",
-      finalBody: "All 8 rocket parts are ready. Captain Nova can launch into the stars now.",
+      sectionCompleteReward: "Unlocked: {reward}",
+      finalTitle: "All missions complete!",
+      finalBody: "Every rocket system is in place. Captain Nova can begin the final countdown.",
+      finalReward: "Rocket fully assembled",
     },
   };
 
