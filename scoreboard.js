@@ -363,6 +363,11 @@
       }
 
       const normalizedFirstEntry = normalizeResetPin(firstEntry);
+      if (!normalizedFirstEntry) {
+        this.setStatus("Please create an admin PIN before resetting scores.", "info", true);
+        return null;
+      }
+
       if (normalizedFirstEntry.length < 4) {
         this.setStatus("Choose an admin PIN with at least 4 characters.", "info", true);
         return null;
@@ -374,6 +379,11 @@
       }
 
       const normalizedConfirmEntry = normalizeResetPin(confirmEntry);
+      if (!normalizedConfirmEntry) {
+        this.setStatus("Please confirm the admin PIN.", "info", true);
+        return null;
+      }
+
       if (normalizedFirstEntry !== normalizedConfirmEntry) {
         this.setStatus("The admin PIN entries did not match.", "info", true);
         return null;
@@ -394,6 +404,11 @@
       }
 
       const normalizedPin = normalizeResetPin(resetPin);
+      if (!normalizedPin) {
+        this.setStatus("Please enter the admin PIN.", "info", true);
+        return null;
+      }
+
       if (normalizedPin.length < 4) {
         this.setStatus("That admin PIN did not match.", "info", true);
         return null;
