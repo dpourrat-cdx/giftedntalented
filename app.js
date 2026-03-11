@@ -425,14 +425,11 @@ function renderRocketSceneMarkup(stageCount, boostCount) {
 function renderRocketBuildStatus() {
   const stageCount = completedSectionCount();
   const boostCount = midpointBoostCount();
-  const nextReward = nextRocketReward();
 
   dom.rocketBuildStatus.innerHTML = `
     <div class="rocket-build-copy">
       <p class="rocket-build-kicker">Rocket Stages</p>
       <strong>${stageCount} of ${missionRewards.length} unlocked</strong>
-      <span>${nextReward ? `Next unlock: ${titleCase(nextReward.label)}` : "Full rocket ready for launch"}</span>
-      <span>${boostCount} star boosts lit</span>
     </div>
     <div class="rocket-build-visual">
       ${renderRocketSceneMarkup(stageCount, boostCount)}
@@ -653,8 +650,6 @@ function buildSectionButton(section, isActive, sectionIndex) {
       <span class="section-button-copy">
         ${mission ? `<span class="section-button-overline">Mission ${mission.number}</span>` : ""}
         <strong>${mission ? mission.title : section}</strong>
-        <span>${section}</span>
-        <span>Unlock: ${mission ? mission.rocketPart : titleCase(reward.label)}</span>
       </span>
     </span>
   `;
