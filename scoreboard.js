@@ -311,7 +311,7 @@
       }
 
       if (normalizedPin !== LOCAL_RESET_PIN) {
-        this.setStatus("That admin PIN did not match. Enter 123 to reset scores.", "error", true);
+        this.setStatus("Please enter the admin PIN.", "error", true);
         return null;
       }
 
