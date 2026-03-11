@@ -23,28 +23,28 @@
     return normalizePlayerName(name).toLowerCase();
   }
 
+  function isRemoteUnavailableError(error) {
+    return error && ["PGRST205", "PGRST202", "42501"].includes(error.code);
+  }
+
   function buildFriendlyError(error) {
     if (!error) {
-      return "The score board could not update just now.";
-    }
-
-    if (error.code === "PGRST205" || error.code === "PGRST202") {
-      return "The score board needs its Supabase setup script before it can save scores.";
-    }
-
-    if (error.code === "42501") {
-      return "Supabase still needs one more permission step for the score board.";
+      return "The score board could not update online just now.";
     }
 
     if (error.code === "P0001") {
       return error.message || "That admin PIN did not match.";
     }
 
+    if (isRemoteUnavailableError(error)) {
+      return "The score board could not update online just now.";
+    }
+
     if (typeof error.message === "string" && error.message.trim()) {
       return error.message.trim();
     }
 
-    return "The score board could not update just now.";
+    return "The score board could not update online just now.";
   }
 
   function readCachedScoreMap() {
@@ -261,6 +261,10 @@
       return 0;
     }
 
+    betterScore(candidate, currentBest) {
+      return this.compareScoreEntries(candidate, currentBest) >= 0 ? candidate : currentBest;
+    }
+
     getCachedPlayerScore(playerName) {
       const key = playerCacheKey(playerName);
       if (!key) {
@@ -351,7 +355,10 @@
           return null;
         }
 
-        if (!record) {
+        const remoteScore = this.normalizeTopScore(record, normalizedName);
+        const preferredScore = this.betterScore(remoteScore, cachedScore);
+
+        if (!preferredScore) {
           this.renderNoScoreState(normalizedName);
           if (!options.preserveStatus) {
             this.clearStatus();
@@ -359,21 +366,25 @@
           return null;
         }
 
-        this.renderTopScore(record, normalizedName);
+        this.renderTopScore(preferredScore, normalizedName);
         if (!options.preserveStatus) {
           this.clearStatus();
         }
-        return record;
+        return preferredScore;
       } catch (error) {
         if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
           return null;
         }
 
-        if (!cachedScore) {
+        if (cachedScore) {
+          this.renderTopScore(cachedScore, normalizedName);
+        } else {
           this.renderNoScoreState(normalizedName);
         }
 
-        this.setStatus(buildFriendlyError(error), "info", true);
+        if (!isRemoteUnavailableError(error)) {
+          this.setStatus(buildFriendlyError(error), "info", true);
+        }
         return cachedScore;
       }
     }
@@ -440,15 +451,14 @@
       }
 
       this.lastSavedFingerprint = fingerprint;
+      this.cachePlayerScore(normalizedEntry);
+
+      if (this.activePlayerName === playerName) {
+        this.renderTopScore(normalizedEntry, playerName);
+      }
 
       try {
         await this.service.saveScore(normalizedEntry);
-        this.cachePlayerScore(normalizedEntry);
-
-        if (this.activePlayerName === playerName) {
-          this.renderTopScore(normalizedEntry, playerName);
-        }
-
         await this.refreshTopScoreForPlayer(playerName, {
           preserveStatus: true,
           showLoading: false,
@@ -460,25 +470,32 @@
 
         return true;
       } catch (error) {
-        this.lastSavedFingerprint = "";
-        if (this.activePlayerName === playerName && currentBest) {
-          this.renderTopScore(currentBest, playerName);
+        if (!isRemoteUnavailableError(error)) {
+          this.setStatus(
+            "Best score saved on this device. Online sync could not update just now.",
+            "info",
+            true,
+          );
+        } else if (options.showSuccessMessage) {
+          this.setStatus("Best score saved on this device.", "success");
         }
-        this.setStatus(buildFriendlyError(error), "info", true);
-        return false;
+
+        return true;
       }
     }
 
     async handleResetClick() {
       const shouldReset = window.confirm(
-        "Clear every saved score for every child? This cannot be undone.",
+        "Clear every saved score for every child on this device? This cannot be undone.",
       );
 
       if (!shouldReset) {
         return;
       }
 
-      const resetPin = window.prompt("Enter the admin PIN to clear the score board for every child.");
+      const resetPin = window.prompt(
+        "Enter the admin PIN if you also want to clear online scores. Leave it blank to clear this device only.",
+      );
       if (resetPin === null) {
         return;
       }
@@ -486,7 +503,25 @@
       this.setBusy(true);
 
       try {
-        await this.service.resetScores(resetPin);
+        const trimmedPin = String(resetPin).trim();
+        let clearedOnline = false;
+
+        if (trimmedPin) {
+          try {
+            await this.service.resetScores(trimmedPin);
+            clearedOnline = true;
+          } catch (error) {
+            if (error.code === "P0001") {
+              this.setStatus(buildFriendlyError(error), "info", true);
+              return;
+            }
+
+            if (!isRemoteUnavailableError(error)) {
+              this.setStatus(buildFriendlyError(error), "info", true);
+            }
+          }
+        }
+
         this.lastSavedFingerprint = "";
         this.clearCachedScores();
 
@@ -496,9 +531,12 @@
           this.renderAwaitingNameState();
         }
 
-        this.setStatus("Every saved score has been cleared.", "success");
-      } catch (error) {
-        this.setStatus(buildFriendlyError(error), "info", true);
+        this.setStatus(
+          clearedOnline
+            ? "Every saved score has been cleared."
+            : "Every saved score on this device has been cleared.",
+          "success",
+        );
       } finally {
         this.setBusy(false);
       }
