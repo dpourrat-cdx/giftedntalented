@@ -208,6 +208,7 @@ const dom = {
   nameHint: document.getElementById("nameHint"),
   playerNote: document.getElementById("playerNote"),
   storyPanel: document.getElementById("storyPanel"),
+  questionStage: document.getElementById("questionStage"),
   leaderboardName: document.getElementById("leaderboardName"),
   leaderboardScore: document.getElementById("leaderboardScore"),
   leaderboardStatus: document.getElementById("leaderboardStatus"),
@@ -246,6 +247,7 @@ let playerName = "";
 let timeRemaining = 0;
 let gamificationController = null;
 let scoreboardController = null;
+let lastRenderedQuestionIndex = -1;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -284,6 +286,7 @@ function createNewSession() {
   timeRemaining = testDurationSeconds();
   isSubmitted = false;
   hasStarted = false;
+  lastRenderedQuestionIndex = -1;
 }
 
 function answeredTotal() {
@@ -627,6 +630,7 @@ function renderFeedback(question, validatedAnswer) {
 }
 
 function renderQuestion() {
+  const shouldResetStageScroll = hasStarted && lastRenderedQuestionIndex !== currentIndex;
   renderSectionStats();
 
   if (!hasStarted) {
@@ -653,6 +657,8 @@ function renderQuestion() {
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
+    lastRenderedQuestionIndex = -1;
+    dom.questionStage.scrollTop = 0;
     syncGamification();
     return;
   }
@@ -745,6 +751,10 @@ function renderQuestion() {
   dom.nextButton.disabled =
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === totalQuestions() - 1);
+  if (shouldResetStageScroll) {
+    dom.questionStage.scrollTop = 0;
+  }
+  lastRenderedQuestionIndex = currentIndex;
   syncGamification();
 }
 

@@ -13,8 +13,8 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260311-6" />
-    <link rel="stylesheet" href="./gamification.css?v=20260310-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260311-7" />
+    <link rel="stylesheet" href="./gamification.css?v=20260311-2" />
     <link rel="stylesheet" href="./scoreboard.css?v=20260311-2" />
   </head>
   <body>
@@ -119,19 +119,23 @@
             aria-live="polite"
             aria-atomic="true"
           ></div>
-          <div class="question-meta">
-            <span id="sectionBadge" class="section-badge">Verbal</span>
-            <span id="questionCounter" class="question-counter">Question 1 of 64</span>
-          </div>
-          <h2 id="questionPrompt" class="question-prompt"></h2>
-          <pre id="questionStimulus" class="question-stimulus is-hidden"></pre>
-          <div id="optionsList" class="options-list" role="list"></div>
-          <div id="feedbackPanel" class="feedback-panel is-hidden"></div>
-          <p id="nextHint" class="next-hint">Pick one answer to unlock Validate.</p>
-          <div class="question-actions">
-            <button id="nextButton" class="primary-button" type="button">
-              Validate
-            </button>
+          <div class="question-body">
+            <div class="question-meta">
+              <span id="sectionBadge" class="section-badge">Verbal</span>
+              <span id="questionCounter" class="question-counter">Question 1 of 64</span>
+            </div>
+            <div id="questionStage" class="question-stage">
+              <h2 id="questionPrompt" class="question-prompt"></h2>
+              <pre id="questionStimulus" class="question-stimulus is-hidden"></pre>
+              <div id="optionsList" class="options-list" role="list"></div>
+              <div id="feedbackPanel" class="feedback-panel is-hidden"></div>
+              <p id="nextHint" class="next-hint">Pick one answer to unlock Validate.</p>
+            </div>
+            <div class="question-actions">
+              <button id="nextButton" class="primary-button" type="button">
+                Validate
+              </button>
+            </div>
           </div>
         </section>
       </section>
@@ -177,6 +181,6 @@
     <script src="./question-bank.js?v=20260311-3"></script>
     <script src="./gamification.js?v=20260310-1"></script>
     <script src="./scoreboard.js?v=20260311-10"></script>
-    <script src="./app.js?v=20260311-6"></script>
+    <script src="./app.js?v=20260311-7"></script>
   </body>
 </html>
