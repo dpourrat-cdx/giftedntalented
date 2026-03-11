@@ -4,6 +4,18 @@ const {
   buildTestSession,
 } = window.GiftedQuestionBank;
 
+const missionRewards =
+  window.GiftedGamification?.themes?.rocketAdventure?.rewardStages || [
+    { key: "base", label: "rocket base" },
+    { key: "body", label: "rocket body" },
+    { key: "window", label: "rocket window" },
+    { key: "wings", label: "rocket wings" },
+    { key: "engine", label: "rocket engine" },
+    { key: "astronaut", label: "astronaut seat" },
+    { key: "flames", label: "launch flames" },
+    { key: "launch", label: "launch glow" },
+  ];
+
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
@@ -182,6 +194,87 @@ function nextUnansweredIndexAfterCurrent() {
   return firstUnansweredIndex();
 }
 
+function titleCase(value) {
+  return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function missionRewardForIndex(sectionIndex) {
+  return missionRewards[sectionIndex] || missionRewards[missionRewards.length - 1];
+}
+
+function missionRewardSvg(key) {
+  const icons = {
+    base: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="11" y="24" width="26" height="8" rx="3"></rect>
+        <path d="M16 32v5M32 32v5M8 39h32"></path>
+      </svg>
+    `,
+    body: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 8c6 4 10 11 10 19v8H14v-8c0-8 4-15 10-19Z"></path>
+        <path d="M18 35h12"></path>
+      </svg>
+    `,
+    window: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 9c6 4 10 11 10 18v8H14v-8c0-7 4-14 10-18Z"></path>
+        <circle cx="24" cy="23" r="5"></circle>
+      </svg>
+    `,
+    wings: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 8c5 4 8 10 8 17v10H16V25c0-7 3-13 8-17Z"></path>
+        <path d="M16 28l-7 5 7 2M32 28l7 5-7 2"></path>
+      </svg>
+    `,
+    engine: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 8c5 4 8 10 8 17v6H16v-6c0-7 3-13 8-17Z"></path>
+        <path d="M18 31h12"></path>
+        <path d="M20 31l-2 7h12l-2-7"></path>
+      </svg>
+    `,
+    astronaut: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="15" r="5"></circle>
+        <path d="M17 30v-7c0-3 3-5 7-5s7 2 7 5v7"></path>
+        <path d="M18 31h12v7H18z"></path>
+      </svg>
+    `,
+    flames: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 9c5 4 8 10 8 17v4H16v-4c0-7 3-13 8-17Z"></path>
+        <path d="M24 39c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 2 3 3 4 1-2 3-4 5-6 2 2 3 5 3 8 0 4-4 8-8 8Z"></path>
+      </svg>
+    `,
+    launch: `
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="7"></circle>
+        <path d="M24 6v7M24 35v7M6 24h7M35 24h7M12 12l5 5M31 31l5 5M12 36l5-5M31 17l5-5"></path>
+      </svg>
+    `,
+  };
+
+  return icons[key] || icons.base;
+}
+
+function setSectionBadgeContent(label) {
+  const sectionIndex = sections.indexOf(label);
+  if (sectionIndex === -1) {
+    dom.sectionBadge.textContent = label;
+    return;
+  }
+
+  const reward = missionRewardForIndex(sectionIndex);
+  dom.sectionBadge.innerHTML = `
+    <span class="mission-badge-icon reward-${reward.key}" aria-hidden="true">
+      ${missionRewardSvg(reward.key)}
+    </span>
+    <span>${label}</span>
+  `;
+}
+
 function goToSection(section) {
   if (!hasStarted) {
     return;
@@ -191,17 +284,29 @@ function goToSection(section) {
   renderQuestion();
 }
 
-function buildSectionButton(section, isActive) {
+function buildSectionButton(section, isActive, sectionIndex) {
+  const reward = missionRewardForIndex(sectionIndex);
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
   button.disabled = !hasStarted;
+  button.setAttribute("aria-label", `${section}. Mission reward: ${reward.label}.`);
 
   if (isActive) {
     button.classList.add("is-active");
   }
 
-  button.innerHTML = `<strong>${section}</strong>`;
+  button.innerHTML = `
+    <span class="section-button-main">
+      <span class="mission-reward-icon reward-${reward.key}" aria-hidden="true">
+        ${missionRewardSvg(reward.key)}
+      </span>
+      <span class="section-button-copy">
+        <strong>${section}</strong>
+        <span>Unlock: ${titleCase(reward.label)}</span>
+      </span>
+    </span>
+  `;
   button.addEventListener("click", () => goToSection(section));
   return button;
 }
@@ -210,10 +315,10 @@ function renderSectionStats() {
   dom.sectionStats.innerHTML = "";
   const activeSection = hasStarted ? questionAt(currentIndex).section : "";
 
-  for (const section of sections) {
+  sections.forEach((section, sectionIndex) => {
     const isActive = activeSection === section;
-    dom.sectionStats.appendChild(buildSectionButton(section, isActive));
-  }
+    dom.sectionStats.appendChild(buildSectionButton(section, isActive, sectionIndex));
+  });
 }
 
 function updateProgress() {
@@ -284,7 +389,7 @@ function renderQuestion() {
   const validatedAnswer = validatedAnswers[currentIndex];
   const isLocked = validatedAnswer !== null || isSubmitted;
 
-  dom.sectionBadge.textContent = question.section;
+  setSectionBadgeContent(question.section);
   dom.questionCounter.textContent = `Question ${question.id} of ${totalQuestions()}`;
   dom.questionPrompt.textContent = question.prompt;
 
