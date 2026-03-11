@@ -2,6 +2,7 @@
   const SUPABASE_URL = "https://hwafspusaijqjkgweptv.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_-hPDn_wxDliucO3L5pP7-Q_Cd8MBvy-";
   const CACHE_KEY = "gifted-scoreboard-player-best-scores";
+  const ADMIN_SETTINGS_KEY = "gifted-scoreboard-admin-settings";
 
   function escapeHtml(value) {
     return String(value)
@@ -21,6 +22,44 @@
 
   function playerCacheKey(name) {
     return normalizePlayerName(name).toLowerCase();
+  }
+
+  function normalizeResetPin(pin) {
+    return String(pin || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 80);
+  }
+
+  function readAdminSettings() {
+    try {
+      const raw = window.localStorage.getItem(ADMIN_SETTINGS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function writeAdminSettings(settings) {
+    try {
+      const safeSettings = settings && typeof settings === "object" ? settings : {};
+      if (Object.keys(safeSettings).length === 0) {
+        window.localStorage.removeItem(ADMIN_SETTINGS_KEY);
+        return;
+      }
+
+      window.localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(safeSettings));
+    } catch (error) {
+      // Ignore storage failures so the scoreboard still works without local persistence.
+    }
+  }
+
+  async function hashResetPin(pin) {
+    const normalizedPin = normalizeResetPin(pin);
+    const data = new TextEncoder().encode(`gifted-reset-pin:${normalizedPin}`);
+    const digest = await window.crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
   }
 
   function isRemoteUnavailableError(error) {
@@ -173,6 +212,7 @@
       this.lastSavedFingerprint = "";
       this.activePlayerName = "";
       this.cachedScoreMap = readCachedScoreMap();
+      this.adminSettings = readAdminSettings();
       this.boundReset = this.handleResetClick.bind(this);
     }
 
@@ -288,6 +328,83 @@
     clearCachedScores() {
       this.cachedScoreMap = {};
       writeCachedScoreMap({});
+    }
+
+    hasLocalResetPin() {
+      return Boolean(this.adminSettings.resetPinHash);
+    }
+
+    async saveLocalResetPin(resetPin) {
+      const normalizedPin = normalizeResetPin(resetPin);
+      const resetPinHash = await hashResetPin(normalizedPin);
+      this.adminSettings = {
+        ...this.adminSettings,
+        resetPinHash,
+      };
+      writeAdminSettings(this.adminSettings);
+      return normalizedPin;
+    }
+
+    async matchesLocalResetPin(resetPin) {
+      if (!this.hasLocalResetPin()) {
+        return false;
+      }
+
+      const resetPinHash = await hashResetPin(resetPin);
+      return resetPinHash === this.adminSettings.resetPinHash;
+    }
+
+    async createLocalResetPin() {
+      const firstEntry = window.prompt(
+        "Create an admin PIN to protect Reset Score Board on this device.",
+      );
+      if (firstEntry === null) {
+        return null;
+      }
+
+      const normalizedFirstEntry = normalizeResetPin(firstEntry);
+      if (normalizedFirstEntry.length < 4) {
+        this.setStatus("Choose an admin PIN with at least 4 characters.", "info", true);
+        return null;
+      }
+
+      const confirmEntry = window.prompt("Re-enter the admin PIN to confirm.");
+      if (confirmEntry === null) {
+        return null;
+      }
+
+      const normalizedConfirmEntry = normalizeResetPin(confirmEntry);
+      if (normalizedFirstEntry !== normalizedConfirmEntry) {
+        this.setStatus("The admin PIN entries did not match.", "info", true);
+        return null;
+      }
+
+      await this.saveLocalResetPin(normalizedFirstEntry);
+      return normalizedFirstEntry;
+    }
+
+    async authorizeReset() {
+      if (!this.hasLocalResetPin()) {
+        return this.createLocalResetPin();
+      }
+
+      const resetPin = window.prompt("Enter the admin PIN to clear saved scores.");
+      if (resetPin === null) {
+        return null;
+      }
+
+      const normalizedPin = normalizeResetPin(resetPin);
+      if (normalizedPin.length < 4) {
+        this.setStatus("That admin PIN did not match.", "info", true);
+        return null;
+      }
+
+      if (!(await this.matchesLocalResetPin(normalizedPin))) {
+        this.setStatus("That admin PIN did not match.", "info", true);
+        return null;
+      }
+
+      return normalizedPin;
     }
 
     renderAwaitingNameState() {
@@ -493,32 +610,27 @@
         return;
       }
 
-      const resetPin = window.prompt(
-        "Enter the admin PIN if you also want to clear online scores. Leave it blank to clear this device only.",
-      );
-      if (resetPin === null) {
+      const resetPin = await this.authorizeReset();
+      if (!resetPin) {
         return;
       }
 
       this.setBusy(true);
 
       try {
-        const trimmedPin = String(resetPin).trim();
         let clearedOnline = false;
 
-        if (trimmedPin) {
-          try {
-            await this.service.resetScores(trimmedPin);
-            clearedOnline = true;
-          } catch (error) {
-            if (error.code === "P0001") {
-              this.setStatus(buildFriendlyError(error), "info", true);
-              return;
-            }
+        try {
+          await this.service.resetScores(resetPin);
+          clearedOnline = true;
+        } catch (error) {
+          if (error.code === "P0001") {
+            this.setStatus(buildFriendlyError(error), "info", true);
+            return;
+          }
 
-            if (!isRemoteUnavailableError(error)) {
-              this.setStatus(buildFriendlyError(error), "info", true);
-            }
+          if (!isRemoteUnavailableError(error)) {
+            this.setStatus(buildFriendlyError(error), "info", true);
           }
         }
 
