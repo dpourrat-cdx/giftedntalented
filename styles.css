@@ -714,13 +714,17 @@ h1 {
 }
 
 .section-button-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
 
 .section-button-copy {
+  display: grid;
+  align-content: center;
   min-width: 0;
+  gap: 2px;
 }
 
 .section-button-overline {
@@ -740,12 +744,26 @@ h1 {
 }
 
 .section-stat span,
-.section-button span,
 .breakdown-card span {
   display: block;
-  margin-top: 4px;
   color: var(--ink-soft);
   font-size: 0.95rem;
+}
+
+.section-button .section-button-main {
+  display: grid;
+}
+
+.section-button .mission-reward-icon {
+  display: inline-grid;
+}
+
+.section-button .section-button-copy {
+  display: grid;
+}
+
+.section-button .section-button-overline {
+  display: block;
 }
 
 .mission-reward-icon,
