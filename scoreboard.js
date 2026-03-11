@@ -529,14 +529,21 @@
       this.setBusy(true);
 
       try {
-        let clearedOnline = false;
+        let resetMode = "local";
 
         try {
           await this.service.resetScores(resetPin);
-          clearedOnline = true;
+          resetMode = "online";
         } catch (error) {
-          if (!isRemoteUnavailableError(error)) {
-            this.setStatus(buildFriendlyError(error), "info", true);
+          if (isRemoteUnavailableError(error)) {
+            resetMode = "local";
+          } else {
+            this.setStatus(
+              buildFriendlyError(error),
+              error && error.code === "P0001" ? "error" : "info",
+              true,
+            );
+            return;
           }
         }
 
@@ -550,7 +557,7 @@
         }
 
         this.setStatus(
-          clearedOnline
+          resetMode === "online"
             ? "Every saved score has been cleared."
             : "Every saved score on this device has been cleared.",
           "success",
