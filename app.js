@@ -37,6 +37,7 @@ const dom = {
   progressFill: document.getElementById("progressFill"),
   buildKicker: document.getElementById("buildKicker"),
   buildNote: document.getElementById("buildNote"),
+  rocketBuildStatus: document.getElementById("rocketBuildStatus"),
   sectionStats: document.getElementById("sectionStats"),
   missionsKicker: document.getElementById("missionsKicker"),
   gamificationHud: document.getElementById("gamificationHud"),
@@ -256,6 +257,10 @@ function totalMissionMinutes() {
   return Math.round((sections.length * QUESTIONS_PER_TEST_SECTION * 30) / 60);
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function applyStaticCopy() {
   document.title = content.hero.title;
   dom.heroEyebrow.textContent = content.hero.eyebrow;
@@ -318,6 +323,131 @@ function buildStoryParagraphs(lines) {
   return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
 }
 
+function buildMissionUiState(section) {
+  const missionQuestions = sessionQuestions
+    .map((question, index) => ({ question, index }))
+    .filter((entry) => entry.question.section === section);
+  const answeredCount = missionQuestions.filter((entry) => validatedAnswers[entry.index] !== null).length;
+  const currentMissionQuestionIndex = missionQuestions.findIndex((entry) => entry.index === currentIndex);
+
+  return {
+    section,
+    totalQuestions: missionQuestions.length,
+    answeredCount,
+    currentQuestionNumber: currentMissionQuestionIndex === -1 ? 1 : currentMissionQuestionIndex + 1,
+    questions: missionQuestions.map((entry, missionIndex) => ({
+      missionIndex,
+      isAnswered: validatedAnswers[entry.index] !== null,
+      isCurrent: hasStarted && entry.index === currentIndex,
+    })),
+  };
+}
+
+function completedSectionCount() {
+  return sections.filter((section) => buildMissionUiState(section).answeredCount === QUESTIONS_PER_TEST_SECTION)
+    .length;
+}
+
+function midpointBoostCount() {
+  return sections.filter((section) => {
+    const missionState = buildMissionUiState(section);
+    return missionState.answeredCount >= Math.ceil(missionState.totalQuestions / 2);
+  }).length;
+}
+
+function nextRocketReward() {
+  return missionRewards[completedSectionCount()] || null;
+}
+
+function renderMissionDots(missionState) {
+  if (!missionState || missionState.totalQuestions === 0) {
+    return "";
+  }
+
+  const dots = missionState.questions
+    .map((question) => {
+      const classes = [
+        "mission-dot",
+        question.isAnswered ? "is-complete" : "",
+        question.isCurrent ? "is-current" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `<span class="${classes}" aria-hidden="true"><span class="mission-dot-core"></span></span>`;
+    })
+    .join("");
+
+  return `
+    <div
+      class="mission-dots mission-dots-inline"
+      role="img"
+      aria-label="${missionState.answeredCount} of ${missionState.totalQuestions} steps finished in this mission"
+    >
+      ${dots}
+    </div>
+  `;
+}
+
+function renderRocketSceneMarkup(stageCount, boostCount) {
+  const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
+    return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
+  }).join("");
+
+  const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
+
+  return `
+    <div class="rocket-scene rocket-scene-mini" aria-hidden="true">
+      <div class="rocket-stars">${stars}</div>
+      <div class="rocket-fuel">
+        <span class="rocket-fuel-fill" style="height: ${Math.round((clamp(boostCount, 0, 8) / 8) * 100)}%"></span>
+      </div>
+      <div class="rocket-pad rocket-part ${partClass(stageCount >= 1)}"></div>
+      <div class="rocket-body rocket-part ${partClass(stageCount >= 2)}"></div>
+      <div class="rocket-window rocket-part ${partClass(stageCount >= 3)}"></div>
+      <div class="rocket-wing rocket-wing-left rocket-part ${partClass(stageCount >= 4)}"></div>
+      <div class="rocket-wing rocket-wing-right rocket-part ${partClass(stageCount >= 4)}"></div>
+      <div class="rocket-engine rocket-part ${partClass(stageCount >= 5)}"></div>
+      <div class="rocket-astronaut rocket-part ${partClass(stageCount >= 6)}"></div>
+      <div class="rocket-flames rocket-part ${partClass(stageCount >= 7)}"></div>
+    </div>
+  `;
+}
+
+function renderRocketBuildStatus() {
+  const stageCount = completedSectionCount();
+  const boostCount = midpointBoostCount();
+  const nextReward = nextRocketReward();
+
+  dom.rocketBuildStatus.innerHTML = `
+    <div class="rocket-build-copy">
+      <p class="rocket-build-kicker">Rocket Stages</p>
+      <strong>${stageCount} of ${missionRewards.length} unlocked</strong>
+      <span>${nextReward ? `Next unlock: ${titleCase(nextReward.label)}` : "Full rocket ready for launch"}</span>
+      <span>${boostCount} star boosts lit</span>
+    </div>
+    <div class="rocket-build-visual">
+      ${renderRocketSceneMarkup(stageCount, boostCount)}
+    </div>
+  `;
+}
+
+function renderStartBadges() {
+  if (!hasStarted) {
+    dom.startBriefBadge.textContent = startContent.badge;
+    dom.startCounterBadge.textContent = formatTemplate(startContent.counter, {
+      count: sections.length * QUESTIONS_PER_TEST_SECTION,
+      missions: sections.length,
+    });
+    return;
+  }
+
+  const question = questionAt(currentIndex);
+  const mission = missionStoryForSection(question.section);
+  const missionState = buildMissionUiState(question.section);
+  dom.startBriefBadge.textContent = `Mission ${mission ? mission.number : sections.indexOf(question.section) + 1} of ${sections.length}`;
+  dom.startCounterBadge.textContent = `Mission Step ${missionState.currentQuestionNumber} of ${missionState.totalQuestions}`;
+}
+
 function renderStoryPanel(content) {
   if (!content) {
     dom.storyPanel.className = "story-panel";
@@ -351,6 +481,7 @@ function renderStoryPanel(content) {
     </div>
     ${pills.length ? `<div class="story-pills">${pills.join("")}</div>` : ""}
     <div class="story-copy">${buildStoryParagraphs(content.lines)}</div>
+    ${content.footerHtml || ""}
   `;
 }
 
@@ -371,6 +502,7 @@ function renderMissionStory(section) {
     return;
   }
   const reward = missionRewardForIndex(mission.number - 1);
+  const missionState = buildMissionUiState(section);
 
   renderStoryPanel({
     kicker: `Mission ${mission.number}`,
@@ -380,6 +512,7 @@ function renderMissionStory(section) {
     lines: [mission.summary],
     compact: true,
     iconKey: reward.key,
+    footerHtml: renderMissionDots(missionState),
   });
 }
 
@@ -535,6 +668,7 @@ function updateProgress() {
   dom.answeredCount.textContent = `${totalAnswered} of ${totalQuestions()}`;
   dom.progressFill.style.width = `${(totalAnswered / totalQuestions()) * 100}%`;
   dom.scoreDisplay.textContent = formatScore(liveCorrectTotal());
+  renderRocketBuildStatus();
   renderSectionStats();
   syncGamification();
 }
@@ -560,6 +694,7 @@ function renderFeedback(question, validatedAnswer) {
 
 function renderQuestion() {
   const shouldResetStageScroll = hasStarted && lastRenderedQuestionIndex !== currentIndex;
+  renderStartBadges();
   renderSectionStats();
 
   if (!hasStarted) {
@@ -575,6 +710,7 @@ function renderQuestion() {
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
     renderIntroductionStory();
+    renderRocketBuildStatus();
     dom.nameHint.textContent = playerName
       ? startContent.readyNameHint
       : startContent.emptyNameHint;

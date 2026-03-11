@@ -439,6 +439,11 @@ h1 {
   margin-top: 10px;
 }
 
+.mission-dots-inline {
+  margin-top: 14px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
 .name-entry {
   display: grid;
   gap: 8px;
@@ -528,6 +533,122 @@ h1 {
 
 .mini-stat-secondary {
   background: rgba(255, 255, 255, 0.78);
+}
+
+.rocket-build-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 126px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(42, 157, 143, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 249, 255, 0.9)),
+    linear-gradient(135deg, rgba(42, 157, 143, 0.05), rgba(244, 185, 66, 0.08));
+}
+
+.rocket-build-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.rocket-build-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.rocket-build-copy strong {
+  font-size: 1rem;
+}
+
+.rocket-build-copy span {
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+
+.rocket-build-visual {
+  display: grid;
+  place-items: center;
+}
+
+.rocket-scene-mini {
+  width: 110px;
+  height: 128px;
+}
+
+.rocket-scene-mini .rocket-fuel {
+  left: 6px;
+  bottom: 26px;
+  width: 8px;
+  height: 58px;
+}
+
+.rocket-scene-mini .rocket-pad {
+  left: 34px;
+  bottom: 8px;
+  width: 42px;
+}
+
+.rocket-scene-mini .rocket-body {
+  left: 38px;
+  bottom: 30px;
+  width: 34px;
+  height: 66px;
+}
+
+.rocket-scene-mini .rocket-body::before {
+  top: -14px;
+  left: 7px;
+  width: 18px;
+  height: 18px;
+}
+
+.rocket-scene-mini .rocket-window {
+  left: 47px;
+  bottom: 68px;
+  width: 16px;
+  height: 16px;
+}
+
+.rocket-scene-mini .rocket-wing {
+  bottom: 34px;
+  width: 14px;
+  height: 28px;
+}
+
+.rocket-scene-mini .rocket-wing-left {
+  left: 28px;
+}
+
+.rocket-scene-mini .rocket-wing-right {
+  right: 28px;
+}
+
+.rocket-scene-mini .rocket-engine {
+  left: 46px;
+  bottom: 20px;
+  width: 18px;
+  height: 14px;
+}
+
+.rocket-scene-mini .rocket-astronaut {
+  left: 49px;
+  bottom: 92px;
+  width: 12px;
+  height: 12px;
+}
+
+.rocket-scene-mini .rocket-flames {
+  left: 43px;
+  bottom: 0;
+  width: 24px;
+  height: 26px;
 }
 
 .mini-stat span {
@@ -1016,6 +1137,10 @@ h1 {
   }
 
   .results-breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .rocket-build-panel {
     grid-template-columns: 1fr;
   }
 }
