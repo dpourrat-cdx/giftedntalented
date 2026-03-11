@@ -44,7 +44,7 @@
   }
 
   function isRemoteUnavailableError(error) {
-    return error && ["PGRST205", "PGRST202", "42501"].includes(error.code);
+    return error && ["PGRST205", "PGRST202", "PGRST204", "42501", "42703"].includes(error.code);
   }
 
   function buildFriendlyError(error) {
@@ -89,6 +89,37 @@
     } catch (error) {
       // Ignore storage failures so the scoreboard still works without local persistence.
     }
+  }
+
+  function normalizeElapsedSeconds(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      return null;
+    }
+
+    return Math.round(numericValue);
+  }
+
+  function formatElapsedTime(seconds) {
+    const safeSeconds = normalizeElapsedSeconds(seconds);
+    if (safeSeconds === null) {
+      return "";
+    }
+
+    if (safeSeconds < 60) {
+      return `${safeSeconds} sec`;
+    }
+
+    const minutes = Math.floor(safeSeconds / 60);
+    const remainder = safeSeconds % 60;
+
+    if (minutes < 60) {
+      return remainder === 0 ? `${minutes} min` : `${minutes}m ${remainder}s`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
   }
 
   class ScoreboardService {
@@ -169,6 +200,7 @@
           score: scoreEntry.score,
           percentage: scoreEntry.percentage,
           total_questions: scoreEntry.totalQuestions,
+          elapsed_seconds: normalizeElapsedSeconds(scoreEntry.elapsedSeconds),
         }),
       });
     }
@@ -207,6 +239,7 @@
         scoreEntry.score,
         scoreEntry.percentage,
         scoreEntry.totalQuestions,
+        normalizeElapsedSeconds(scoreEntry.elapsedSeconds),
       ]);
     }
 
@@ -244,6 +277,9 @@
       const score = Number(record.score);
       const totalQuestions = Number(record.total_questions || record.totalQuestions);
       const percentage = Number(record.percentage);
+      const elapsedSeconds = normalizeElapsedSeconds(
+        record.elapsed_seconds ?? record.elapsedSeconds,
+      );
 
       if (!playerName || !Number.isFinite(score) || !Number.isFinite(totalQuestions)) {
         return null;
@@ -258,6 +294,7 @@
           : totalQuestions > 0
             ? Math.round((score / totalQuestions) * 100)
             : 0,
+        elapsedSeconds,
       };
     }
 
@@ -276,6 +313,18 @@
 
       if (candidate.percentage !== currentBest.percentage) {
         return candidate.percentage - currentBest.percentage;
+      }
+
+      if (candidate.elapsedSeconds !== currentBest.elapsedSeconds) {
+        if (candidate.elapsedSeconds === null) {
+          return -1;
+        }
+
+        if (currentBest.elapsedSeconds === null) {
+          return 1;
+        }
+
+        return currentBest.elapsedSeconds - candidate.elapsedSeconds;
       }
 
       return 0;
@@ -357,9 +406,17 @@
       }
 
       this.elements.name.textContent = topScore.playerName;
+      const metaBits = [
+        `<span>${escapeHtml(`${topScore.score}/${topScore.totalQuestions}`)}</span>`,
+        `<span>${escapeHtml(`${topScore.percentage}%`)}</span>`,
+      ];
+
+      if (topScore.elapsedSeconds !== null) {
+        metaBits.push(`<span>${escapeHtml(formatElapsedTime(topScore.elapsedSeconds))}</span>`);
+      }
+
       this.elements.score.innerHTML = `
-        <span>${escapeHtml(`${topScore.score}/${topScore.totalQuestions}`)}</span>
-        <span>${escapeHtml(`${topScore.percentage}%`)}</span>
+        ${metaBits.join("")}
       `;
       this.cachePlayerScore(topScore);
     }

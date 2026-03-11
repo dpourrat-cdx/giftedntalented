@@ -6,8 +6,12 @@ create table if not exists public.test_scores (
   score integer not null check (score >= 0),
   percentage integer not null check (percentage between 0 and 100),
   total_questions integer not null check (total_questions > 0),
+  elapsed_seconds integer check (elapsed_seconds is null or elapsed_seconds >= 0),
   completed_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.test_scores
+add column if not exists elapsed_seconds integer check (elapsed_seconds is null or elapsed_seconds >= 0);
 
 create table if not exists public.app_admin_settings (
   id boolean primary key default true,
@@ -29,6 +33,7 @@ with check (
   and score >= 0
   and percentage between 0 and 100
   and total_questions > 0
+  and (elapsed_seconds is null or elapsed_seconds >= 0)
 );
 
 revoke all on table public.app_admin_settings from anon, authenticated;
@@ -40,6 +45,7 @@ returns table (
   score integer,
   percentage integer,
   total_questions integer,
+  elapsed_seconds integer,
   completed_at timestamptz
 )
 language sql
@@ -51,11 +57,13 @@ as $$
     scores.score,
     scores.percentage,
     scores.total_questions,
+    scores.elapsed_seconds,
     scores.completed_at
   from public.test_scores as scores
   order by
     scores.percentage desc,
     scores.score desc,
+    scores.elapsed_seconds asc nulls last,
     scores.completed_at asc
   limit 1;
 $$;
@@ -66,6 +74,7 @@ returns table (
   score integer,
   percentage integer,
   total_questions integer,
+  elapsed_seconds integer,
   completed_at timestamptz
 )
 language sql
@@ -77,12 +86,14 @@ as $$
     scores.score,
     scores.percentage,
     scores.total_questions,
+    scores.elapsed_seconds,
     scores.completed_at
   from public.test_scores as scores
   where lower(btrim(scores.player_name)) = lower(btrim(coalesce(target_player_name, '')))
   order by
     scores.score desc,
     scores.percentage desc,
+    scores.elapsed_seconds asc nulls last,
     scores.completed_at asc
   limit 1;
 $$;

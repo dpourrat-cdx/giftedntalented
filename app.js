@@ -170,6 +170,10 @@ function formatTime(seconds) {
   return `${minutes}:${remainder}`;
 }
 
+function elapsedMissionSeconds() {
+  return Math.max(0, testDurationSeconds() - timeRemaining);
+}
+
 function updateTimerDisplay() {
   dom.timerDisplay.textContent = formatTime(timeRemaining);
 }
@@ -958,6 +962,7 @@ function buildFinalScoreRecord() {
     score: correct,
     percentage: scorePercent(correct),
     totalQuestions: totalQuestions(),
+    elapsedSeconds: elapsedMissionSeconds(),
   };
 }
 
@@ -968,6 +973,7 @@ function buildLiveScoreRecord() {
     score: correct,
     percentage: scorePercent(correct),
     totalQuestions: totalQuestions(),
+    elapsedSeconds: elapsedMissionSeconds(),
   };
 }
 

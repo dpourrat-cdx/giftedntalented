@@ -26,5 +26,5 @@ select public.set_reset_pin('replace-with-your-reset-pin');
 ## Notes
 
 - The public site uses the publishable Supabase key, which is safe to expose in browser code.
-- Re-run [`scoreboard_setup.sql`](./scoreboard_setup.sql) after this update so Supabase has the new `get_player_top_score` function the frontend now calls.
+- Re-run [`scoreboard_setup.sql`](./scoreboard_setup.sql) after this update so Supabase adds the `elapsed_seconds` field and refreshes the score lookup functions the frontend now calls.
 - The score board trusts the score sent by the browser because this project is a static frontend. If we want tamper-resistant scoring later, we should move score submission behind a trusted server or Supabase Edge Function.
