@@ -687,18 +687,8 @@ function allQuestionsAnswered() {
 }
 
 function renderFeedback(question, validatedAnswer) {
-  if (validatedAnswer === null) {
-    dom.feedbackPanel.className = "feedback-panel is-hidden";
-    dom.feedbackPanel.innerHTML = "";
-    return;
-  }
-
-  const isCorrect = validatedAnswer === question.answer;
-  const correctAnswer = question.options[question.answer];
-  dom.feedbackPanel.className = `feedback-panel ${isCorrect ? "is-correct" : "is-wrong"}`;
-  dom.feedbackPanel.innerHTML = isCorrect
-    ? `<strong>${questionContent.feedback.correctTitle}</strong><span>${question.explanation}</span>`
-    : `<strong>${questionContent.feedback.wrongTitle}</strong><span>${questionContent.feedback.correctAnswer} ${correctAnswer}. ${question.explanation}</span>`;
+  dom.feedbackPanel.className = "feedback-panel is-hidden";
+  dom.feedbackPanel.innerHTML = "";
 }
 
 function renderQuestion() {
@@ -786,7 +776,20 @@ function renderQuestion() {
     }
 
     const letter = String.fromCharCode(65 + optionIndex);
-    button.innerHTML = `<span class="option-letter">${letter}</span>${option}`;
+    const shouldShowRationale = validatedAnswer !== null && optionIndex === question.answer;
+    button.innerHTML = `
+      <span class="option-inner">
+        <span class="option-letter">${letter}</span>
+        <span class="option-copy">
+          <span class="option-text">${escapeHtml(option)}</span>
+          ${
+            shouldShowRationale
+              ? `<span class="option-rationale"><span class="option-rationale-label">${escapeHtml(questionContent.feedback.why)}</span> ${escapeHtml(question.explanation)}</span>`
+              : ""
+          }
+        </span>
+      </span>
+    `;
     button.disabled = isLocked;
 
     if (!isLocked) {
