@@ -1,0 +1,83 @@
+.hero-card .hero-actions {
+  display: grid;
+  gap: 12px;
+  min-width: 270px;
+}
+
+.top-score-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(24, 53, 61, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 28px rgba(24, 53, 61, 0.08);
+}
+
+.top-score-kicker {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.top-score-name {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.top-score-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.top-score-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(42, 157, 143, 0.1);
+  color: var(--teal);
+}
+
+.top-score-status {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.top-score-status.is-hidden {
+  display: none;
+}
+
+.top-score-status.is-info {
+  color: var(--ink-soft);
+}
+
+.top-score-status.is-success {
+  color: var(--teal);
+}
+
+.scoreboard-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .hero-card .hero-actions {
+    min-width: 0;
+  }
+
+  .scoreboard-button-row {
+    display: grid;
+  }
+}

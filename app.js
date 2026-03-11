@@ -18,6 +18,10 @@ const dom = {
   childNameInput: document.getElementById("childNameInput"),
   nameHint: document.getElementById("nameHint"),
   playerNote: document.getElementById("playerNote"),
+  leaderboardName: document.getElementById("leaderboardName"),
+  leaderboardScore: document.getElementById("leaderboardScore"),
+  leaderboardStatus: document.getElementById("leaderboardStatus"),
+  resetScoresButton: document.getElementById("resetScoresButton"),
   timerDisplay: document.getElementById("timerDisplay"),
   scoreDisplay: document.getElementById("scoreDisplay"),
   questionPanel: document.getElementById("questionPanel"),
@@ -50,6 +54,7 @@ let hasStarted = false;
 let playerName = "";
 let timeRemaining = 0;
 let gamificationController = null;
+let scoreboardController = null;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -459,6 +464,16 @@ function renderResults() {
   });
 }
 
+function buildFinalScoreRecord() {
+  const { correct } = scoreQuestions();
+  return {
+    playerName,
+    score: correct,
+    percentage: scorePercent(correct),
+    totalQuestions: totalQuestions(),
+  };
+}
+
 function startTestFromBeginning() {
   if (hasStarted || !playerName) {
     return;
@@ -497,6 +512,9 @@ function submitTest() {
   renderResults();
   if (gamificationController) {
     gamificationController.onTestCompleted(buildGamificationSnapshot());
+  }
+  if (scoreboardController) {
+    scoreboardController.recordScore(buildFinalScoreRecord());
   }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -571,6 +589,18 @@ if (window.GiftedGamification) {
       overlayRoot: dom.gamificationOverlayRoot,
     },
   });
+}
+
+if (window.GiftedScoreboard) {
+  scoreboardController = window.GiftedScoreboard.createScoreboardController({
+    elements: {
+      name: dom.leaderboardName,
+      score: dom.leaderboardScore,
+      status: dom.leaderboardStatus,
+      resetButton: dom.resetScoresButton,
+    },
+  });
+  scoreboardController.init();
 }
 
 createNewSession();

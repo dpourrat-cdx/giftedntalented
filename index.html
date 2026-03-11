@@ -15,6 +15,7 @@
     />
     <link rel="stylesheet" href="./styles.css?v=20260310-8" />
     <link rel="stylesheet" href="./gamification.css?v=20260310-1" />
+    <link rel="stylesheet" href="./scoreboard.css?v=20260311-1" />
   </head>
   <body>
     <main class="app-shell">
@@ -31,9 +32,22 @@
           <span>32 Minutes</span>
         </div>
         <div class="hero-actions">
-          <button id="restartButton" class="primary-button" type="button">
-            Restart Test
-          </button>
+          <section class="top-score-card" aria-live="polite" aria-atomic="true">
+            <p class="top-score-kicker">Top Score</p>
+            <strong id="leaderboardName" class="top-score-name">Loading...</strong>
+            <span id="leaderboardScore" class="top-score-meta">
+              Checking the best result so far.
+            </span>
+            <p id="leaderboardStatus" class="top-score-status is-hidden"></p>
+          </section>
+          <div class="scoreboard-button-row">
+            <button id="resetScoresButton" class="secondary-button" type="button">
+              Reset Score Board
+            </button>
+            <button id="restartButton" class="primary-button" type="button">
+              Restart Test
+            </button>
+          </div>
         </div>
       </section>
 
@@ -159,6 +173,7 @@
 
     <script src="./question-bank.js?v=20260310-8"></script>
     <script src="./gamification.js?v=20260310-1"></script>
-    <script src="./app.js?v=20260310-9"></script>
+    <script src="./scoreboard.js?v=20260311-1"></script>
+    <script src="./app.js?v=20260311-1"></script>
   </body>
 </html>
