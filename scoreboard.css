@@ -61,6 +61,10 @@
   color: var(--ink-soft);
 }
 
+.top-score-status.is-error {
+  color: var(--accent-deep);
+}
+
 .top-score-status.is-success {
   color: var(--teal);
 }
