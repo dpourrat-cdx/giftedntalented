@@ -1,7 +1,7 @@
 (function () {
   const SUPABASE_URL = "https://hwafspusaijqjkgweptv.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_-hPDn_wxDliucO3L5pP7-Q_Cd8MBvy-";
-  const CACHE_KEY = "gifted-scoreboard-top-score";
+  const CACHE_KEY = "gifted-scoreboard-player-best-scores";
 
   function escapeHtml(value) {
     return String(value)
@@ -17,6 +17,10 @@
       .trim()
       .replace(/\s+/g, " ")
       .slice(0, 40);
+  }
+
+  function playerCacheKey(name) {
+    return normalizePlayerName(name).toLowerCase();
   }
 
   function buildFriendlyError(error) {
@@ -43,23 +47,25 @@
     return "The score board could not update just now.";
   }
 
-  function readCachedTopScore() {
+  function readCachedScoreMap() {
     try {
       const raw = window.localStorage.getItem(CACHE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
     } catch (error) {
-      return null;
+      return {};
     }
   }
 
-  function writeCachedTopScore(record) {
+  function writeCachedScoreMap(scoreMap) {
     try {
-      if (!record) {
+      const safeScoreMap = scoreMap && typeof scoreMap === "object" ? scoreMap : {};
+      if (Object.keys(safeScoreMap).length === 0) {
         window.localStorage.removeItem(CACHE_KEY);
         return;
       }
 
-      window.localStorage.setItem(CACHE_KEY, JSON.stringify(record));
+      window.localStorage.setItem(CACHE_KEY, JSON.stringify(safeScoreMap));
     } catch (error) {
       // Ignore storage failures so the scoreboard still works without local persistence.
     }
@@ -112,10 +118,17 @@
       return text ? JSON.parse(text) : null;
     }
 
-    async fetchTopScore() {
-      const payload = await this.request("/rest/v1/rpc/get_top_score", {
+    async fetchPlayerTopScore(playerName) {
+      const normalizedName = normalizePlayerName(playerName);
+      if (!normalizedName) {
+        return null;
+      }
+
+      const payload = await this.request("/rest/v1/rpc/get_player_top_score", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          target_player_name: normalizedName,
+        }),
       });
 
       if (Array.isArray(payload)) {
@@ -155,20 +168,17 @@
       this.service = options.service;
       this.elements = options.elements;
       this.statusTimeoutId = null;
+      this.lookupDelayId = null;
+      this.lookupToken = 0;
       this.lastSavedFingerprint = "";
+      this.activePlayerName = "";
+      this.cachedScoreMap = readCachedScoreMap();
       this.boundReset = this.handleResetClick.bind(this);
     }
 
     init() {
-      const cachedScore = readCachedTopScore();
-      if (cachedScore) {
-        this.renderTopScore(cachedScore);
-      } else {
-        this.renderEmptyState();
-      }
-
+      this.renderAwaitingNameState();
       this.elements.resetButton.addEventListener("click", this.boundReset);
-      return this.refreshTopScore();
     }
 
     resultFingerprint(scoreEntry) {
@@ -205,12 +215,12 @@
       this.elements.resetButton.setAttribute("aria-busy", String(isBusy));
     }
 
-    normalizeTopScore(record) {
+    normalizeTopScore(record, fallbackPlayerName = "") {
       if (!record) {
         return null;
       }
 
-      const playerName = normalizePlayerName(record.player_name || record.playerName);
+      const playerName = normalizePlayerName(record.player_name || record.playerName || fallbackPlayerName);
       const score = Number(record.score);
       const totalQuestions = Number(record.total_questions || record.totalQuestions);
       const percentage = Number(record.percentage);
@@ -231,17 +241,74 @@
       };
     }
 
-    renderEmptyState() {
-      writeCachedTopScore(null);
-      this.elements.name.textContent = "Be the first player";
-      this.elements.score.textContent = "Finish a test to set the first top score.";
+    compareScoreEntries(candidate, currentBest) {
+      if (!candidate) {
+        return -1;
+      }
+
+      if (!currentBest) {
+        return 1;
+      }
+
+      if (candidate.score !== currentBest.score) {
+        return candidate.score - currentBest.score;
+      }
+
+      if (candidate.percentage !== currentBest.percentage) {
+        return candidate.percentage - currentBest.percentage;
+      }
+
+      return 0;
     }
 
-    renderTopScore(record) {
-      const topScore = this.normalizeTopScore(record);
+    getCachedPlayerScore(playerName) {
+      const key = playerCacheKey(playerName);
+      if (!key) {
+        return null;
+      }
+
+      return this.normalizeTopScore(this.cachedScoreMap[key], playerName);
+    }
+
+    cachePlayerScore(record) {
+      const normalized = this.normalizeTopScore(record);
+      if (!normalized) {
+        return null;
+      }
+
+      this.cachedScoreMap[playerCacheKey(normalized.playerName)] = normalized;
+      writeCachedScoreMap(this.cachedScoreMap);
+      return normalized;
+    }
+
+    clearCachedScores() {
+      this.cachedScoreMap = {};
+      writeCachedScoreMap({});
+    }
+
+    renderAwaitingNameState() {
+      this.elements.name.textContent = "Type a child name";
+      this.elements.score.textContent = "Enter the name below to show only that child's best score.";
+    }
+
+    renderLoadingState(playerName) {
+      this.elements.name.textContent = playerName;
+      this.elements.score.textContent = "Checking this child's saved best score.";
+    }
+
+    renderNoScoreState(playerName) {
+      this.elements.name.textContent = playerName;
+      this.elements.score.textContent = "No saved score yet for this child.";
+    }
+
+    renderTopScore(record, fallbackPlayerName = "") {
+      const topScore = this.normalizeTopScore(record, fallbackPlayerName);
       if (!topScore) {
-        this.renderEmptyState();
-        writeCachedTopScore(null);
+        if (fallbackPlayerName) {
+          this.renderNoScoreState(fallbackPlayerName);
+        } else {
+          this.renderAwaitingNameState();
+        }
         return;
       }
 
@@ -250,60 +317,153 @@
         <span>${escapeHtml(`${topScore.score}/${topScore.totalQuestions}`)}</span>
         <span>${escapeHtml(`${topScore.percentage}%`)}</span>
       `;
-      writeCachedTopScore(topScore);
+      this.cachePlayerScore(topScore);
     }
 
-    async refreshTopScore() {
-      try {
-        const record = await this.service.fetchTopScore();
+    async refreshTopScoreForPlayer(playerName, options = {}) {
+      const normalizedName = normalizePlayerName(playerName);
+      const requestToken = ++this.lookupToken;
 
-        if (!record) {
-          this.renderEmptyState();
+      if (!normalizedName) {
+        this.activePlayerName = "";
+        this.renderAwaitingNameState();
+        if (!options.preserveStatus) {
           this.clearStatus();
+        }
+        return null;
+      }
+
+      this.activePlayerName = normalizedName;
+
+      const cachedScore = this.getCachedPlayerScore(normalizedName);
+      if (cachedScore) {
+        this.renderTopScore(cachedScore, normalizedName);
+      } else if (options.showLoading !== false) {
+        this.renderLoadingState(normalizedName);
+      } else {
+        this.renderNoScoreState(normalizedName);
+      }
+
+      try {
+        const record = await this.service.fetchPlayerTopScore(normalizedName);
+
+        if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
           return null;
         }
 
-        this.renderTopScore(record);
-        this.clearStatus();
+        if (!record) {
+          this.renderNoScoreState(normalizedName);
+          if (!options.preserveStatus) {
+            this.clearStatus();
+          }
+          return null;
+        }
+
+        this.renderTopScore(record, normalizedName);
+        if (!options.preserveStatus) {
+          this.clearStatus();
+        }
         return record;
       } catch (error) {
-        const cachedScore = readCachedTopScore();
+        if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
+          return null;
+        }
+
         if (!cachedScore) {
-          this.renderEmptyState();
+          this.renderNoScoreState(normalizedName);
         }
 
         this.setStatus(buildFriendlyError(error), "info", true);
-        return null;
+        return cachedScore;
       }
     }
 
-    async recordScore(scoreEntry) {
+    setActivePlayerName(playerName) {
+      const normalizedName = normalizePlayerName(playerName);
+      window.clearTimeout(this.lookupDelayId);
+
+      if (!normalizedName) {
+        this.lookupToken += 1;
+        this.activePlayerName = "";
+        this.renderAwaitingNameState();
+        this.clearStatus();
+        return;
+      }
+
+      this.activePlayerName = normalizedName;
+      const cachedScore = this.getCachedPlayerScore(normalizedName);
+      if (cachedScore) {
+        this.renderTopScore(cachedScore, normalizedName);
+      } else {
+        this.renderLoadingState(normalizedName);
+      }
+      this.clearStatus();
+
+      this.lookupDelayId = window.setTimeout(() => {
+        this.refreshTopScoreForPlayer(normalizedName);
+      }, 220);
+    }
+
+    async recordScore(scoreEntry, options = {}) {
       const playerName = normalizePlayerName(scoreEntry.playerName);
       if (!playerName) {
         return null;
       }
 
-      const fingerprint = this.resultFingerprint({
+      const normalizedEntry = this.normalizeTopScore({
         ...scoreEntry,
         playerName,
       });
 
+      if (!normalizedEntry) {
+        return null;
+      }
+
+      if (normalizedEntry.score <= 0) {
+        return null;
+      }
+
+      const currentBest = this.getCachedPlayerScore(playerName);
+      if (this.compareScoreEntries(normalizedEntry, currentBest) <= 0) {
+        if (this.activePlayerName === playerName && currentBest) {
+          this.renderTopScore(currentBest, playerName);
+        }
+        return null;
+      }
+
+      const fingerprint = this.resultFingerprint(normalizedEntry);
       if (fingerprint === this.lastSavedFingerprint) {
+        if (this.activePlayerName === playerName) {
+          this.renderTopScore(normalizedEntry, playerName);
+        }
         return null;
       }
 
       this.lastSavedFingerprint = fingerprint;
 
       try {
-        await this.service.saveScore({
-          ...scoreEntry,
-          playerName,
+        await this.service.saveScore(normalizedEntry);
+        this.cachePlayerScore(normalizedEntry);
+
+        if (this.activePlayerName === playerName) {
+          this.renderTopScore(normalizedEntry, playerName);
+        }
+
+        await this.refreshTopScoreForPlayer(playerName, {
+          preserveStatus: true,
+          showLoading: false,
         });
-        await this.refreshTopScore();
-        this.setStatus("Score saved to the leader board.", "success");
+
+        if (options.showSuccessMessage) {
+          this.setStatus("Best score saved for this child.", "success");
+        }
+
         return true;
       } catch (error) {
         this.lastSavedFingerprint = "";
+        if (this.activePlayerName === playerName && currentBest) {
+          this.renderTopScore(currentBest, playerName);
+        }
         this.setStatus(buildFriendlyError(error), "info", true);
         return false;
       }
@@ -311,14 +471,14 @@
 
     async handleResetClick() {
       const shouldReset = window.confirm(
-        "Clear every saved score from the leader board? This cannot be undone.",
+        "Clear every saved score for every child? This cannot be undone.",
       );
 
       if (!shouldReset) {
         return;
       }
 
-      const resetPin = window.prompt("Enter the admin PIN to clear the leader board.");
+      const resetPin = window.prompt("Enter the admin PIN to clear the score board for every child.");
       if (resetPin === null) {
         return;
       }
@@ -328,8 +488,15 @@
       try {
         await this.service.resetScores(resetPin);
         this.lastSavedFingerprint = "";
-        this.renderEmptyState();
-        this.setStatus("The leader board has been cleared.", "success");
+        this.clearCachedScores();
+
+        if (this.activePlayerName) {
+          this.renderNoScoreState(this.activePlayerName);
+        } else {
+          this.renderAwaitingNameState();
+        }
+
+        this.setStatus("Every saved score has been cleared.", "success");
       } catch (error) {
         this.setStatus(buildFriendlyError(error), "info", true);
       } finally {

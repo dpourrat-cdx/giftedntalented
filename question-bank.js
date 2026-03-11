@@ -10,7 +10,7 @@
     "Logic",
   ];
 
-  const QUESTIONS_PER_SECTION = 100;
+  const QUESTIONS_PER_SECTION = 134;
   const QUESTIONS_PER_TEST_SECTION = 8;
 
   function seededShuffle(items, seed) {
@@ -43,6 +43,10 @@
       options,
       answer: options.indexOf(String(correct)),
     };
+  }
+
+  function pickDistractors(options, correct, count, seed) {
+    return seededShuffle(options.filter((option) => option !== correct), seed).slice(0, count);
   }
 
   function numericDistractors(correct, offsets) {
@@ -102,6 +106,45 @@
       [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
     }
     return copy.slice(0, count);
+  }
+
+  function buildAnswerSlotPlan(count) {
+    const slots = [];
+
+    while (slots.length + 4 <= count) {
+      slots.push(0, 1, 2, 3);
+    }
+
+    if (slots.length < count) {
+      slots.push(...sampleWithoutReplacement([0, 1, 2, 3], count - slots.length));
+    }
+
+    return sampleWithoutReplacement(slots, slots.length);
+  }
+
+  function placeCorrectAnswer(question, targetIndex) {
+    const correctOption = question.options[question.answer];
+    const distractors = sampleWithoutReplacement(
+      question.options.filter((_, optionIndex) => optionIndex !== question.answer),
+      3,
+    );
+    const options = [];
+    let distractorIndex = 0;
+
+    for (let optionIndex = 0; optionIndex < 4; optionIndex += 1) {
+      if (optionIndex === targetIndex) {
+        options.push(correctOption);
+      } else {
+        options.push(distractors[distractorIndex]);
+        distractorIndex += 1;
+      }
+    }
+
+    return {
+      ...question,
+      options,
+      answer: targetIndex,
+    };
   }
 
   function formatRows(rows) {
@@ -325,6 +368,8 @@
       );
     });
 
+    questions.push(...buildVerbalChallengeQuestions(section));
+
     return questions;
   }
 
@@ -501,6 +546,8 @@
         );
       }
     }
+
+    questions.push(...buildMathChallengeQuestions(section));
 
     return questions;
   }
@@ -696,6 +743,8 @@
       );
     }
 
+    questions.push(...buildNonverbalChallengeQuestions(section));
+
     return questions;
   }
 
@@ -808,6 +857,8 @@
         ),
       );
     }
+
+    questions.push(...buildSpatialChallengeQuestions(section));
 
     return questions;
   }
@@ -1025,6 +1076,8 @@
       }
     });
 
+    questions.push(...buildPatternChallengeQuestions(section));
+
     return questions;
   }
 
@@ -1128,6 +1181,8 @@
       }
     });
 
+    questions.push(...buildAnalogyChallengeQuestions(section));
+
     return questions;
   }
 
@@ -1193,6 +1248,8 @@
         ),
       );
     }
+
+    questions.push(...buildCategoryChallengeQuestions(section));
 
     return questions;
   }
@@ -1289,6 +1346,756 @@
       );
     }
 
+    questions.push(...buildLogicChallengeQuestions(section));
+
+    return questions;
+  }
+
+  function buildVerbalChallengeQuestions(section) {
+    const questions = [];
+    const synonymSet = [
+      ["enormous", "huge", ["tiny", "plain", "shallow"]],
+      ["fragile", "delicate", ["muddy", "noisy", "sleepy"]],
+      ["observe", "watch", ["cover", "pack", "ignore"]],
+      ["purchase", "buy", ["hide", "wrap", "sell"]],
+      ["rapid", "fast", ["heavy", "damp", "sleepy"]],
+      ["ancient", "old", ["modern", "narrow", "swift"]],
+      ["delighted", "pleased", ["worried", "jagged", "empty"]],
+      ["repair", "fix", ["break", "visit", "toss"]],
+      ["fortunate", "lucky", ["angry", "crooked", "wooden"]],
+      ["respond", "answer", ["listen", "wander", "climb"]],
+    ];
+    const antonymSet = [
+      ["ancient", "modern", ["quiet", "lucky", "timid"]],
+      ["expand", "shrink", ["measure", "giggle", "travel"]],
+      ["include", "exclude", ["borrow", "collect", "discover"]],
+      ["polite", "rude", ["patient", "fragile", "tidy"]],
+      ["victory", "defeat", ["courage", "thunder", "basket"]],
+      ["scarce", "plentiful", ["narrow", "sleepy", "helpful"]],
+      ["arrive", "depart", ["search", "cover", "explain"]],
+      ["private", "public", ["silent", "cloudy", "narrow"]],
+    ];
+    const contextSet = [
+      [
+        "The puppy was so ___ after the long walk that it fell asleep on the car ride home.",
+        "drowsy",
+        ["fragile", "rapid", "ancient"],
+      ],
+      [
+        "Mia used a magnifying glass to ___ the tiny shells on the beach.",
+        "observe",
+        ["purchase", "repair", "include"],
+      ],
+      [
+        "The glass ornament was ___, so Dad wrapped it in soft paper.",
+        "fragile",
+        ["modern", "cheerful", "sturdy"],
+      ],
+      [
+        "After the team won the final game, everyone celebrated the big ___.",
+        "victory",
+        ["shadow", "whisper", "arrival"],
+      ],
+      [
+        "Grandpa showed us an ___ coin from more than one hundred years ago.",
+        "ancient",
+        ["rapid", "cloudy", "narrow"],
+      ],
+      [
+        "The hallway looked ___ during the storm because only one lamp was on.",
+        "gloomy",
+        ["lucky", "honest", "simple"],
+      ],
+      [
+        "Leah needed to ___ her torn backpack strap before school.",
+        "repair",
+        ["borrow", "discover", "include"],
+      ],
+      [
+        "Sofia felt ___ when her lost kitten came back home.",
+        "fortunate",
+        ["fragile", "rapid", "ancient"],
+      ],
+    ];
+    const reasoningSet = [
+      [
+        "If a trail is steep, what is probably true?",
+        "It is hard to climb.",
+        ["It is made of glass.", "It is underwater.", "It is very short."],
+      ],
+      [
+        "If a glass is transparent, what can you do through it?",
+        "See through it.",
+        ["Cook with it.", "Plant it.", "Bend it like cloth."],
+      ],
+      [
+        "If an author writes a sequel, what has the author already written?",
+        "Another book in the same series.",
+        ["A recipe for dinner.", "A list of chores.", "A map of the town."],
+      ],
+      [
+        "If a rule is fair, how does it treat people?",
+        "It treats people the same way.",
+        ["It changes every minute.", "It only helps adults.", "It hides the answer."],
+      ],
+      [
+        "If a machine starts rattling and smoking, what should happen next?",
+        "Someone should check it right away.",
+        ["It should be painted blue.", "It should be buried.", "It should be used faster."],
+      ],
+      [
+        "If a map shows a dotted line to a campsite, what is the line most likely showing?",
+        "The trail to follow.",
+        ["The tallest tree.", "The weather tomorrow.", "The name of the river."],
+      ],
+      [
+        "If an animal is nocturnal, when is it usually awake?",
+        "At night.",
+        ["Only at noon.", "Only in winter.", "Only during storms."],
+      ],
+      [
+        "If a package is labeled fragile, how should it be handled?",
+        "Carefully.",
+        ["As loudly as possible.", "Only upside down.", "As fast as possible."],
+      ],
+    ];
+
+    synonymSet.forEach(([word, correct, distractors], index) => {
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `Which word means almost the same as "${word}"?`,
+          correct,
+          distractors,
+          `${correct} is the closest meaning to ${word}.`,
+          "",
+          1400 + index,
+        ),
+      );
+    });
+
+    antonymSet.forEach(([word, correct, distractors], index) => {
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `Which word means the opposite of "${word}"?`,
+          correct,
+          distractors,
+          `${correct} is the opposite of ${word}.`,
+          "",
+          1500 + index,
+        ),
+      );
+    });
+
+    contextSet.forEach(([prompt, correct, distractors], index) => {
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          prompt,
+          correct,
+          distractors,
+          `${correct} is the best word to complete the sentence.`,
+          "",
+          1600 + index,
+        ),
+      );
+    });
+
+    reasoningSet.forEach(([prompt, correct, distractors], index) => {
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          prompt,
+          correct,
+          distractors,
+          `${correct} is the best inference from the clue.`,
+          "",
+          1700 + index,
+        ),
+      );
+    });
+
+    return questions;
+  }
+
+  function buildMathChallengeQuestions(section) {
+    const questions = [];
+    const regroupSet = [
+      ["What is 47 + 26?", 73],
+      ["What is 83 - 47?", 36],
+      ["What is 58 + 19?", 77],
+      ["What is 94 - 38?", 56],
+      ["What is 36 + 27?", 63],
+      ["What is 72 - 29?", 43],
+      ["What is 65 + 18?", 83],
+      ["What is 81 - 46?", 35],
+      ["What is 29 + 37?", 66],
+      ["What is 90 - 57?", 33],
+    ];
+    const multiplicationSet = [
+      ["What is 6 x 4?", 24, "6 groups of 4 make 24."],
+      ["What is 7 x 5?", 35, "7 groups of 5 make 35."],
+      ["What is 8 x 3?", 24, "8 groups of 3 make 24."],
+      ["What is 9 x 4?", 36, "9 groups of 4 make 36."],
+      ["There are 5 rows with 6 chairs in each row. How many chairs are there?", 30, "5 rows of 6 chairs make 30 chairs."],
+      ["There are 4 boxes with 8 crayons in each box. How many crayons are there?", 32, "4 boxes of 8 crayons make 32 crayons."],
+      ["Three teams each have 9 players. How many players are there in all?", 27, "3 groups of 9 make 27."],
+      ["For 7 days in a row, Liam earns 6 stickers each day. How many stickers does he earn?", 42, "7 groups of 6 make 42."],
+    ];
+    const divisionSet = [
+      ["What is 24 / 6?", 4, "24 split into 6 equal groups gives 4 in each group."],
+      ["What is 35 / 5?", 7, "35 split into 5 equal groups gives 7 in each group."],
+      ["What is 42 / 7?", 6, "42 split into 7 equal groups gives 6 in each group."],
+      ["What is 56 / 8?", 7, "56 split into 8 equal groups gives 7 in each group."],
+      ["32 apples are shared equally among 4 baskets. How many apples go in each basket?", 8, "32 divided by 4 equals 8."],
+      ["27 stickers are shared equally among 3 friends. How many stickers does each friend get?", 9, "27 divided by 3 equals 9."],
+      ["45 blocks are stacked equally into 5 towers. How many blocks are in each tower?", 9, "45 divided by 5 equals 9."],
+      ["36 pencils are placed equally into 6 cups. How many pencils go in each cup?", 6, "36 divided by 6 equals 6."],
+    ];
+    const wordProblemSet = [
+      ["Mila saved 35 cents on Monday and 27 cents on Tuesday. How many cents did she save in all?", 62],
+      ["A ribbon is 48 inches long. Then 15 inches are cut off and 9 more inches are cut off. How many inches remain?", 24],
+      ["A rectangle has sides that are 6 inches and 4 inches long. What is its perimeter?", 20],
+      ["There are 4 tables with 7 pencils on each table, and the teacher adds 6 more pencils. How many pencils are there now?", 34],
+      ["A jar has 54 beads. If 18 are blue, how many are red?", 36],
+      ["Three friends each read 12 pages on Monday. How many pages did they read altogether?", 36],
+      ["A store sold 45 apples in the morning and 28 apples in the afternoon. How many apples did it sell?", 73],
+      ["There are 63 stickers shared equally among 9 students. How many stickers does each student get?", 7],
+    ];
+
+    regroupSet.forEach(([prompt, correct], index) => {
+      questions.push(
+        makeNumericQuestion(
+          section,
+          prompt,
+          correct,
+          `${prompt.replace("What is ", "").replace("?", "")} = ${correct}.`,
+          2500 + index,
+        ),
+      );
+    });
+
+    multiplicationSet.forEach(([prompt, correct, explanation], index) => {
+      questions.push(
+        makeNumericQuestion(
+          section,
+          prompt,
+          correct,
+          explanation,
+          2600 + index,
+        ),
+      );
+    });
+
+    divisionSet.forEach(([prompt, correct, explanation], index) => {
+      questions.push(
+        makeNumericQuestion(
+          section,
+          prompt,
+          correct,
+          explanation,
+          2700 + index,
+        ),
+      );
+    });
+
+    wordProblemSet.forEach(([prompt, correct], index) => {
+      questions.push(
+        makeNumericQuestion(
+          section,
+          prompt,
+          correct,
+          `The answer is ${correct} after solving the word problem step by step.`,
+          2800 + index,
+        ),
+      );
+    });
+
+    return questions;
+  }
+
+  function buildNonverbalChallengeQuestions(section) {
+    const questions = [];
+    const shapes = ["circle", "square", "triangle", "star", "diamond", "rectangle", "hexagon", "oval"];
+
+    for (let index = 0; index < 6; index += 1) {
+      const first = shapes[index % shapes.length];
+      const second = shapes[(index + 1) % shapes.length];
+      const third = shapes[(index + 2) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "What comes next in the pattern?",
+          `big ${third}`,
+          [`small ${third}`, `big ${first}`, `small ${first}`],
+          `The size changes small, big for each shape, so the next item is big ${third}.`,
+          `small ${first} | big ${first} | small ${second} | big ${second} | small ${third} | ?`,
+          3400 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const first = shapes[(index + 2) % shapes.length];
+      const second = shapes[(index + 3) % shapes.length];
+      const third = shapes[(index + 4) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "What comes next in the pattern?",
+          `filled ${third}`,
+          [`outline ${third}`, `filled ${first}`, `outline ${first}`],
+          `The fill changes outline, filled for each shape, so the next item is filled ${third}.`,
+          `outline ${first} | filled ${first} | outline ${second} | filled ${second} | outline ${third} | ?`,
+          3410 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const first = shapes[(index + 1) % shapes.length];
+      const second = shapes[(index + 5) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `small outline ${first} becomes big filled ${first}. small outline ${second} becomes ...`,
+          `big filled ${second}`,
+          [`small filled ${second}`, `big outline ${second}`, `big filled ${first}`],
+          `The rule changes both the size and the fill, so small outline ${second} becomes big filled ${second}.`,
+          "",
+          3420 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const first = shapes[(index + 3) % shapes.length];
+      const second = shapes[(index + 6) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `1 ${first} becomes 3 ${first}s. 1 ${second} becomes ...`,
+          `3 ${second}s`,
+          [`2 ${second}s`, `3 ${first}s`, `1 ${second}`],
+          `The rule triples the number of the same shape, so 1 ${second} becomes 3 ${second}s.`,
+          "",
+          3430 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 5; index += 1) {
+      const first = shapes[index % shapes.length];
+      const second = shapes[(index + 1) % shapes.length];
+      const third = shapes[(index + 2) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "Which one does not belong?",
+          `big filled ${first}`,
+          [`small filled ${first}`, `small filled ${second}`, `small filled ${third}`],
+          `big filled ${first} is the only choice that is big while the others are small filled shapes.`,
+          "",
+          3440 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 5; index += 1) {
+      const first = shapes[(index + 2) % shapes.length];
+      const second = shapes[(index + 3) % shapes.length];
+      const third = shapes[(index + 4) % shapes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "Which one does not belong?",
+          `outline ${first}`,
+          [`filled ${first}`, `filled ${second}`, `filled ${third}`],
+          `outline ${first} is the only outline shape while the others are filled.`,
+          "",
+          3450 + index,
+        ),
+      );
+    }
+
+    return questions;
+  }
+
+  function buildSpatialChallengeQuestions(section) {
+    const questions = [];
+    const directions = ["north", "east", "south", "west"];
+    const displayDirections = {
+      north: "North",
+      east: "East",
+      south: "South",
+      west: "West",
+    };
+    const turnPatterns = [
+      ["right", "left", "opposite", "right"],
+      ["left", "opposite", "right", "left"],
+      ["opposite", "right", "right", "left"],
+      ["right", "right", "left", "opposite"],
+      ["left", "left", "opposite", "right"],
+      ["opposite", "left", "right", "right"],
+      ["right", "opposite", "left", "left"],
+      ["left", "right", "opposite", "opposite"],
+      ["right", "left", "right", "left"],
+      ["left", "right", "left", "right"],
+      ["opposite", "right", "opposite", "left"],
+      ["right", "opposite", "right", "opposite"],
+      ["left", "opposite", "left", "opposite"],
+      ["right", "left", "opposite", "left"],
+    ];
+
+    questions.push(...generateGridQuestions(section, 5, 20, 6100));
+
+    turnPatterns.forEach((turns, index) => {
+      const start = directions[index % directions.length];
+      let current = start;
+
+      turns.forEach((turn) => {
+        current = rotateDirection(current, turn);
+      });
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `A rocket starts facing ${displayDirections[start]}. It turns ${turns.join(", then ")}. Which way does it face now?`,
+          displayDirections[current],
+          directions.filter((direction) => direction !== current).map((direction) => displayDirections[direction]),
+          `Following the turns in order leaves the rocket facing ${displayDirections[current]}.`,
+          "",
+          6200 + index,
+        ),
+      );
+    });
+
+    return questions;
+  }
+
+  function buildPatternChallengeQuestions(section) {
+    const questions = [];
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (let index = 0; index < 6; index += 1) {
+      const start = 3 + index;
+      const sequence = [start, start + 2, start + 5, start + 9];
+      const correct = start + 14;
+
+      questions.push(
+        makeNumericQuestion(
+          section,
+          "What number comes next in the pattern?",
+          correct,
+          "The pattern adds 2, then 3, then 4, so the next step adds 5.",
+          8100 + index,
+          `${sequence.join(", ")}, ?`,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const start = 30 + index * 2;
+      const sequence = [start, start - 3, start - 7, start - 12];
+      const correct = start - 18;
+
+      questions.push(
+        makeNumericQuestion(
+          section,
+          "What number comes next in the pattern?",
+          correct,
+          "The pattern subtracts 3, then 4, then 5, so the next step subtracts 6.",
+          8110 + index,
+          `${sequence.join(", ")}, ?`,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const start = index;
+      const first = alphabet[start];
+      const second = alphabet[start + 2];
+      const third = alphabet[start + 4];
+      const fourth = alphabet[start + 6];
+      const correct = alphabet[start + 8];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "What letter comes next in the pattern?",
+          correct,
+          pickDistractors(alphabet.split(""), correct, 3, 8200 + index),
+          "The letters move forward by 2 each time.",
+          `${first}, ${second}, ${third}, ${fourth}, ?`,
+          8200 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 6; index += 1) {
+      const start = index + 1;
+      const first = alphabet[start];
+      const second = alphabet[start + 3];
+      const third = alphabet[start + 6];
+      const fourth = alphabet[start + 9];
+      const correct = alphabet[start + 12];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "What letter comes next in the pattern?",
+          correct,
+          pickDistractors(alphabet.split(""), correct, 3, 8210 + index),
+          "The letters move forward by 3 each time.",
+          `${first}, ${second}, ${third}, ${fourth}, ?`,
+          8210 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 5; index += 1) {
+      const first = 2 + index;
+      const second = 4 + index;
+      const third = 6 + index;
+      const correct = third * 2 + 1;
+
+      questions.push(
+        makeNumericQuestion(
+          section,
+          "Use the same rule in each row. What number should replace the question mark?",
+          correct,
+          "Each output is double the input, then 1 more.",
+          8220 + index,
+          formatRows([
+            `${first} -> ${first * 2 + 1}`,
+            `${second} -> ${second * 2 + 1}`,
+            `${third} -> ?`,
+          ]),
+        ),
+      );
+    }
+
+    for (let index = 0; index < 5; index += 1) {
+      const first = 3 + index;
+      const second = 5 + index;
+      const third = 7 + index;
+      const correct = third * 3 - 2;
+
+      questions.push(
+        makeNumericQuestion(
+          section,
+          "Use the same rule in each row. What number should replace the question mark?",
+          correct,
+          "Each output is triple the input, then 2 less.",
+          8230 + index,
+          formatRows([
+            `${first} -> ${first * 3 - 2}`,
+            `${second} -> ${second * 3 - 2}`,
+            `${third} -> ?`,
+          ]),
+        ),
+      );
+    }
+
+    return questions;
+  }
+
+  function buildAnalogyChallengeQuestions(section) {
+    const family = [
+      ["author", "book"],
+      ["chef", "meal"],
+      ["artist", "painting"],
+      ["builder", "house"],
+      ["baker", "bread"],
+      ["composer", "song"],
+      ["farmer", "crop"],
+      ["teacher", "lesson"],
+      ["carpenter", "table"],
+      ["tailor", "shirt"],
+      ["programmer", "app"],
+      ["potter", "vase"],
+      ["jeweler", "ring"],
+      ["gardener", "garden"],
+      ["scientist", "experiment"],
+      ["poet", "poem"],
+      ["inventor", "machine"],
+    ];
+    const allFirsts = uniqueValues(family.map((pair) => pair[0]));
+    const allSeconds = uniqueValues(family.map((pair) => pair[1]));
+    const questions = [];
+
+    family.forEach((left, index) => {
+      const right = family[(index + 1) % family.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `${left[0]} is to ${left[1]} as ${right[0]} is to ...`,
+          right[1],
+          pickDistractors(allSeconds, right[1], 3, 8300 + index),
+          `${right[0]} is matched with ${right[1]} in the same maker-to-product relationship.`,
+          "",
+          8300 + index,
+        ),
+      );
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `${left[1]} is to ${left[0]} as ${right[1]} is to ...`,
+          right[0],
+          pickDistractors(allFirsts, right[0], 3, 8400 + index),
+          `${right[1]} is made by ${right[0]} in the same reverse relationship.`,
+          "",
+          8400 + index,
+        ),
+      );
+    });
+
+    return questions;
+  }
+
+  function buildCategoryChallengeQuestions(section) {
+    const challengeCategories = {
+      Mammals: ["dog", "whale", "tiger", "horse", "squirrel"],
+      Birds: ["eagle", "robin", "penguin", "owl", "parrot"],
+      Reptiles: ["snake", "turtle", "lizard", "crocodile", "iguana"],
+      Insects: ["butterfly", "beetle", "ant", "dragonfly", "grasshopper"],
+      Landforms: ["mountain", "valley", "canyon", "hill", "plateau"],
+      "Bodies of Water": ["river", "lake", "ocean", "pond", "stream"],
+      "Solid Shapes": ["cube", "sphere", "cone", "cylinder", "prism"],
+      "Measurement Tools": ["ruler", "scale", "thermometer", "clock", "measuring cup"],
+      "Natural Resources": ["water", "soil", "sunlight", "wind", "trees"],
+      Communities: ["city", "suburb", "town", "village", "neighborhood"],
+    };
+    const categoryNames = Object.keys(challengeCategories);
+    const questions = [];
+
+    for (let index = 0; index < 17; index += 1) {
+      const category = categoryNames[index % categoryNames.length];
+      const oddCategory = categoryNames[(index + 3) % categoryNames.length];
+      const sameGroup = challengeCategories[category];
+      const oddGroup = challengeCategories[oddCategory];
+      const correct = oddGroup[index % oddGroup.length];
+      const distractors = [
+        sameGroup[index % sameGroup.length],
+        sameGroup[(index + 1) % sameGroup.length],
+        sameGroup[(index + 2) % sameGroup.length],
+      ];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          "Which word does not belong with the others?",
+          correct,
+          distractors,
+          `${correct} belongs to ${oddCategory}, while the others are all in ${category}.`,
+          "",
+          8500 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 17; index += 1) {
+      const category = categoryNames[index % categoryNames.length];
+      const item = challengeCategories[category][index % challengeCategories[category].length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `Which group does "${item}" belong to?`,
+          category,
+          pickDistractors(categoryNames, category, 3, 8600 + index),
+          `${item} belongs in the ${category} group.`,
+          "",
+          8600 + index,
+        ),
+      );
+    }
+
+    return questions;
+  }
+
+  function buildLogicChallengeQuestions(section) {
+    const questions = [];
+    const activities = ["reading", "science", "music", "art", "recess", "lunch", "math", "library", "spelling", "soccer"];
+    const names = ["Mia", "Ben", "Ava", "Leo", "Nora", "Sam", "Ella", "Jay", "Ivy", "Owen"];
+    const nonsense = ["zib", "mip", "tov", "lax", "pim", "bex", "dor", "vup", "nax", "rel"];
+    const attributes = ["striped", "shiny", "bumpy", "green", "round", "soft", "wooden", "bright", "spotted", "smooth"];
+
+    for (let index = 0; index < 12; index += 1) {
+      const first = activities[index % activities.length];
+      const second = activities[(index + 1) % activities.length];
+      const third = activities[(index + 2) % activities.length];
+      const fourth = activities[(index + 3) % activities.length];
+      const ask = index % 4 === 0 ? "first" : index % 4 === 1 ? "second" : index % 4 === 2 ? "third" : "last";
+      const correct = ask === "first" ? first : ask === "second" ? second : ask === "third" ? third : fourth;
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `${second} happened after ${first}. ${third} happened after ${second}. ${fourth} happened after ${third}. What happened ${ask}?`,
+          correct,
+          [first, second, third, fourth].filter((value) => value !== correct).slice(0, 3),
+          `The order is ${first}, then ${second}, then ${third}, then ${fourth}.`,
+          "",
+          8700 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 10; index += 1) {
+      const first = names[index % names.length];
+      const second = names[(index + 1) % names.length];
+      const third = names[(index + 2) % names.length];
+      const fourth = names[(index + 3) % names.length];
+      const ask = index % 4 === 0 ? "fastest" : index % 4 === 1 ? "slowest" : index % 4 === 2 ? "second" : "third";
+      const correct = ask === "fastest" ? first : ask === "slowest" ? fourth : ask === "second" ? second : third;
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `${first} is faster than ${second}. ${second} is faster than ${third}. ${third} is faster than ${fourth}. Who is ${ask}?`,
+          correct,
+          [first, second, third, fourth].filter((value) => value !== correct).slice(0, 3),
+          `The speed order is ${first}, ${second}, ${third}, ${fourth}.`,
+          "",
+          8800 + index,
+        ),
+      );
+    }
+
+    for (let index = 0; index < 12; index += 1) {
+      const madeUpWord = nonsense[index % nonsense.length];
+      const name = names[(index + 4) % names.length];
+      const attributeOne = attributes[index % attributes.length];
+      const attributeTwo = attributes[(index + 2) % attributes.length];
+      const attributeThree = attributes[(index + 4) % attributes.length];
+
+      questions.push(
+        makeChoiceQuestion(
+          section,
+          `All ${madeUpWord}s are ${attributeOne}. All ${attributeOne} things are ${attributeTwo}. All ${attributeTwo} things are ${attributeThree}. ${name} has a ${madeUpWord}. What must be true?`,
+          `${name} has something ${attributeThree}.`,
+          [
+            `${name} has something red.`,
+            `Everything ${attributeThree} is a ${madeUpWord}.`,
+            `${name} does not have a ${madeUpWord}.`,
+          ],
+          `Because every ${madeUpWord} is ${attributeOne}, every ${attributeOne} thing is ${attributeTwo}, and every ${attributeTwo} thing is ${attributeThree}, ${name}'s ${madeUpWord} must be ${attributeThree}.`,
+          "",
+          8900 + index,
+        ),
+      );
+    }
+
     return questions;
   }
 
@@ -1352,11 +2159,13 @@
 
       SECTIONS.forEach((section) => {
         const sampledQuestions = sampleWithoutReplacement(QUESTION_POOL[section], QUESTIONS_PER_TEST_SECTION);
+        const answerSlots = buildAnswerSlotPlan(QUESTIONS_PER_TEST_SECTION);
 
-        sampledQuestions.forEach((question) => {
+        sampledQuestions.forEach((question, questionIndex) => {
+          const questionForSession = placeCorrectAnswer(question, answerSlots[questionIndex]);
           session.push({
-            ...question,
-            options: [...question.options],
+            ...questionForSession,
+            options: [...questionForSession.options],
             id: session.length + 1,
           });
         });

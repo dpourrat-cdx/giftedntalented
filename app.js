@@ -474,6 +474,16 @@ function buildFinalScoreRecord() {
   };
 }
 
+function buildLiveScoreRecord() {
+  const correct = liveCorrectTotal();
+  return {
+    playerName,
+    score: correct,
+    percentage: scorePercent(correct),
+    totalQuestions: totalQuestions(),
+  };
+}
+
 function startTestFromBeginning() {
   if (hasStarted || !playerName) {
     return;
@@ -493,6 +503,9 @@ function restartTest() {
   createNewSession();
   playerName = "";
   dom.childNameInput.value = "";
+  if (scoreboardController) {
+    scoreboardController.setActivePlayerName(playerName);
+  }
   dom.resultsSection.classList.add("is-hidden");
   dom.timeSummary.textContent = "";
   updateProgress();
@@ -539,6 +552,9 @@ dom.nextButton.addEventListener("click", () => {
         isCorrect: selectedAnswer === question.answer,
       });
     }
+    if (scoreboardController) {
+      scoreboardController.recordScore(buildLiveScoreRecord());
+    }
     return;
   }
 
@@ -561,6 +577,9 @@ dom.restartButton.addEventListener("click", restartTest);
 dom.retryButton.addEventListener("click", restartTest);
 dom.childNameInput.addEventListener("input", () => {
   playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
+  if (scoreboardController) {
+    scoreboardController.setActivePlayerName(playerName);
+  }
   renderQuestion();
 });
 dom.childNameInput.addEventListener("keydown", (event) => {
@@ -601,6 +620,7 @@ if (window.GiftedScoreboard) {
     },
   });
   scoreboardController.init();
+  scoreboardController.setActivePlayerName(playerName);
 }
 
 createNewSession();

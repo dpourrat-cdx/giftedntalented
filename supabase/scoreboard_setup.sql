@@ -60,6 +60,33 @@ as $$
   limit 1;
 $$;
 
+create or replace function public.get_player_top_score(target_player_name text)
+returns table (
+  player_name text,
+  score integer,
+  percentage integer,
+  total_questions integer,
+  completed_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    scores.player_name,
+    scores.score,
+    scores.percentage,
+    scores.total_questions,
+    scores.completed_at
+  from public.test_scores as scores
+  where lower(btrim(scores.player_name)) = lower(btrim(coalesce(target_player_name, '')))
+  order by
+    scores.score desc,
+    scores.percentage desc,
+    scores.completed_at asc
+  limit 1;
+$$;
+
 create or replace function public.set_reset_pin(new_reset_pin text)
 returns void
 language plpgsql
@@ -118,6 +145,7 @@ end;
 $$;
 
 grant execute on function public.get_top_score() to anon, authenticated;
+grant execute on function public.get_player_top_score(text) to anon, authenticated;
 grant execute on function public.reset_scores(text) to anon, authenticated;
 
 revoke all on function public.set_reset_pin(text) from public;
@@ -125,6 +153,9 @@ revoke all on function public.set_reset_pin(text) from anon, authenticated;
 
 comment on function public.get_top_score() is
 'Returns the best single test score overall for the public leader board.';
+
+comment on function public.get_player_top_score(text) is
+'Returns the best saved score for the provided child name without exposing scores from other names.';
 
 comment on function public.reset_scores(text) is
 'Clears saved scores when the provided admin PIN matches the stored bcrypt hash.';
