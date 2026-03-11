@@ -3,6 +3,18 @@
   const SUPABASE_ANON_KEY = "sb_publishable_-hPDn_wxDliucO3L5pP7-Q_Cd8MBvy-";
   const CACHE_KEY = "gifted-scoreboard-player-best-scores";
   const LOCAL_RESET_PIN = "123";
+  const scoreboardContent = window.CaptainNovaContent?.scoreboard || {
+    awaitingName: "Type an explorer name",
+    awaitingScore: "Enter the explorer name below to show only that explorer's best score.",
+    loading: "Checking this explorer's saved record.",
+    empty: "No saved record yet for this explorer.",
+    localSaveSuccess: "Explorer record saved on this device.",
+    deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
+    deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
+    allResetSuccess: "Every saved explorer record has been cleared.",
+    resetPrompt: "Enter the admin PIN to clear saved explorer records.",
+    resetConfirm: "Clear every saved explorer record on this device? This cannot be undone.",
+  };
 
   function escapeHtml(value) {
     return String(value)
@@ -299,7 +311,7 @@
     }
 
     async authorizeReset() {
-      const resetPin = window.prompt("Enter the admin PIN to clear saved scores.");
+      const resetPin = window.prompt(scoreboardContent.resetPrompt);
       if (resetPin === null) {
         return null;
       }
@@ -319,18 +331,18 @@
     }
 
     renderAwaitingNameState() {
-      this.elements.name.textContent = "Type a child name";
-      this.elements.score.textContent = "Enter the name below to show only that child's best score.";
+      this.elements.name.textContent = scoreboardContent.awaitingName;
+      this.elements.score.textContent = scoreboardContent.awaitingScore;
     }
 
     renderLoadingState(playerName) {
       this.elements.name.textContent = playerName;
-      this.elements.score.textContent = "Checking this child's saved best score.";
+      this.elements.score.textContent = scoreboardContent.loading;
     }
 
     renderNoScoreState(playerName) {
       this.elements.name.textContent = playerName;
-      this.elements.score.textContent = "No saved score yet for this child.";
+      this.elements.score.textContent = scoreboardContent.empty;
     }
 
     renderTopScore(record, fallbackPlayerName = "") {
@@ -493,19 +505,15 @@
         });
 
         if (options.showSuccessMessage) {
-          this.setStatus("Best score saved for this child.", "success");
+          this.setStatus(scoreboardContent.localSaveSuccess, "success");
         }
 
         return true;
       } catch (error) {
         if (!isRemoteUnavailableError(error)) {
-          this.setStatus(
-            "Best score saved on this device. Online sync could not update just now.",
-            "info",
-            true,
-          );
+          this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
         } else if (options.showSuccessMessage) {
-          this.setStatus("Best score saved on this device.", "success");
+          this.setStatus(scoreboardContent.localSaveSuccess, "success");
         }
 
         return true;
@@ -513,9 +521,7 @@
     }
 
     async handleResetClick() {
-      const shouldReset = window.confirm(
-        "Clear every saved score for every child on this device? This cannot be undone.",
-      );
+      const shouldReset = window.confirm(scoreboardContent.resetConfirm);
 
       if (!shouldReset) {
         return;
@@ -558,8 +564,8 @@
 
         this.setStatus(
           resetMode === "online"
-            ? "Every saved score has been cleared."
-            : "Every saved score on this device has been cleared.",
+            ? scoreboardContent.allResetSuccess
+            : scoreboardContent.deviceResetSuccess,
           "success",
         );
       } finally {

@@ -1,4 +1,6 @@
 (function () {
+  const content = window.CaptainNovaContent || null;
+
   const GAME_THEMES = {
     rocketAdventure: {
       id: "rocket-adventure",
@@ -14,27 +16,12 @@
         { key: "flames", label: "launch flames" },
         { key: "launch", label: "launch glow" },
       ],
-      messages: {
-        correct: ["Great job!", "Nice work!", "Awesome!", "You got it!"],
-        gentle: ["Good try!", "Keep going!", "Let's do the next one!", "You're doing great!"],
-        midpoint: [
-          "Halfway through this mission!",
-          "Great progress!",
-          "You unlocked a boost!",
-          "You're doing awesome!",
-        ],
-        sectionComplete: [
-          "Mission complete!",
-          "Great work!",
-          "On to the next adventure!",
-          "You unlocked a new rocket piece!",
-        ],
-        final: [
-          "You did it!",
-          "Adventure complete!",
-          "Amazing job finishing all 8 missions!",
-          "Your rocket is ready to launch!",
-        ],
+      messages: content?.gamification?.messages || {
+        correct: ["Rocket power rising!", "Mission Control says yes!"],
+        gentle: ["Almost there, explorer!", "The next rocket step is waiting!"],
+        midpoint: ["Star boost unlocked!", "Halfway through this mission!"],
+        sectionComplete: ["Rocket part unlocked!", "Mission complete!"],
+        final: ["Countdown complete!", "The rocket is ready to launch!"],
       },
     },
   };
@@ -54,6 +41,12 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function formatTemplate(template, values) {
+    return String(template || "").replace(/\{(\w+)\}/g, (match, key) => {
+      return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match;
+    });
   }
 
   function sectionStateFromSnapshot(snapshot, section, sectionIndex) {
@@ -205,8 +198,8 @@
       this.root.innerHTML = `
         <article class="gamification-panel mission-panel">
           <p class="gamification-kicker">${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}</p>
-          <strong>Question ${state.currentQuestionNumber} of ${section.totalQuestions}</strong>
-          <span>${section.answeredCount} of ${section.totalQuestions} mission steps done</span>
+          <strong>Mission step ${state.currentQuestionNumber} of ${section.totalQuestions}</strong>
+          <span>${section.answeredCount} of ${section.totalQuestions} rocket steps powered</span>
           <div
             class="mission-dots"
             role="img"
@@ -233,12 +226,12 @@
 
       this.root.innerHTML = `
         <article class="gamification-panel overall-panel">
-          <p class="gamification-kicker">${state.answeredTotal} of ${state.totalQuestions} questions</p>
+          <p class="gamification-kicker">${state.answeredTotal} of ${state.totalQuestions} mission steps</p>
           <strong>${state.completedSections} of ${state.totalSections} missions completed</strong>
           <div class="overall-progress-rail" aria-hidden="true">
             <span class="overall-progress-fill" style="width: ${state.overallPercent}%"></span>
           </div>
-          <span>${state.totalQuestions - state.answeredTotal} questions left in the adventure</span>
+          <span>${state.totalQuestions - state.answeredTotal} mission steps left before launch</span>
         </article>
       `;
     }
@@ -265,12 +258,12 @@
       const rewardLine =
         state.midpointBoosts === 0
           ? "Star boosts appear at each mission halfway point."
-          : `${state.midpointBoosts} star boosts unlocked so far.`;
+          : `${state.midpointBoosts} star boosts are lighting the rocket so far.`;
 
       this.root.innerHTML = `
         <article class="gamification-panel rocket-panel ${stageCount === this.theme.rewardStages.length ? "is-finished" : ""}">
           <div class="rocket-copy">
-            <p class="gamification-kicker">Rocket reward</p>
+            <p class="gamification-kicker">Rocket build</p>
             <strong>${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked</strong>
             <span>${statusLine}</span>
             <span>${rewardLine}</span>
@@ -371,7 +364,7 @@
             <div class="celebration-rocket-wrap">
               ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
             </div>
-            ${this.current.showButton ? '<button class="celebration-button" type="button" data-dismiss-celebration>Continue</button>' : ""}
+            ${this.current.showButton ? '<button class="celebration-button" type="button" data-dismiss-celebration>Back to Mission</button>' : ""}
           </div>
         </div>
       `;
@@ -468,7 +461,7 @@
         variant: "midpoint",
         kicker: `${this.theme.missionLabel} ${section.index + 1}`,
         title: this.messageManager.pick("midpoint"),
-        body: "You are halfway through this mission and your rocket just got a boost.",
+        body: content?.gamification?.midpointBody || "You are halfway through this mission and your rocket just got a boost.",
         reward: "Star boost unlocked",
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
@@ -490,7 +483,11 @@
         variant: "section",
         kicker: `${this.theme.missionLabel} ${section.index + 1} complete`,
         title: this.messageManager.pick("sectionComplete"),
-        body: "Great work finishing this mission. Your rocket is growing piece by piece.",
+        body: formatTemplate(
+          content?.gamification?.sectionCompleteBody ||
+            "Mission complete. Captain Nova just locked {reward} into place.",
+          { reward: reward.label },
+        ),
         reward: `Unlocked: ${reward.label}`,
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
@@ -509,7 +506,9 @@
         variant: "final",
         kicker: `${this.theme.adventureLabel} complete`,
         title: this.messageManager.pick("final"),
-        body: "Amazing job finishing all 8 missions. Your rocket is ready for launch.",
+        body:
+          content?.gamification?.finalBody ||
+          "Amazing job finishing all 8 missions. Your rocket is ready for launch.",
         reward: "Full rocket launch unlocked",
         stageCount: this.theme.rewardStages.length,
         boostCount: state.midpointBoosts,

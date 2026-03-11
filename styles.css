@@ -71,6 +71,12 @@ body::before {
   gap: 8px 24px;
   align-items: start;
   margin-bottom: 14px;
+  border-color: rgba(180, 225, 255, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 26%),
+    radial-gradient(circle at 18% 18%, rgba(127, 199, 255, 0.18), transparent 20%),
+    linear-gradient(135deg, #09233f, #143a66 58%, #1b567f);
+  color: white;
 }
 
 .hero-card .eyebrow,
@@ -99,6 +105,15 @@ body::before {
   pointer-events: none;
 }
 
+.hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
 .eyebrow,
 .card-kicker,
 .section-badge {
@@ -115,6 +130,10 @@ body::before {
 .eyebrow,
 .card-kicker {
   color: var(--accent-deep);
+}
+
+.hero-card .eyebrow {
+  color: rgba(255, 228, 160, 0.96);
 }
 
 h1,
@@ -140,6 +159,10 @@ h1 {
   line-height: 1.45;
 }
 
+.hero-card .hero-copy {
+  color: rgba(237, 247, 255, 0.88);
+}
+
 .hero-metrics {
   display: flex;
   flex-wrap: wrap;
@@ -159,6 +182,12 @@ h1 {
   font-weight: 700;
 }
 
+.hero-card .hero-metrics span {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .hero-actions,
 .question-actions,
 .results-actions {
@@ -166,6 +195,54 @@ h1 {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 14px;
+}
+
+.parent-area {
+  width: 100%;
+}
+
+.parent-area-toggle {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.parent-area-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.parent-area-panel {
+  margin-top: 12px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: rgba(4, 17, 34, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.parent-area-kicker {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 228, 160, 0.96);
+}
+
+.parent-area-copy {
+  margin: 8px 0 0;
+  color: rgba(237, 247, 255, 0.82);
+  line-height: 1.45;
 }
 
 .primary-button,
@@ -257,6 +334,14 @@ h1 {
   margin-top: 18px;
 }
 
+.story-panel.is-compact {
+  padding: 16px 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 26%),
+    linear-gradient(135deg, rgba(12, 31, 63, 0.98), rgba(22, 72, 104, 0.96));
+}
+
 .story-kicker {
   margin: 0;
   font-size: 0.8rem;
@@ -264,6 +349,36 @@ h1 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255, 232, 176, 0.95);
+}
+
+.story-heading {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.story-heading-copy {
+  min-width: 0;
+}
+
+.story-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.story-icon svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .story-pills {
@@ -295,6 +410,14 @@ h1 {
   margin: 0;
   color: rgba(255, 255, 255, 0.92);
   line-height: 1.5;
+}
+
+.story-panel.is-compact .story-pills {
+  margin-top: 10px;
+}
+
+.story-panel.is-compact .story-copy {
+  margin-top: 10px;
 }
 
 .name-entry {
@@ -382,6 +505,10 @@ h1 {
   border-radius: 18px;
   background: var(--card-strong);
   border: 1px solid var(--line);
+}
+
+.mini-stat-secondary {
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .mini-stat span {
@@ -573,11 +700,12 @@ h1 {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 16px;
+  min-height: 520px;
 }
 
 .question-stage {
-  min-height: 640px;
-  max-height: 640px;
+  min-height: 0;
+  max-height: 390px;
   overflow-y: auto;
   padding-right: 6px;
   scrollbar-gutter: stable;
@@ -675,7 +803,8 @@ h1 {
 }
 
 .feedback-panel {
-  margin-top: 16px;
+  margin-top: 0;
+  min-height: 92px;
   padding: 16px 18px;
   border-radius: 22px;
   border: 1px solid var(--line);
@@ -705,7 +834,7 @@ h1 {
 }
 
 .next-hint {
-  margin: 14px 0 0;
+  margin: 0;
   min-height: 22px;
   color: var(--ink-soft);
   font-size: 0.95rem;
@@ -717,10 +846,26 @@ h1 {
   visibility: hidden;
 }
 
+.question-dock {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.92)),
+    linear-gradient(135deg, rgba(42, 157, 143, 0.06), rgba(244, 185, 66, 0.08));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
 .question-actions {
   justify-content: flex-end;
   margin-top: 0;
-  padding-top: 4px;
+  padding-top: 0;
+}
+
+.question-actions .primary-button {
+  min-width: 220px;
 }
 
 .option-letter {
@@ -744,9 +889,24 @@ h1 {
   display: none;
 }
 
+.question-panel.is-start-screen .question-body {
+  min-height: 0;
+}
+
 .question-panel.is-start-screen .question-stage {
-  min-height: 320px;
-  max-height: 320px;
+  max-height: none;
+  overflow: visible;
+}
+
+.question-panel.is-start-screen .question-dock {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.question-panel.is-start-screen .feedback-panel.is-hidden {
+  display: none;
 }
 
 .results-breakdown {
@@ -765,12 +925,31 @@ h1 {
 
 .review-block {
   margin-top: 26px;
+  border-radius: 26px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+}
+
+.review-toggle {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px;
+}
+
+.review-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.review-block[open] .review-toggle {
+  border-bottom: 1px solid var(--line);
 }
 
 .review-list {
   display: grid;
   gap: 16px;
-  margin-top: 18px;
+  margin: 0;
+  padding: 18px;
 }
 
 .review-card {
@@ -841,13 +1020,11 @@ h1 {
   }
 
   .question-stage {
-    min-height: 560px;
-    max-height: 560px;
+    max-height: 340px;
   }
 
   .question-panel.is-start-screen .question-stage {
-    min-height: 300px;
-    max-height: 300px;
+    max-height: none;
   }
 
   .hero-actions,
