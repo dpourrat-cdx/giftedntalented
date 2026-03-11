@@ -16,6 +16,183 @@ const missionRewards =
     { key: "launch", label: "launch glow" },
   ];
 
+const storyContent = Object.freeze({
+  title: "Captain Nova's Rocket Mission",
+  introduction: {
+    kicker: "Introduction",
+    text: [
+      "Welcome, Explorer! Mission Control has an important assignment for you.",
+      "Captain Nova is preparing a rocket to explore a mysterious new planet far beyond Earth.",
+      "But the rocket is not built yet, and only a brilliant young engineer can assemble it.",
+      "Eight missions stand between you and liftoff.",
+      "Each mission unlocks a new part of the rocket.",
+      "Complete them all, and we launch for the stars!",
+    ],
+  },
+  missions: [
+    {
+      section: "Verbal",
+      number: 1,
+      title: "Verbal Challenge",
+      rocketPart: "Rocket Base",
+      text: [
+        "Captain Nova enters the first chamber of the space station.",
+        "Glowing words float in the air, hiding the foundation of the rocket.",
+        "Choose the right words to unlock the rocket base and start building the ship.",
+      ],
+    },
+    {
+      section: "Math",
+      number: 2,
+      title: "Math Challenge",
+      rocketPart: "Rocket Body",
+      text: [
+        "With the base secured, Captain Nova moves into the Number Chamber.",
+        "Floating numbers spin slowly around the room.",
+        "Solve the math puzzle to reveal the rocket body and connect it to the base.",
+      ],
+    },
+    {
+      section: "Nonverbal",
+      number: 3,
+      title: "Pattern Vision",
+      rocketPart: "Rocket Window",
+      text: [
+        "In the next room, there are no words and no numbers.",
+        "Only shapes and pictures form a mysterious pattern on the walls.",
+        "Find the pattern to unlock the bright window that will let Captain Nova see the stars.",
+      ],
+    },
+    {
+      section: "Spatial",
+      number: 4,
+      title: "Spatial Assembly",
+      rocketPart: "Rocket Wings",
+      text: [
+        "The rocket now needs wings to travel safely through the sky.",
+        "Pieces of metal float around like a puzzle waiting to be assembled.",
+        "Fit them together correctly and the rocket wings unfold into place.",
+      ],
+    },
+    {
+      section: "Patterns",
+      number: 5,
+      title: "Pattern Reactor",
+      rocketPart: "Rocket Engine",
+      text: [
+        "Deep inside the station, glowing symbols pulse with energy.",
+        "They form a repeating pattern that controls the rocket engine.",
+        "Find the missing symbol and the powerful engine will activate.",
+      ],
+    },
+    {
+      section: "Analogies",
+      number: 6,
+      title: "Analogy Link",
+      rocketPart: "Astronaut Seat",
+      text: [
+        "Captain Nova reaches the control room.",
+        "Two ideas appear on the main screen, connected in a special way.",
+        "Solve the analogy to unlock the astronaut seat inside the rocket.",
+      ],
+    },
+    {
+      section: "Categories",
+      number: 7,
+      title: "Sorting Protocol",
+      rocketPart: "Launch Flames",
+      text: [
+        "The rocket is nearly ready.",
+        "Different objects float through the air, but only some belong together.",
+        "Sort them correctly and bright launch flames ignite beneath the rocket.",
+      ],
+    },
+    {
+      section: "Logic",
+      number: 8,
+      title: "Final Logic System",
+      rocketPart: "Launch Glow",
+      text: [
+        "Only one system remains before liftoff.",
+        "A series of clues guards the final launch control.",
+        "Solve the logic puzzle and the rocket begins to glow, fully ready for launch.",
+      ],
+    },
+  ],
+  endings: [
+    {
+      id: "ending_95_plus",
+      label: "Legendary Launch",
+      minScore: 95,
+      maxScore: 100,
+      text: [
+        "Captain Nova climbs into the astronaut seat and begins the countdown.",
+        "Every rocket system works perfectly.",
+        "The engines ignite with a thunderous roar and the rocket blasts into space.",
+        "It races past the Moon and flies toward worlds no explorer has ever seen.",
+        "Bright comets, strange planets, and sparkling galaxies appear outside the window.",
+        "Thanks to your incredible work, this mission becomes a legendary space adventure.",
+      ],
+    },
+    {
+      id: "ending_85_94",
+      label: "Strong Mission",
+      minScore: 85,
+      maxScore: 94,
+      text: [
+        "The engines roar and the rocket launches smoothly into the sky.",
+        "Captain Nova reaches space and begins exploring among the stars.",
+        "Most rocket systems work well, though a few parts are not perfectly tuned.",
+        "Because of this, the rocket cannot travel quite as far as planned.",
+        "Even so, the mission is exciting and successful.",
+        "With just a little more precision, the next rocket could reach even deeper space.",
+      ],
+    },
+    {
+      id: "ending_75_84",
+      label: "Early Return",
+      minScore: 75,
+      maxScore: 84,
+      text: [
+        "The rocket lifts off and climbs high above Earth.",
+        "Captain Nova reaches space and sees distant planets glowing in the darkness.",
+        "However, some rocket parts are not working at full power.",
+        "The engines cannot push the ship deeper into the solar system.",
+        "Mission Control asks Captain Nova to return earlier than planned.",
+        "With better answers during the missions, the next rocket could travel much farther.",
+      ],
+    },
+    {
+      id: "ending_60_74",
+      label: "Edge of Space",
+      minScore: 60,
+      maxScore: 74,
+      text: [
+        "The rocket shakes as it launches, but Captain Nova manages to guide it upward.",
+        "Soon the rocket reaches the edge of space and Earth shines below like a blue marble.",
+        "Several systems struggle to keep the rocket flying smoothly.",
+        "The engines cannot maintain full power for long.",
+        "Mission Control orders an early return to keep everyone safe.",
+        "Stronger solutions in the missions would have built a much better rocket.",
+      ],
+    },
+    {
+      id: "ending_below_60",
+      label: "Launch Attempt",
+      minScore: 0,
+      maxScore: 59,
+      text: [
+        "Captain Nova starts the engines, but something is clearly wrong.",
+        "The rocket rises only a short distance before warning lights begin flashing.",
+        "Several important rocket parts were not built correctly.",
+        "Captain Nova carefully brings the rocket back to the launch pad.",
+        "This mission cannot reach space today.",
+        "But with better problem solving, the next rocket could be powerful enough to reach the stars.",
+      ],
+    },
+  ],
+});
+
 const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
@@ -30,6 +207,7 @@ const dom = {
   childNameInput: document.getElementById("childNameInput"),
   nameHint: document.getElementById("nameHint"),
   playerNote: document.getElementById("playerNote"),
+  storyPanel: document.getElementById("storyPanel"),
   leaderboardName: document.getElementById("leaderboardName"),
   leaderboardScore: document.getElementById("leaderboardScore"),
   leaderboardStatus: document.getElementById("leaderboardStatus"),
@@ -50,6 +228,7 @@ const dom = {
   scoreHeadline: document.getElementById("scoreHeadline"),
   scoreSummary: document.getElementById("scoreSummary"),
   timeSummary: document.getElementById("timeSummary"),
+  endingStory: document.getElementById("endingStory"),
   resultsBreakdown: document.getElementById("resultsBreakdown"),
   retryButton: document.getElementById("retryButton"),
   backToQuestionsButton: document.getElementById("backToQuestionsButton"),
@@ -198,6 +377,96 @@ function titleCase(value) {
   return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function missionStoryForSection(section) {
+  return storyContent.missions.find((mission) => mission.section === section) || null;
+}
+
+function endingStoryForPercentage(percentage) {
+  return (
+    storyContent.endings.find(
+      (ending) => percentage >= ending.minScore && percentage <= ending.maxScore,
+    ) || storyContent.endings[storyContent.endings.length - 1]
+  );
+}
+
+function buildStoryParagraphs(lines) {
+  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+}
+
+function renderStoryPanel(content) {
+  if (!content) {
+    dom.storyPanel.innerHTML = "";
+    return;
+  }
+
+  const pills = [];
+  if (content.pill) {
+    pills.push(`<span class="story-pill">${escapeHtml(content.pill)}</span>`);
+  }
+  if (content.secondaryPill) {
+    pills.push(`<span class="story-pill">${escapeHtml(content.secondaryPill)}</span>`);
+  }
+
+  dom.storyPanel.innerHTML = `
+    <p class="story-kicker">${escapeHtml(content.kicker)}</p>
+    <h3>${escapeHtml(content.title)}</h3>
+    ${pills.length ? `<div class="story-pills">${pills.join("")}</div>` : ""}
+    <div class="story-copy">
+      ${buildStoryParagraphs(content.lines)}
+    </div>
+  `;
+}
+
+function renderIntroductionStory() {
+  renderStoryPanel({
+    kicker: storyContent.introduction.kicker,
+    title: storyContent.title,
+    pill: "8 Missions to Build the Rocket",
+    secondaryPill: "Captain Nova Needs You",
+    lines: storyContent.introduction.text,
+  });
+}
+
+function renderMissionStory(section) {
+  const mission = missionStoryForSection(section);
+  if (!mission) {
+    dom.storyPanel.innerHTML = "";
+    return;
+  }
+
+  renderStoryPanel({
+    kicker: `Mission ${mission.number}`,
+    title: mission.title,
+    pill: `Unlock: ${mission.rocketPart}`,
+    secondaryPill: section,
+    lines: mission.text,
+  });
+}
+
+function renderEndingStory(percentage) {
+  const ending = endingStoryForPercentage(percentage);
+  dom.endingStory.innerHTML = `
+    <p class="story-kicker">${escapeHtml(ending.label)}</p>
+    <h3>Captain Nova's Final Flight</h3>
+    <div class="story-pills">
+      <span class="story-pill">${escapeHtml(`${percentage}% mission score`)}</span>
+      <span class="story-pill">Mission Complete</span>
+    </div>
+    <div class="story-copy">
+      ${buildStoryParagraphs(ending.text)}
+    </div>
+  `;
+}
+
 function missionRewardForIndex(sectionIndex) {
   return missionRewards[sectionIndex] || missionRewards[missionRewards.length - 1];
 }
@@ -286,11 +555,17 @@ function goToSection(section) {
 
 function buildSectionButton(section, isActive, sectionIndex) {
   const reward = missionRewardForIndex(sectionIndex);
+  const mission = missionStoryForSection(section);
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
   button.disabled = !hasStarted;
-  button.setAttribute("aria-label", `${section}. Mission reward: ${reward.label}.`);
+  button.setAttribute(
+    "aria-label",
+    mission
+      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.`
+      : `${section}. Mission reward: ${reward.label}.`,
+  );
 
   if (isActive) {
     button.classList.add("is-active");
@@ -302,8 +577,10 @@ function buildSectionButton(section, isActive, sectionIndex) {
         ${missionRewardSvg(reward.key)}
       </span>
       <span class="section-button-copy">
+        ${mission ? `<span class="section-button-overline">Mission ${mission.number}</span>` : ""}
         <strong>${section}</strong>
-        <span>Unlock: ${titleCase(reward.label)}</span>
+        <span>${mission ? mission.title : titleCase(reward.label)}</span>
+        <span>Unlock: ${mission ? mission.rocketPart : titleCase(reward.label)}</span>
       </span>
     </span>
   `;
@@ -356,22 +633,23 @@ function renderQuestion() {
     dom.questionPanel.classList.add("is-start-screen");
     dom.nameEntry.classList.remove("is-hidden");
     dom.playerNote.classList.add("is-hidden");
-    dom.sectionBadge.textContent = playerName ? `Ready, ${playerName}` : "Start Here";
-    dom.questionCounter.textContent = `${totalQuestions()} total questions`;
+    dom.sectionBadge.textContent = "Mission Briefing";
+    dom.questionCounter.textContent = `${totalQuestions()} questions across ${sections.length} missions`;
     dom.questionPrompt.textContent = playerName
-      ? `Hi ${playerName}! Your test will begin with the first Verbal question.`
-      : "Type your name to begin the test.";
+      ? `Hi ${playerName}! Captain Nova is ready for launch.`
+      : "Type your name to join Captain Nova's mission.";
     dom.questionStimulus.textContent = "";
     dom.questionStimulus.classList.add("is-hidden");
     dom.optionsList.innerHTML = "";
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
+    renderIntroductionStory();
     dom.nameHint.textContent = playerName
-      ? "Press Enter to begin."
-      : "Let's start with your name.";
+      ? "Press Enter to begin the first mission."
+      : "Mission Control needs your name first.";
     dom.nextHint.textContent = playerName
-      ? "The test will start with the first Verbal question."
-      : "Type your name to begin the test.";
+      ? "The first mission is Verbal Challenge. Press Enter when you are ready."
+      : "Type your name to begin the mission.";
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = "Validate";
     dom.nextButton.disabled = true;
@@ -381,10 +659,13 @@ function renderQuestion() {
 
   dom.questionPanel.classList.remove("is-start-screen");
   dom.nameEntry.classList.add("is-hidden");
-  dom.playerNote.textContent = `Playing as ${playerName}.`;
-  dom.playerNote.classList.remove("is-hidden");
-
   const question = questionAt(currentIndex);
+  const mission = missionStoryForSection(question.section);
+  dom.playerNote.textContent = mission
+    ? `Playing as ${playerName}. Captain Nova is on Mission ${mission.number}.`
+    : `Playing as ${playerName}.`;
+  dom.playerNote.classList.remove("is-hidden");
+  renderMissionStory(question.section);
   const selectedAnswer = selectedAnswers[currentIndex];
   const validatedAnswer = validatedAnswers[currentIndex];
   const isLocked = validatedAnswer !== null || isSubmitted;
@@ -523,8 +804,9 @@ function renderResults() {
   dom.scoreHeadline.textContent = playerName
     ? `${playerName} scored ${correct}/${totalQuestions()} (${percentage}%)`
     : `You scored ${correct}/${totalQuestions()} (${percentage}%)`;
-  dom.scoreSummary.textContent = summaryText(percentage);
+  dom.scoreSummary.textContent = `${summaryText(percentage)} Captain Nova's mission report is below.`;
   dom.timeSummary.textContent = `Time used: ${formatTime(testDurationSeconds() - timeRemaining)} of ${formatTime(testDurationSeconds())}.`;
+  renderEndingStory(percentage);
 
   dom.resultsBreakdown.innerHTML = "";
   for (const section of sections) {
