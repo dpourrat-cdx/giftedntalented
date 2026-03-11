@@ -335,11 +335,19 @@ function buildMissionUiState(section) {
     totalQuestions: missionQuestions.length,
     answeredCount,
     currentQuestionNumber: currentMissionQuestionIndex === -1 ? 1 : currentMissionQuestionIndex + 1,
-    questions: missionQuestions.map((entry, missionIndex) => ({
-      missionIndex,
-      isAnswered: validatedAnswers[entry.index] !== null,
-      isCurrent: hasStarted && entry.index === currentIndex,
-    })),
+    questions: missionQuestions.map((entry, missionIndex) => {
+      const validatedAnswer = validatedAnswers[entry.index];
+      const isAnswered = validatedAnswer !== null;
+      const isCorrect = isAnswered && validatedAnswer === entry.question.answer;
+
+      return {
+        missionIndex,
+        isAnswered,
+        isCorrect,
+        isWrong: isAnswered && !isCorrect,
+        isCurrent: hasStarted && entry.index === currentIndex,
+      };
+    }),
   };
 }
 
@@ -368,8 +376,9 @@ function renderMissionDots(missionState) {
     .map((question) => {
       const classes = [
         "mission-dot",
-        question.isAnswered ? "is-complete" : "",
-        question.isCurrent ? "is-current" : "",
+        question.isCorrect ? "is-correct" : "",
+        question.isWrong ? "is-wrong" : "",
+        question.isCurrent && !question.isAnswered ? "is-current" : "",
       ]
         .filter(Boolean)
         .join(" ");
@@ -509,7 +518,7 @@ function renderMissionStory(section) {
     title: mission.title,
     pill: `Unlock: ${mission.rocketPart}`,
     secondaryPill: section,
-    lines: [mission.summary],
+    lines: mission.text && mission.text.length ? mission.text : [mission.summary],
     compact: true,
     iconKey: reward.key,
     footerHtml: renderMissionDots(missionState),
