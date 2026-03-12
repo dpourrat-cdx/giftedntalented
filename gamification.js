@@ -327,11 +327,12 @@
       );
     }
 
-    notifyStateChange() {
+    notifyStateChange(extraState = {}) {
       if (typeof this.onStateChange === "function") {
         this.onStateChange({
           currentEvent: this.current,
           hasBlocking: this.hasBlockingEvent(),
+          ...extraState,
         });
       }
     }
@@ -397,9 +398,10 @@
         this.timeoutId = null;
       }
 
+      const dismissedEvent = this.current;
       this.current = null;
       this.root.innerHTML = "";
-      this.notifyStateChange();
+      this.notifyStateChange({ dismissedEvent });
 
       if (this.queue.length > 0) {
         window.setTimeout(() => this.showNext(), 80);
@@ -561,7 +563,6 @@
           mission?.midMissionUpdate ||
           content?.gamification?.midpointBody ||
           "You are halfway through this mission and your rocket just got a boost.",
-        reward: content?.gamification?.midpointReward || "Star boost unlocked",
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,
@@ -595,9 +596,6 @@
               "Mission complete. Captain Nova just locked {reward} into place.",
             { reward: rewardLabel },
           ),
-        reward: formatTemplate(content?.gamification?.sectionCompleteReward || "Unlocked: {reward}", {
-          reward: rewardLabel,
-        }),
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,

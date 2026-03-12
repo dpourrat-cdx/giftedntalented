@@ -209,7 +209,16 @@ function isAutoAdvancePendingForCurrentQuestion(questionIndex = currentIndex) {
   return autoAdvanceTimeoutId !== null && autoAdvanceQuestionIndex === questionIndex;
 }
 
-function advanceToNextMissionStep() {
+function shouldAdvanceToNextMission(questionIndex = currentIndex) {
+  const question = questionAt(questionIndex);
+  if (!question || validatedAnswers[questionIndex] === null) {
+    return false;
+  }
+
+  return isSectionCompleted(question.section);
+}
+
+function advanceToNextMissionStep(options = {}) {
   clearPendingAutoAdvance();
   deferredAdvanceQuestionIndex = -1;
 
@@ -219,7 +228,10 @@ function advanceToNextMissionStep() {
     return;
   }
 
-  const nextIndex = nextUnansweredIndexAfterCurrent();
+  const shouldPreferNextMission = Boolean(options.preferNextMission) || shouldAdvanceToNextMission();
+  const nextIndex = shouldPreferNextMission
+    ? nextIncompleteMissionIndexAfterCurrent()
+    : nextUnansweredIndexAfterCurrent();
   if (nextIndex === -1) {
     clearTransientGamificationUi();
     submitTest();
@@ -227,6 +239,9 @@ function advanceToNextMissionStep() {
   }
 
   clearTransientGamificationUi();
+  if (shouldPreferNextMission && gamificationController) {
+    gamificationController.requestMissionIntroduction(sessionQuestions[nextIndex]?.section);
+  }
   currentIndex = nextIndex;
   renderQuestion();
 }
@@ -289,6 +304,43 @@ function firstUnansweredIndexForSection(section) {
   }
 
   return sessionQuestions.findIndex((question) => question.section === section);
+}
+
+function isSectionCompleted(section) {
+  const totalInSection = sessionQuestions.filter((question) => question.section === section).length;
+  if (totalInSection === 0) {
+    return false;
+  }
+
+  return sessionQuestions.every((question, index) => {
+    return question.section !== section || validatedAnswers[index] !== null;
+  });
+}
+
+function nextIncompleteSectionAfter(section) {
+  const sectionIndex = sections.indexOf(section);
+  if (sectionIndex === -1) {
+    return null;
+  }
+
+  for (let offset = 1; offset <= sections.length; offset += 1) {
+    const candidateSection = sections[(sectionIndex + offset) % sections.length];
+    if (!isSectionCompleted(candidateSection)) {
+      return candidateSection;
+    }
+  }
+
+  return null;
+}
+
+function nextIncompleteMissionIndexAfterCurrent() {
+  const currentQuestion = questionAt(currentIndex);
+  if (!currentQuestion) {
+    return -1;
+  }
+
+  const nextSection = nextIncompleteSectionAfter(currentQuestion.section);
+  return nextSection ? firstUnansweredIndexForSection(nextSection) : -1;
 }
 
 function nextUnansweredIndexAfterCurrent() {
@@ -821,6 +873,7 @@ function renderQuestion() {
   const validatedAnswer = validatedAnswers[currentIndex];
   const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
   const isAutoAdvancing = answeredCorrectly && !isSubmitted && isAutoAdvancePendingForCurrentQuestion();
+  const isMissionTransitionReady = !isSubmitted && validatedAnswer !== null && !allQuestionsAnswered() && shouldAdvanceToNextMission();
   const isLocked = validatedAnswer !== null || isSubmitted;
 
   setSectionBadgeContent(question.section);
@@ -902,7 +955,9 @@ function renderQuestion() {
   } else {
     dom.nextHint.textContent = isAutoAdvancing
       ? questionContent.autoAdvanceHint
-      : questionContent.lockedHint;
+      : isMissionTransitionReady
+        ? (questionContent.nextMissionHint || "Rocket part secured. Press Next mission.")
+        : questionContent.lockedHint;
     dom.nextHint.classList.remove("is-hidden");
   }
 
@@ -914,7 +969,9 @@ function renderQuestion() {
       ? questionContent.buttons.check
       : allQuestionsAnswered()
         ? questionContent.buttons.launch
-        : questionContent.buttons.next;
+        : isMissionTransitionReady
+          ? (questionContent.buttons.nextMission || "Next mission")
+          : questionContent.buttons.next;
   dom.nextButton.disabled =
     isAutoAdvancing ||
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
@@ -1115,7 +1172,13 @@ function submitTest() {
 
 function handleOverlayStateChange(overlayState) {
   const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
+  const dismissedEvent = overlayState?.dismissedEvent || null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
+
+  if (!hasBlockingOverlay && dismissedEvent?.variant === "section") {
+    advanceToNextMissionStep({ preferNextMission: true });
+    return;
+  }
 
   if (
     !hasBlockingOverlay &&
