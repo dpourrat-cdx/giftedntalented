@@ -49,6 +49,25 @@
     });
   }
 
+  function celebrationBodyHtml(text) {
+    const sentences = String(text || "")
+      .trim()
+      .split(/(?<=[.!?])\s+/u)
+      .filter(Boolean);
+
+    if (sentences.length === 0) {
+      return "";
+    }
+
+    const paragraphs = [];
+    for (let index = 0; index < sentences.length; index += 2) {
+      const paragraph = sentences.slice(index, index + 2).join(" ");
+      paragraphs.push(`<p>${escapeHtml(paragraph)}</p>`);
+    }
+
+    return `<div class="celebration-body">${paragraphs.join("")}</div>`;
+  }
+
   function storyMissionForSection(sectionKey) {
     return content?.story?.missions?.find((mission) => mission.section === sectionKey) || null;
   }
@@ -374,7 +393,7 @@
           <div class="celebration-card">
             <p class="celebration-kicker">${escapeHtml(this.current.kicker)}</p>
             <h3>${escapeHtml(this.current.title)}</h3>
-            <p>${escapeHtml(this.current.body)}</p>
+            ${celebrationBodyHtml(this.current.body)}
             ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
             <div class="celebration-rocket-wrap">
               ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}

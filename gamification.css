@@ -407,14 +407,14 @@
 
 .celebration-overlay {
   position: relative;
-  width: min(560px, 100%);
+  width: min(760px, calc(100vw - 24px));
   display: grid;
   place-items: center;
 }
 
 .celebration-card {
   width: 100%;
-  padding: 24px;
+  padding: 28px 30px 24px;
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.8);
   background:
@@ -422,17 +422,21 @@
     linear-gradient(135deg, rgba(42, 157, 143, 0.1), rgba(244, 185, 66, 0.12));
   box-shadow: 0 34px 70px rgba(24, 53, 61, 0.18);
   display: grid;
-  gap: 10px;
+  gap: 14px;
   pointer-events: auto;
   animation: celebration-rise 260ms ease;
 }
 
 .celebration-overlay.is-midpoint .celebration-card {
-  max-width: 460px;
+  max-width: 700px;
 }
 
 .celebration-overlay.is-intro .celebration-card {
-  max-width: 520px;
+  max-width: 740px;
+}
+
+.celebration-overlay.is-section .celebration-card {
+  max-width: 720px;
 }
 
 .celebration-overlay.is-final .celebration-card {
@@ -443,13 +447,25 @@
 
 .celebration-card h3 {
   font-size: clamp(1.7rem, 4vw, 2.4rem);
-  line-height: 1.05;
+  line-height: 1.08;
+  max-width: 18ch;
+}
+
+.celebration-body {
+  display: grid;
+  gap: 12px;
+  max-width: 62ch;
 }
 
 .celebration-card p {
   margin: 0;
   color: var(--ink-soft);
-  line-height: 1.45;
+}
+
+.celebration-body p {
+  font-size: clamp(1.02rem, 2.4vw, 1.15rem);
+  line-height: 1.62;
+  text-wrap: pretty;
 }
 
 .celebration-reward {
@@ -480,6 +496,26 @@
   background: linear-gradient(135deg, var(--accent), var(--teal));
   box-shadow: 0 14px 24px rgba(42, 157, 143, 0.2);
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .celebration-card {
+    padding: 22px 20px 20px;
+  }
+
+  .celebration-overlay.is-midpoint .celebration-card,
+  .celebration-overlay.is-intro .celebration-card,
+  .celebration-overlay.is-section .celebration-card {
+    max-width: 100%;
+  }
+
+  .celebration-body {
+    max-width: none;
+  }
+
+  .celebration-card h3 {
+    max-width: none;
+  }
 }
 
 .celebration-confetti {
