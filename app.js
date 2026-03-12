@@ -747,6 +747,14 @@ function setSectionBadgeContent(label) {
   `;
 }
 
+function missionCompletionBadgeSvg() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3.2l2.3 4.67 5.15.75-3.73 3.64.88 5.14L12 14.98 7.4 17.4l.88-5.14L4.55 8.62l5.15-.75L12 3.2z"></path>
+    </svg>
+  `;
+}
+
 function goToSection(section) {
   if (!hasStarted) {
     return;
@@ -768,6 +776,7 @@ function goToSection(section) {
 function buildSectionButton(section, isActive, sectionIndex) {
   const reward = missionRewardForIndex(sectionIndex);
   const mission = missionStoryForSection(section);
+  const isCompleted = isSectionCompleted(section);
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
@@ -775,7 +784,7 @@ function buildSectionButton(section, isActive, sectionIndex) {
   button.setAttribute(
     "aria-label",
     mission
-      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.`
+      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.${isCompleted ? " Mission completed." : ""}`
       : `${section}. Mission reward: ${reward.label}.`,
   );
 
@@ -783,7 +792,19 @@ function buildSectionButton(section, isActive, sectionIndex) {
     button.classList.add("is-active");
   }
 
+  if (isCompleted) {
+    button.classList.add("is-complete");
+  }
+
   button.innerHTML = `
+    ${
+      isCompleted
+        ? `<span class="section-button-status" aria-hidden="true">
+            <span class="section-button-status-icon">${missionCompletionBadgeSvg()}</span>
+            <span class="section-button-status-text">Done</span>
+          </span>`
+        : ""
+    }
     <span class="section-button-main">
       <span class="mission-reward-icon reward-${reward.key}" aria-hidden="true">
         ${missionRewardSvg(reward.key)}

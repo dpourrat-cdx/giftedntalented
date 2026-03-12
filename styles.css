@@ -683,6 +683,7 @@ h1 {
 }
 
 .section-button {
+  position: relative;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -711,6 +712,61 @@ h1 {
 .section-button.is-active {
   border-color: rgba(42, 157, 143, 0.35);
   background: linear-gradient(135deg, rgba(42, 157, 143, 0.14), rgba(255, 255, 255, 0.96));
+}
+
+.section-button.is-complete {
+  border-color: rgba(226, 168, 54, 0.34);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 229, 0.96), rgba(255, 255, 255, 0.98)),
+    linear-gradient(135deg, rgba(226, 168, 54, 0.1), rgba(42, 157, 143, 0.05));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 18px rgba(226, 168, 54, 0.08);
+}
+
+.section-button.is-active.is-complete {
+  border-color: rgba(42, 157, 143, 0.35);
+  background:
+    linear-gradient(135deg, rgba(42, 157, 143, 0.14), rgba(255, 255, 255, 0.96)),
+    linear-gradient(135deg, rgba(244, 185, 66, 0.08), rgba(255, 255, 255, 0.4));
+}
+
+.section-button-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 5px;
+  border-radius: 999px;
+  background: rgba(255, 247, 220, 0.98);
+  border: 1px solid rgba(226, 168, 54, 0.28);
+  box-shadow: 0 8px 16px rgba(226, 168, 54, 0.12);
+}
+
+.section-button-status-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6d97a, #e2a836);
+  color: #8a5b00;
+}
+
+.section-button-status-icon svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.section-button-status-text {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a5b00;
 }
 
 .section-button-main {
