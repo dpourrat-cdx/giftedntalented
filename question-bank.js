@@ -151,6 +151,103 @@
     return rows.join("\n");
   }
 
+  function joinWithAnd(items) {
+    if (items.length === 0) {
+      return "";
+    }
+
+    if (items.length === 1) {
+      return items[0];
+    }
+
+    if (items.length === 2) {
+      return `${items[0]} and ${items[1]}`;
+    }
+
+    return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  }
+
+  function completeSentenceExplanation(prompt, correct) {
+    const completed = prompt.replace("___", correct);
+    return `Putting "${correct}" in the blank makes the sentence read: "${completed}" That is the only choice that makes the whole idea clear and logical.`;
+  }
+
+  function clueExplanation(prompt, correct) {
+    const clueText = prompt.endsWith("?") ? prompt.slice(0, -1) : prompt;
+    return `The clue asks, "${clueText}." ${correct} is the choice that fits that clue.`;
+  }
+
+  function synonymExplanation(word, correct) {
+    return `${correct} means almost the same as ${word}, while the other choices do not share that meaning.`;
+  }
+
+  function antonymExplanation(word, correct) {
+    return `${correct} means the opposite of ${word}. If something is ${word}, it is not ${correct}.`;
+  }
+
+  function findRepeatingBlock(sequence) {
+    for (let size = 1; size <= sequence.length; size += 1) {
+      const block = sequence.slice(0, size);
+      let isMatch = true;
+
+      for (let index = 0; index < sequence.length; index += 1) {
+        if (sequence[index] !== block[index % size]) {
+          isMatch = false;
+          break;
+        }
+      }
+
+      if (isMatch) {
+        return block;
+      }
+    }
+
+    return null;
+  }
+
+  function repeatingPatternExplanation(stimulus, correct, itemLabel = "item") {
+    const sequence = (stimulus.includes("|") ? stimulus.split("|") : stimulus.split(/\s{2,}/))
+      .map((part) => part.trim())
+      .filter((part) => part && part !== "?");
+    const block = findRepeatingBlock(sequence);
+
+    if (block && block.length > 0) {
+      return `The pattern repeats ${block.join(", ")}, so the next ${itemLabel} is ${correct}.`;
+    }
+
+    return `${correct} is the next ${itemLabel} in the pattern.`;
+  }
+
+  function describeSignedChange(value) {
+    return value > 0 ? `+${value}` : `${value}`;
+  }
+
+  function explainNumberSequence(sequence, correct) {
+    const differences = sequence.slice(1).map((value, index) => value - sequence[index]);
+
+    if (differences.every((difference) => difference === differences[0])) {
+      return `The pattern changes by ${describeSignedChange(differences[0])} each time: ${sequence.join(", ")}. So the next number is ${correct}.`;
+    }
+
+    const differenceSteps = differences.slice(1).map((value, index) => value - differences[index]);
+
+    if (differenceSteps.length > 0 && differenceSteps.every((step) => step === differenceSteps[0])) {
+      const nextDifference = differences[differences.length - 1] + differenceSteps[0];
+      return `The jumps are ${differences.map(describeSignedChange).join(", ")}, so the next jump is ${describeSignedChange(nextDifference)}. ${sequence[sequence.length - 1]} ${nextDifference < 0 ? "-" : "+"} ${Math.abs(nextDifference)} = ${correct}.`;
+    }
+
+    return `Following the pattern step by step leads to ${correct}.`;
+  }
+
+  function greatestNumberExplanation(correct, options) {
+    const otherChoices = options.filter((option) => String(option) !== String(correct)).map(String);
+    return `${correct} is greater than ${joinWithAnd(otherChoices)}, so it is the greatest number.`;
+  }
+
+  function groupExplanation(item, category) {
+    return `${item} belongs in the ${category} group, so ${category} is the correct category name.`;
+  }
+
   function rotateDirection(direction, turn) {
     const directions = ["north", "east", "south", "west"];
     const index = directions.indexOf(direction);
@@ -290,7 +387,7 @@
       ["In which season do leaves usually fall from trees?", "autumn", ["spring", "summer", "winter"]],
       ["Which shape has three sides?", "triangle", ["circle", "rectangle", "oval"]],
       ["What number comes right after 39?", "40", ["38", "41", "49"]],
-      ["Which animal gives us wool?", "sheep", ["duck", "horse", "rabbit"]],
+      ["Which animal gives us wool?", "sheep", ["duck", "horse", "pig"]],
       ["Which tool is used for digging?", "shovel", ["pillow", "spoon", "ruler"]],
       ["Which room is mainly used for cooking?", "kitchen", ["hallway", "attic", "bedroom"]],
       ["Which person helps put out fires?", "firefighter", ["drummer", "dentist", "librarian"]],
@@ -319,7 +416,7 @@
           `Which word means almost the same as "${word}"?`,
           correct,
           distractors,
-          `${correct} means nearly the same as ${word}.`,
+          synonymExplanation(word, correct),
           "",
           1000 + index,
         ),
@@ -333,7 +430,7 @@
           `Which word means the opposite of "${word}"?`,
           correct,
           distractors,
-          `${correct} is the opposite of ${word}.`,
+          antonymExplanation(word, correct),
           "",
           1100 + index,
         ),
@@ -347,7 +444,7 @@
           prompt,
           correct,
           distractors,
-          `${correct} is the word that makes the sentence make sense.`,
+          completeSentenceExplanation(prompt, correct),
           "",
           1200 + index,
         ),
@@ -361,7 +458,7 @@
           prompt,
           correct,
           distractors,
-          `${correct} matches the clue best.`,
+          clueExplanation(prompt, correct),
           "",
           1300 + index,
         ),
@@ -464,7 +561,7 @@
           section,
           "What number comes next?",
           correct,
-          `Follow the pattern to get ${correct}.`,
+          explainNumberSequence(sequence, correct),
           2200 + index,
           `${sequence.join(", ")}, ?`,
         ),
@@ -512,7 +609,7 @@
             "Which number is greatest?",
             String(correct),
             options.filter((value) => value !== correct).map(String),
-            `${correct} is larger than the other choices.`,
+            greatestNumberExplanation(correct, options),
             "",
             2400 + index,
           ),
@@ -604,7 +701,7 @@
           "What comes next in the pattern?",
           correct,
           distractors,
-          `${correct} is the next symbol in the pattern.`,
+          repeatingPatternExplanation(stimulus, correct, "symbol"),
           stimulus,
           3000 + index,
         ),
@@ -685,7 +782,7 @@
             `${group[0]} becomes ${group[1]}. ${nextGroup[0]} becomes ...`,
             nextGroup[1],
             [nextGroup[0], group[1], group[0]],
-            `The rule changes an outline shape into a filled shape.`,
+            `The rule turns each outline shape into the same filled shape, so ${nextGroup[0]} becomes ${nextGroup[1]}.`,
             "",
             3200 + index,
           ),
@@ -736,7 +833,7 @@
           `${start} arrow ${promptRule} and becomes ${changedStart}. ${next} arrow becomes ...`,
           changedNext,
           arrowDirections.filter((direction) => direction !== changedNext),
-          `Apply the same rule again. ${next} arrow ${promptRule} becomes ${changedNext}.`,
+          `The rule is that every arrow ${promptRule}. So the ${next} arrow also ${promptRule} and becomes ${changedNext}.`,
           "",
           3300 + index,
         ),
@@ -1242,7 +1339,7 @@
           `Which group does "${item}" belong to?`,
           category,
           distractors,
-          `${item} belongs in the ${category} group.`,
+          groupExplanation(item, category),
           "",
           9100 + index,
         ),
@@ -1422,41 +1519,49 @@
         "If a trail is steep, what is probably true?",
         "It is hard to climb.",
         ["It is made of glass.", "It is underwater.", "It is very short."],
+        "A steep trail rises sharply, so it takes extra effort to climb.",
       ],
       [
         "If a glass is transparent, what can you do through it?",
         "See through it.",
         ["Cook with it.", "Plant it.", "Bend it like cloth."],
+        "Transparent means light passes through it, so you can see through the glass.",
       ],
       [
         "If an author writes a sequel, what has the author already written?",
         "Another book in the same series.",
         ["A recipe for dinner.", "A list of chores.", "A map of the town."],
+        "A sequel continues an earlier story, so there must already be another book in the same series.",
       ],
       [
         "If a rule is fair, how does it treat people?",
         "It treats people the same way.",
         ["It changes every minute.", "It only helps adults.", "It hides the answer."],
+        "A fair rule treats people equally instead of giving one group an unfair advantage.",
       ],
       [
         "If a machine starts rattling and smoking, what should happen next?",
         "Someone should check it right away.",
         ["It should be painted blue.", "It should be buried.", "It should be used faster."],
+        "Rattling and smoke are warning signs, so the safest choice is to check the machine right away.",
       ],
       [
         "If a map shows a dotted line to a campsite, what is the line most likely showing?",
         "The trail to follow.",
         ["The tallest tree.", "The weather tomorrow.", "The name of the river."],
+        "On maps, a dotted line usually marks the path or trail you should follow to reach a place.",
       ],
       [
         "If an animal is nocturnal, when is it usually awake?",
         "At night.",
         ["Only at noon.", "Only in winter.", "Only during storms."],
+        "Nocturnal animals are active at night and usually rest during the day.",
       ],
       [
         "If a package is labeled fragile, how should it be handled?",
         "Carefully.",
         ["As loudly as possible.", "Only upside down.", "As fast as possible."],
+        "Fragile means easy to break, so the package should be handled carefully.",
       ],
     ];
 
@@ -1467,7 +1572,7 @@
           `Which word means almost the same as "${word}"?`,
           correct,
           distractors,
-          `${correct} is the closest meaning to ${word}.`,
+          synonymExplanation(word, correct),
           "",
           1400 + index,
         ),
@@ -1481,7 +1586,7 @@
           `Which word means the opposite of "${word}"?`,
           correct,
           distractors,
-          `${correct} is the opposite of ${word}.`,
+          antonymExplanation(word, correct),
           "",
           1500 + index,
         ),
@@ -1495,21 +1600,21 @@
           prompt,
           correct,
           distractors,
-          `${correct} is the best word to complete the sentence.`,
+          completeSentenceExplanation(prompt, correct),
           "",
           1600 + index,
         ),
       );
     });
 
-    reasoningSet.forEach(([prompt, correct, distractors], index) => {
+    reasoningSet.forEach(([prompt, correct, distractors, explanation], index) => {
       questions.push(
         makeChoiceQuestion(
           section,
           prompt,
           correct,
           distractors,
-          `${correct} is the best inference from the clue.`,
+          explanation,
           "",
           1700 + index,
         ),
@@ -1554,14 +1659,14 @@
       ["36 pencils are placed equally into 6 cups. How many pencils go in each cup?", 6, "36 divided by 6 equals 6."],
     ];
     const wordProblemSet = [
-      ["Mila saved 35 cents on Monday and 27 cents on Tuesday. How many cents did she save in all?", 62],
-      ["A ribbon is 48 inches long. Then 15 inches are cut off and 9 more inches are cut off. How many inches remain?", 24],
-      ["A rectangle has sides that are 6 inches and 4 inches long. What is its perimeter?", 20],
-      ["There are 4 tables with 7 pencils on each table, and the teacher adds 6 more pencils. How many pencils are there now?", 34],
-      ["A jar has 54 beads. If 18 are blue, how many are red?", 36],
-      ["Three friends each read 12 pages on Monday. How many pages did they read altogether?", 36],
-      ["A store sold 45 apples in the morning and 28 apples in the afternoon. How many apples did it sell?", 73],
-      ["There are 63 stickers shared equally among 9 students. How many stickers does each student get?", 7],
+      ["Mila saved 35 cents on Monday and 27 cents on Tuesday. How many cents did she save in all?", 62, "Add the two amounts: 35 + 27 = 62, so Mila saved 62 cents in all."],
+      ["A ribbon is 48 inches long. Then 15 inches are cut off and 9 more inches are cut off. How many inches remain?", 24, "Start with 48 inches, subtract 15, then subtract 9 more: 48 - 15 - 9 = 24."],
+      ["A rectangle has sides that are 6 inches and 4 inches long. What is its perimeter?", 20, "A rectangle has two 6-inch sides and two 4-inch sides, so 6 + 4 + 6 + 4 = 20."],
+      ["There are 4 tables with 7 pencils on each table, and the teacher adds 6 more pencils. How many pencils are there now?", 34, "First find the pencils on the tables: 4 x 7 = 28. Then add 6 more to get 34."],
+      ["A jar has 54 beads. If 18 are blue, how many are red?", 36, "Take the 18 blue beads away from the 54 total beads: 54 - 18 = 36 red beads."],
+      ["Three friends each read 12 pages on Monday. How many pages did they read altogether?", 36, "There are 3 equal groups of 12 pages, so 3 x 12 = 36 pages altogether."],
+      ["A store sold 45 apples in the morning and 28 apples in the afternoon. How many apples did it sell?", 73, "Add the morning and afternoon sales: 45 + 28 = 73 apples."],
+      ["There are 63 stickers shared equally among 9 students. How many stickers does each student get?", 7, "Share 63 stickers equally among 9 students: 63 / 9 = 7 each."],
     ];
 
     regroupSet.forEach(([prompt, correct], index) => {
@@ -1600,13 +1705,13 @@
       );
     });
 
-    wordProblemSet.forEach(([prompt, correct], index) => {
+    wordProblemSet.forEach(([prompt, correct, explanation], index) => {
       questions.push(
         makeNumericQuestion(
           section,
           prompt,
           correct,
-          `The answer is ${correct} after solving the word problem step by step.`,
+          explanation,
           2800 + index,
         ),
       );
@@ -1832,7 +1937,7 @@
           "What letter comes next in the pattern?",
           correct,
           pickDistractors(alphabet.split(""), correct, 3, 8200 + index),
-          "The letters move forward by 2 each time.",
+          `The letters move forward by 2 each time: ${first}, ${second}, ${third}, ${fourth}, so the next letter is ${correct}.`,
           `${first}, ${second}, ${third}, ${fourth}, ?`,
           8200 + index,
         ),
@@ -1853,7 +1958,7 @@
           "What letter comes next in the pattern?",
           correct,
           pickDistractors(alphabet.split(""), correct, 3, 8210 + index),
-          "The letters move forward by 3 each time.",
+          `The letters move forward by 3 each time: ${first}, ${second}, ${third}, ${fourth}, so the next letter is ${correct}.`,
           `${first}, ${second}, ${third}, ${fourth}, ?`,
           8210 + index,
         ),
@@ -2013,7 +2118,7 @@
           `Which group does "${item}" belong to?`,
           category,
           pickDistractors(categoryNames, category, 3, 8600 + index),
-          `${item} belongs in the ${category} group.`,
+          groupExplanation(item, category),
           "",
           8600 + index,
         ),
