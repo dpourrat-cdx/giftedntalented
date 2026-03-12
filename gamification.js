@@ -310,13 +310,30 @@
   }
 
   class CelebrationOverlay {
-    constructor(root) {
+    constructor(root, options = {}) {
       this.root = root;
       this.queue = [];
       this.current = null;
       this.timeoutId = null;
+      this.onStateChange = options.onStateChange || null;
       this.boundClick = this.handleClick.bind(this);
       this.root.addEventListener("click", this.boundClick);
+    }
+
+    hasBlockingEvent() {
+      return Boolean(
+        (this.current && this.current.blocksMission) ||
+          this.queue.some((event) => event.blocksMission),
+      );
+    }
+
+    notifyStateChange() {
+      if (typeof this.onStateChange === "function") {
+        this.onStateChange({
+          currentEvent: this.current,
+          hasBlocking: this.hasBlockingEvent(),
+        });
+      }
     }
 
     handleClick(event) {
@@ -330,6 +347,11 @@
 
     enqueue(event) {
       this.queue.push(event);
+      if (this.current) {
+        this.notifyStateChange();
+        return;
+      }
+
       this.showNext();
     }
 
@@ -356,10 +378,17 @@
             <div class="celebration-rocket-wrap">
               ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
             </div>
-            ${this.current.showButton ? '<button class="celebration-button" type="button" data-dismiss-celebration>Back to Mission</button>' : ""}
+            ${
+              this.current.showButton
+                ? `<button class="celebration-button" type="button" data-dismiss-celebration>${escapeHtml(
+                    this.current.buttonLabel || "Back to Mission",
+                  )}</button>`
+                : ""
+            }
           </div>
         </div>
       `;
+      this.notifyStateChange();
     }
 
     dismiss() {
@@ -370,6 +399,7 @@
 
       this.current = null;
       this.root.innerHTML = "";
+      this.notifyStateChange();
 
       if (this.queue.length > 0) {
         window.setTimeout(() => this.showNext(), 80);
@@ -385,6 +415,7 @@
       this.queue = [];
       this.current = null;
       this.root.innerHTML = "";
+      this.notifyStateChange();
     }
 
     reset() {
@@ -396,6 +427,7 @@
       this.queue = [];
       this.current = null;
       this.root.innerHTML = "";
+      this.notifyStateChange();
     }
   }
 
@@ -412,7 +444,10 @@
         options.roots.questionPanel,
         this.messageManager,
       );
-      this.celebrationOverlay = new CelebrationOverlay(options.roots.overlayRoot);
+      this.celebrationOverlay = new CelebrationOverlay(options.roots.overlayRoot, {
+        onStateChange: options.callbacks?.onOverlayStateChange,
+      });
+      this.introductionSeen = new Set();
       this.midpointSeen = new Set();
       this.sectionCompletionSeen = new Set();
       this.finalSeen = false;
@@ -426,6 +461,7 @@
       this.progressIndicator.render(this.state);
       this.overallProgressBar.render(this.state);
       this.rocketProgressVisual.render(this.state);
+      this.maybeTriggerMissionIntroduction(this.state);
       return this.state;
     }
 
@@ -452,6 +488,40 @@
       this.celebrationOverlay.clearAll();
     }
 
+    hasBlockingOverlay() {
+      return this.celebrationOverlay.hasBlockingEvent();
+    }
+
+    maybeTriggerMissionIntroduction(state) {
+      const section = state.currentSection;
+      if (!state.hasStarted || !section || section.answeredCount > 0 || this.introductionSeen.has(section.key)) {
+        return;
+      }
+
+      this.introductionSeen.add(section.key);
+      const mission = storyMissionForSection(section.key);
+      const reward = this.theme.rewardStages[section.index];
+      const rewardLabel = mission?.rocketPart || reward?.label || section.label;
+
+      this.celebrationOverlay.enqueue({
+        variant: "intro",
+        kicker: `${this.theme.missionLabel} ${section.index + 1}: ${mission?.title || section.label}`,
+        title: content?.gamification?.introductionTitle || "Mission Introduction",
+        body:
+          mission?.introduction ||
+          content?.gamification?.introductionBody ||
+          "Captain Nova has a new mission briefing for you.",
+        reward: formatTemplate(content?.gamification?.introductionReward || "Unlock: {reward}", {
+          reward: rewardLabel,
+        }),
+        stageCount: state.completedSections,
+        boostCount: state.midpointBoosts,
+        showButton: true,
+        buttonLabel: content?.gamification?.introductionButton || "Start mission",
+        blocksMission: true,
+      });
+    }
+
     maybeTriggerMidpoint(state) {
       const section = state.currentSection;
       const midpointTarget = Math.ceil(section.totalQuestions / 2);
@@ -473,6 +543,8 @@
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,
+        buttonLabel: content?.gamification?.midpointButton || "Back to Mission",
+        blocksMission: true,
       });
     }
 
@@ -507,6 +579,8 @@
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,
+        buttonLabel: content?.gamification?.sectionCompleteButton || "Next mission",
+        blocksMission: true,
       });
     }
 
@@ -527,11 +601,14 @@
         stageCount: this.theme.rewardStages.length,
         boostCount: state.midpointBoosts,
         showButton: true,
+        buttonLabel: content?.gamification?.finalButton || "Back to Mission",
+        blocksMission: false,
       });
     }
 
     reset() {
       this.state = null;
+      this.introductionSeen.clear();
       this.midpointSeen.clear();
       this.sectionCompletionSeen.clear();
       this.finalSeen = false;
@@ -549,6 +626,7 @@
     return new GamificationController({
       theme,
       roots: options.roots,
+      callbacks: options.callbacks,
     });
   }
 

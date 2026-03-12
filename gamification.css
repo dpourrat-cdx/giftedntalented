@@ -392,6 +392,12 @@
   display: grid;
   place-items: center;
   padding: 18px;
+  background: rgba(24, 53, 61, 0.18);
+  pointer-events: auto;
+}
+
+.celebration-layer:empty {
+  background: transparent;
   pointer-events: none;
 }
 
@@ -419,6 +425,10 @@
 
 .celebration-overlay.is-midpoint .celebration-card {
   max-width: 460px;
+}
+
+.celebration-overlay.is-intro .celebration-card {
+  max-width: 520px;
 }
 
 .celebration-overlay.is-final .celebration-card {

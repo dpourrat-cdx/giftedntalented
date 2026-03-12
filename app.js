@@ -108,6 +108,8 @@ let scoreboardController = null;
 let lastRenderedQuestionIndex = -1;
 let autoAdvanceTimeoutId = null;
 let autoAdvanceQuestionIndex = -1;
+let isTimerPaused = false;
+let deferredAdvanceQuestionIndex = -1;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -140,6 +142,8 @@ function testDurationSeconds() {
 
 function createNewSession() {
   clearPendingAutoAdvance();
+  deferredAdvanceQuestionIndex = -1;
+  isTimerPaused = false;
   sessionQuestions = buildTestSession();
   selectedAnswers = Array(totalQuestions()).fill(null);
   validatedAnswers = Array(totalQuestions()).fill(null);
@@ -197,12 +201,17 @@ function clearPendingAutoAdvance() {
   autoAdvanceQuestionIndex = -1;
 }
 
+function setTimerPaused(paused) {
+  isTimerPaused = Boolean(paused);
+}
+
 function isAutoAdvancePendingForCurrentQuestion(questionIndex = currentIndex) {
   return autoAdvanceTimeoutId !== null && autoAdvanceQuestionIndex === questionIndex;
 }
 
 function advanceToNextMissionStep() {
   clearPendingAutoAdvance();
+  deferredAdvanceQuestionIndex = -1;
 
   if (!isSubmitted && allQuestionsAnswered()) {
     clearTransientGamificationUi();
@@ -240,6 +249,10 @@ function startTimer() {
   timerId = window.setInterval(() => {
     if (isSubmitted) {
       clearTimer();
+      return;
+    }
+
+    if (isTimerPaused) {
       return;
     }
 
@@ -528,6 +541,7 @@ function renderStoryPanel(content) {
   }
 
   dom.storyPanel.className = `story-panel${content.compact ? " is-compact" : ""}`;
+  const lines = storyLines(content.lines);
   const pills = [];
   if (content.pill) {
     pills.push(`<span class="story-pill">${escapeHtml(content.pill)}</span>`);
@@ -552,7 +566,7 @@ function renderStoryPanel(content) {
       </div>
     </div>
     ${pills.length ? `<div class="story-pills">${pills.join("")}</div>` : ""}
-    <div class="story-copy">${buildStoryParagraphs(content.lines)}</div>
+    ${lines.length ? `<div class="story-copy">${buildStoryParagraphs(lines)}</div>` : ""}
     ${content.footerHtml || ""}
   `;
 }
@@ -581,7 +595,7 @@ function renderMissionStory(section) {
     title: mission.title,
     pill: `Unlock: ${mission.rocketPart}`,
     secondaryPill: section,
-    lines: storyLines(mission.introduction || mission.text || mission.summary),
+    lines: [],
     compact: true,
     iconKey: reward.key,
     footerHtml: renderMissionDots(missionState),
@@ -687,6 +701,7 @@ function goToSection(section) {
   }
 
   clearPendingAutoAdvance();
+  deferredAdvanceQuestionIndex = -1;
   currentIndex = firstUnansweredIndexForSection(section);
   renderQuestion();
 }
@@ -1047,6 +1062,8 @@ function startTestFromBeginning() {
 function restartTest() {
   clearTimer();
   clearPendingAutoAdvance();
+  deferredAdvanceQuestionIndex = -1;
+  isTimerPaused = false;
   if (gamificationController) {
     gamificationController.reset();
   }
@@ -1078,6 +1095,8 @@ function submitTest() {
   }
 
   clearPendingAutoAdvance();
+  deferredAdvanceQuestionIndex = -1;
+  isTimerPaused = false;
   isSubmitted = true;
   clearTimer();
   renderQuestion();
@@ -1089,6 +1108,20 @@ function submitTest() {
     scoreboardController.recordScore(buildFinalScoreRecord());
   }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function handleOverlayStateChange(overlayState) {
+  const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
+  setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
+
+  if (
+    !hasBlockingOverlay &&
+    deferredAdvanceQuestionIndex !== -1 &&
+    deferredAdvanceQuestionIndex === currentIndex &&
+    validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
+  ) {
+    advanceToNextMissionStep();
+  }
 }
 
 dom.nextButton.addEventListener("click", () => {
@@ -1116,8 +1149,12 @@ dom.nextButton.addEventListener("click", () => {
       scoreboardController.recordScore(buildLiveScoreRecord());
     }
     if (isCorrect) {
-      scheduleAutoAdvance(currentIndex);
-      renderQuestion();
+      if (gamificationController && gamificationController.hasBlockingOverlay()) {
+        deferredAdvanceQuestionIndex = currentIndex;
+      } else {
+        scheduleAutoAdvance(currentIndex);
+        renderQuestion();
+      }
     }
     return;
   }
@@ -1158,6 +1195,9 @@ if (window.GiftedGamification) {
       questionFeedbackRoot: dom.questionFeedbackRoot,
       questionPanel: dom.questionPanel,
       overlayRoot: dom.gamificationOverlayRoot,
+    },
+    callbacks: {
+      onOverlayStateChange: handleOverlayStateChange,
     },
   });
 }
