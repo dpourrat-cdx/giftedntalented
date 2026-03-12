@@ -464,7 +464,7 @@
       this.celebrationOverlay.enqueue({
         variant: "midpoint",
         kicker: `${this.theme.missionLabel} ${section.index + 1}`,
-        title: content?.gamification?.midpointTitle || "Mission Control Update",
+        title: content?.gamification?.midpointTitle || "Mission Update",
         body:
           mission?.midMissionUpdate ||
           content?.gamification?.midpointBody ||
@@ -472,7 +472,7 @@
         reward: content?.gamification?.midpointReward || "Star boost unlocked",
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
-        showButton: false,
+        showButton: true,
       });
     }
 

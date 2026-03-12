@@ -59,6 +59,7 @@
       selectHint: "Choose an answer to power up Check Answer.",
       validateHint: "Press Check Answer to power the next rocket step.",
       allAnsweredHint: "All {count} mission steps are complete. Launch the rocket when you are ready.",
+      autoAdvanceHint: "Rocket step locked in. Loading the next mission step...",
       lockedHint: "Rocket step locked in. Press Next Mission Step.",
       playerNote: "Explorer {name} is flying Mission {missionNumber}.",
       buttons: {
@@ -293,7 +294,7 @@
           "Adventure complete!",
         ],
       },
-      midpointTitle: "Mission Control Update",
+      midpointTitle: "Mission Update",
       midpointBody: "The mission is halfway complete, and Captain Nova needs one more strong push.",
       midpointReward: "Star boost unlocked",
       sectionCompleteTitle: "{reward} unlocked!",

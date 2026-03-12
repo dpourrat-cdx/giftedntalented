@@ -106,6 +106,8 @@ let timeRemaining = 0;
 let gamificationController = null;
 let scoreboardController = null;
 let lastRenderedQuestionIndex = -1;
+let autoAdvanceTimeoutId = null;
+let autoAdvanceQuestionIndex = -1;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -137,6 +139,7 @@ function testDurationSeconds() {
 }
 
 function createNewSession() {
+  clearPendingAutoAdvance();
   sessionQuestions = buildTestSession();
   selectedAnswers = Array(totalQuestions()).fill(null);
   validatedAnswers = Array(totalQuestions()).fill(null);
@@ -183,6 +186,53 @@ function clearTimer() {
     window.clearInterval(timerId);
     timerId = null;
   }
+}
+
+function clearPendingAutoAdvance() {
+  if (autoAdvanceTimeoutId) {
+    window.clearTimeout(autoAdvanceTimeoutId);
+    autoAdvanceTimeoutId = null;
+  }
+
+  autoAdvanceQuestionIndex = -1;
+}
+
+function isAutoAdvancePendingForCurrentQuestion(questionIndex = currentIndex) {
+  return autoAdvanceTimeoutId !== null && autoAdvanceQuestionIndex === questionIndex;
+}
+
+function advanceToNextMissionStep() {
+  clearPendingAutoAdvance();
+
+  if (!isSubmitted && allQuestionsAnswered()) {
+    clearTransientGamificationUi();
+    submitTest();
+    return;
+  }
+
+  const nextIndex = nextUnansweredIndexAfterCurrent();
+  if (nextIndex === -1) {
+    clearTransientGamificationUi();
+    submitTest();
+    return;
+  }
+
+  clearTransientGamificationUi();
+  currentIndex = nextIndex;
+  renderQuestion();
+}
+
+function scheduleAutoAdvance(questionIndex) {
+  clearPendingAutoAdvance();
+  autoAdvanceQuestionIndex = questionIndex;
+  autoAdvanceTimeoutId = window.setTimeout(() => {
+    if (isSubmitted || currentIndex !== questionIndex || validatedAnswers[questionIndex] === null) {
+      clearPendingAutoAdvance();
+      return;
+    }
+
+    advanceToNextMissionStep();
+  }, 1000);
 }
 
 function startTimer() {
@@ -636,6 +686,7 @@ function goToSection(section) {
     return;
   }
 
+  clearPendingAutoAdvance();
   currentIndex = firstUnansweredIndexForSection(section);
   renderQuestion();
 }
@@ -750,6 +801,8 @@ function renderQuestion() {
   renderMissionStory(question.section);
   const selectedAnswer = selectedAnswers[currentIndex];
   const validatedAnswer = validatedAnswers[currentIndex];
+  const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
+  const isAutoAdvancing = answeredCorrectly && !isSubmitted && isAutoAdvancePendingForCurrentQuestion();
   const isLocked = validatedAnswer !== null || isSubmitted;
 
   setSectionBadgeContent(question.section);
@@ -829,7 +882,9 @@ function renderQuestion() {
     });
     dom.nextHint.classList.remove("is-hidden");
   } else {
-    dom.nextHint.textContent = questionContent.lockedHint;
+    dom.nextHint.textContent = isAutoAdvancing
+      ? questionContent.autoAdvanceHint
+      : questionContent.lockedHint;
     dom.nextHint.classList.remove("is-hidden");
   }
 
@@ -843,6 +898,7 @@ function renderQuestion() {
         ? questionContent.buttons.launch
         : questionContent.buttons.next;
   dom.nextButton.disabled =
+    isAutoAdvancing ||
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === totalQuestions() - 1);
   if (shouldResetStageScroll) {
@@ -990,6 +1046,7 @@ function startTestFromBeginning() {
 
 function restartTest() {
   clearTimer();
+  clearPendingAutoAdvance();
   if (gamificationController) {
     gamificationController.reset();
   }
@@ -1020,6 +1077,7 @@ function submitTest() {
     return;
   }
 
+  clearPendingAutoAdvance();
   isSubmitted = true;
   clearTimer();
   renderQuestion();
@@ -1046,35 +1104,25 @@ dom.nextButton.addEventListener("click", () => {
     validatedAnswers[currentIndex] = selectedAnswer;
     updateProgress();
     renderQuestion();
+    const isCorrect = selectedAnswer === question.answer;
     if (gamificationController) {
       gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
         questionId: question.id,
         section: question.section,
-        isCorrect: selectedAnswer === question.answer,
+        isCorrect,
       });
     }
     if (scoreboardController) {
       scoreboardController.recordScore(buildLiveScoreRecord());
     }
+    if (isCorrect) {
+      scheduleAutoAdvance(currentIndex);
+      renderQuestion();
+    }
     return;
   }
 
-  if (!isSubmitted && allQuestionsAnswered()) {
-    clearTransientGamificationUi();
-    submitTest();
-    return;
-  }
-
-  const nextIndex = nextUnansweredIndexAfterCurrent();
-  if (nextIndex === -1) {
-    clearTransientGamificationUi();
-    submitTest();
-    return;
-  }
-
-  clearTransientGamificationUi();
-  currentIndex = nextIndex;
-  renderQuestion();
+  advanceToNextMissionStep();
 });
 
 dom.restartButton.addEventListener("click", restartTest);
