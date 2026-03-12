@@ -448,20 +448,32 @@
         onStateChange: options.callbacks?.onOverlayStateChange,
       });
       this.introductionSeen = new Set();
+      this.pendingIntroductionSectionKey = null;
       this.midpointSeen = new Set();
       this.sectionCompletionSeen = new Set();
       this.finalSeen = false;
       this.state = null;
+      this.lastSyncedSectionKey = null;
     }
 
     sync(snapshot) {
       this.state = buildGamificationState(snapshot, this.theme);
+      const currentSectionKey = this.state.currentSection?.key || null;
+      const shouldReplayIntroduction =
+        currentSectionKey !== null && this.pendingIntroductionSectionKey === currentSectionKey;
+      const sectionChanged = currentSectionKey !== this.lastSyncedSectionKey;
       const shouldShowHud = this.state.hasStarted;
       this.roots.hudRoot.classList.toggle("is-hidden", !shouldShowHud);
       this.progressIndicator.render(this.state);
       this.overallProgressBar.render(this.state);
       this.rocketProgressVisual.render(this.state);
-      this.maybeTriggerMissionIntroduction(this.state);
+      this.maybeTriggerMissionIntroduction(this.state, {
+        allowReplay: shouldReplayIntroduction || sectionChanged,
+      });
+      if (shouldReplayIntroduction) {
+        this.pendingIntroductionSectionKey = null;
+      }
+      this.lastSyncedSectionKey = currentSectionKey;
       return this.state;
     }
 
@@ -492,9 +504,19 @@
       return this.celebrationOverlay.hasBlockingEvent();
     }
 
-    maybeTriggerMissionIntroduction(state) {
+    requestMissionIntroduction(sectionKey) {
+      this.pendingIntroductionSectionKey = sectionKey || null;
+    }
+
+    maybeTriggerMissionIntroduction(state, options = {}) {
       const section = state.currentSection;
-      if (!state.hasStarted || !section || section.answeredCount > 0 || this.introductionSeen.has(section.key)) {
+      const allowReplay = Boolean(options.allowReplay);
+      if (
+        !state.hasStarted ||
+        !section ||
+        section.answeredCount > 0 ||
+        (!allowReplay && this.introductionSeen.has(section.key))
+      ) {
         return;
       }
 
@@ -609,9 +631,11 @@
     reset() {
       this.state = null;
       this.introductionSeen.clear();
+      this.pendingIntroductionSectionKey = null;
       this.midpointSeen.clear();
       this.sectionCompletionSeen.clear();
       this.finalSeen = false;
+      this.lastSyncedSectionKey = null;
       this.questionFeedback.clear();
       this.celebrationOverlay.reset();
       this.roots.hudRoot.classList.add("is-hidden");
