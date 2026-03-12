@@ -329,14 +329,18 @@
 
 .question-feedback-root {
   position: relative;
-  min-height: 64px;
+  min-height: 0;
+}
+
+.question-feedback-root:empty {
+  display: none;
 }
 
 .question-feedback-toast {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 10px 14px;
   border-radius: 999px;
   border: 1px solid rgba(24, 53, 61, 0.08);

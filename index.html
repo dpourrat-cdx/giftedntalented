@@ -14,7 +14,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css?v=20260311-14" />
-    <link rel="stylesheet" href="./gamification.css?v=20260312-7" />
+    <link rel="stylesheet" href="./gamification.css?v=20260312-8" />
     <link rel="stylesheet" href="./scoreboard.css?v=20260311-4" />
   </head>
   <body>
@@ -133,12 +133,6 @@
             <div id="overallProgressRoot" class="gamification-slot"></div>
             <div id="rocketProgressRoot" class="gamification-slot"></div>
           </section>
-          <div
-            id="questionFeedbackRoot"
-            class="question-feedback-root"
-            aria-live="polite"
-            aria-atomic="true"
-          ></div>
           <div class="question-body">
             <div class="question-meta">
               <span id="sectionBadge" class="section-badge">Mission 1: Verbal Challenge</span>
@@ -150,6 +144,12 @@
               <div id="optionsList" class="options-list" role="list"></div>
             </div>
             <div class="question-dock">
+              <div
+                id="questionFeedbackRoot"
+                class="question-feedback-root"
+                aria-live="polite"
+                aria-atomic="true"
+              ></div>
               <div id="feedbackPanel" class="feedback-panel is-hidden"></div>
               <p id="nextHint" class="next-hint">Choose an answer to power up Check Answer.</p>
               <div class="question-actions">
