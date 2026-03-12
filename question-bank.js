@@ -580,7 +580,7 @@
       if (index < 10) {
         const first = tokens[index % tokens.length];
         const second = tokens[(index + 1) % tokens.length];
-        correct = first;
+        correct = second;
         stimulus = `${first}  ${second}  ${first}  ${second}  ${first}  ?`;
         distractors = tokens.filter((token) => token !== correct).slice(0, 3);
       } else if (index < 18) {
@@ -881,9 +881,9 @@
         makeChoiceQuestion(
           section,
           "What comes next in the pattern?",
-          first,
-          symbolDistractors(first, 7000 + index),
-          `${first} and ${second} alternate, so the next symbol is ${first}.`,
+          second,
+          symbolDistractors(second, 7000 + index),
+          `${first} and ${second} alternate, so the next symbol is ${second}.`,
           stimulus,
           7000 + index,
         ),
