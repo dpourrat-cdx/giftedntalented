@@ -8,9 +8,19 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 
 ## Current Feature Specs
 
-- `captain-nova-ux-refresh.md` - story-first UX refresh for the Captain Nova rocket mission flow
-- `captain-nova-current-product-spec.md` - current shipped behavior for story flow, mission UI, score saving, and parent controls
-- `next-implementation-todo.md` - prioritized backlog for security hardening, product improvements, and engineering follow-up
+- `captain-nova-ux-refresh.md` - story-first UX architecture for the Captain Nova mission flow, including mission modals, progress feedback, and payoff-first results
+- `captain-nova-current-product-spec.md` - current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, score saving, and parent controls
+- `next-implementation-todo.md` - prioritized backlog after the March 12 mission-story and navigation updates, with security hardening still first
+
+## Current Status
+
+These specs were refreshed through the March 12, 2026 product pass. The shipped app now includes:
+
+- cinematic story content with a swappable storyline-pack structure
+- blocking mission introduction, update, and completion modals
+- timer pause behavior while story modals are open
+- mission-to-mission routing that skips completed missions
+- completed-mission markers in the sidebar
 
 Instead of jumping straight into implementation, we write down:
 

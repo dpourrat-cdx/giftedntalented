@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the recent UX, story, question-flow, and scoreboard updates.
+This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 12 cinematic-story, mission-modal, mission-routing, and completed-state updates.
 
 The product is a static, story-driven gifted practice site for children. It combines an 8-mission question flow, rocket-building rewards, per-child score tracking, and a parent-only control area.
 
@@ -29,14 +29,16 @@ The product is a static, story-driven gifted practice site for children. It comb
 - The start panel shows briefing badges first.
 - The story introduction appears before the child name prompt.
 - The child enters an explorer name before starting Mission 1.
+- The currently shipped story comes from the active storyline pack in `content.js`.
 
 ### Mission Structure
 
 - The game contains 8 missions mapped to the 8 question sections.
 - Each mission has:
-  - a dedicated introduction shown in the mission story panel
+  - a dedicated introduction shown in a blocking mission-introduction modal
   - a midpoint update shown as a persistent celebration overlay
   - a reward/debrief shown when the mission is completed and the rocket part is earned
+- The current storyline is the cinematic Captain Nova arc centered on the Luma-7 beacon.
 
 - Mission mapping:
   - Mission 1: Verbal Challenge -> Rocket Base
@@ -48,6 +50,22 @@ The product is a static, story-driven gifted practice site for children. It comb
   - Mission 7: Sorting Protocol -> Launch Flames
   - Mission 8: Final Logic System -> Launch Glow
 
+### Mission Storytelling And Modal Behavior
+
+- Mission introductions are shown in dedicated modals instead of inside the main question card.
+- Mission update and mission-complete moments also use blocking modals.
+- The timer pauses while any of these blocking mission modals are on screen:
+  - mission introduction
+  - mission update
+  - mission complete
+- Mission introduction modals use the actual mission title as the main heading.
+- Mission modal actions currently read:
+  - `Start mission`
+  - `Continue mission`
+  - `Next mission`
+- Mission introduction text, mission update text, and mission-complete text are authored to tell one connected story beat per mission.
+- Story content is split into swappable storyline packs in `content.js`, and the app resolves content from `activeStorylineId`.
+
 ### Question Flow
 
 - The child answers one question at a time.
@@ -55,22 +73,37 @@ The product is a static, story-driven gifted practice site for children. It comb
   - `Check Answer`
   - `Next Mission Step`
   - `Launch the Rocket`
+- On the last question of a mission, the action becomes `Next mission`.
 
 - Answer validation behavior:
   - correct selected answers stay green
   - wrong selected answers stay red
-  - the correct answer displays the explanation inline
+  - correct answers do not show an explanation
+  - correct answers auto-advance after about 1 second when no blocking mission modal is triggered
   - there is no separate large feedback box during play
+  - incorrect answers show the explanation inline inside the correct answer card and wait for manual advance
 
 - Mission progress dots:
   - current unanswered step is highlighted
   - validated correct steps turn green
   - validated wrong steps turn red
 
+### Mission Navigation And Routing
+
+- Clicking a mission card before the first answer in that mission is validated replays the mission-introduction modal.
+- Clicking a completed mission card replays the mission-complete modal instead of showing the solved last question.
+- When a mission finishes, both the mission-complete modal and the final-question button route to the next unfinished mission.
+- Next-mission routing wraps around the mission list.
+- Example routing behavior:
+  - if Missions 2 and 3 are already complete, finishing Mission 1 routes to Mission 4
+  - if Mission 1 is the only unfinished mission, finishing Mission 8 routes to Mission 1
+
 ### Celebration Behavior
 
 - Per-question encouragement appears after validation.
 - Midpoint and mission-complete overlays stay visible until the child advances.
+- Mission update and mission-complete overlays no longer show the `Star boost unlocked` badge.
+- The booster/encouragement badge is rendered inside the bottom validation dock instead of floating above the question.
 - The final celebration appears on completion of the full test.
 
 ### Scoreboard and Record Behavior
@@ -85,6 +118,15 @@ The product is a static, story-driven gifted practice site for children. It comb
   - records are saved locally in browser storage
   - records are also sent to Supabase when available
   - if two saved records have the same score and percentage, the faster time wins
+
+### Mission Sidebar And Rocket Build Status
+
+- Mission cards use a row layout with the mission icon on the left and mission text on the right.
+- Completed mission cards show a finished-state marker in the top-right:
+  - a gold star-style icon
+  - a `Done` label
+- Completed mission cards also use a warmer completed-state background treatment.
+- The rocket-build card is simplified to show only the current unlocked-stage count plus the rocket visual.
 
 ### Parent Area
 
@@ -103,6 +145,7 @@ The product is a static, story-driven gifted practice site for children. It comb
   - a score-banded final story outcome
   - section-by-section breakdown cards
   - a collapsed Mission Debrief for missed questions
+- Final endings are longer-form cinematic outcomes matched to score bands.
 
 ## Content Model
 
@@ -117,6 +160,11 @@ The product is a static, story-driven gifted practice site for children. It comb
   - final score-based endings
   - scoreboard microcopy
   - celebration labels
+- `content.js` also provides:
+  - `storylines`
+  - `activeStorylineId`
+  - the derived `story` object used by the app
+- This structure is intended to support alternate story packs in the future without rewriting the app.
 
 ## Persistence Model
 
@@ -148,15 +196,22 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Parent reset protection still relies on frontend behavior.
 - Saved child names and scores can remain on shared devices.
 - There is no automated test suite in the repo yet.
+- Storyline selection is still code-configured rather than parent-configurable.
 
 ## Acceptance Criteria For Current Product
 
 - The introduction story is shown before the child name prompt.
-- Each mission shows its own introduction in the mission story card.
+- Each mission shows its own introduction in a blocking mission modal.
 - Each mission midpoint shows mission-specific update text.
 - Each mission completion shows mission-specific reward/debrief text.
+- The timer pauses while mission introduction, mission update, and mission-complete modals are visible.
+- Reopening an unstarted mission replays its mission introduction.
+- Reopening a completed mission replays its mission-complete modal.
+- The last step of a mission uses `Next mission` and routes to the next unfinished mission.
+- Correct answers do not show explanation text but still auto-advance when no blocking modal is shown.
 - Explorer Record shows the child-specific best score, percentage, and elapsed time.
 - Mission overlays persist until the child advances.
+- Completed mission cards show a clear completion marker in the sidebar.
 - The results page shows the score-banded ending story first.
 - Mission Debrief remains collapsed by default.
 
