@@ -301,7 +301,7 @@
       midpointTitle: "Mission Update",
       midpointBody: "The mission is halfway complete, and Captain Nova needs one more strong push.",
       midpointReward: "Star boost unlocked",
-      midpointButton: "Back to Mission",
+      midpointButton: "Continue mission",
       sectionCompleteTitle: "{reward} unlocked!",
       sectionCompleteBody: "Mission complete. Captain Nova just locked {reward} into place.",
       sectionCompleteReward: "Unlocked: {reward}",

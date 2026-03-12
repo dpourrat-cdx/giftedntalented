@@ -1120,7 +1120,8 @@ function handleOverlayStateChange(overlayState) {
     deferredAdvanceQuestionIndex === currentIndex &&
     validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
   ) {
-    advanceToNextMissionStep();
+    scheduleAutoAdvance(currentIndex);
+    renderQuestion();
   }
 }
 

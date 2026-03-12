@@ -505,8 +505,8 @@
 
       this.celebrationOverlay.enqueue({
         variant: "intro",
-        kicker: `${this.theme.missionLabel} ${section.index + 1}: ${mission?.title || section.label}`,
-        title: content?.gamification?.introductionTitle || "Mission Introduction",
+        kicker: content?.gamification?.introductionTitle || "Mission Introduction",
+        title: `${this.theme.missionLabel} ${section.index + 1}: ${mission?.title || section.label}`,
         body:
           mission?.introduction ||
           content?.gamification?.introductionBody ||
@@ -543,7 +543,7 @@
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         showButton: true,
-        buttonLabel: content?.gamification?.midpointButton || "Back to Mission",
+        buttonLabel: content?.gamification?.midpointButton || "Continue mission",
         blocksMission: true,
       });
     }
