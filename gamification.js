@@ -451,6 +451,7 @@
       });
       this.introductionSeen = new Set();
       this.pendingIntroductionSectionKey = null;
+      this.pendingSectionCompletionKey = null;
       this.midpointSeen = new Set();
       this.sectionCompletionSeen = new Set();
       this.finalSeen = false;
@@ -474,6 +475,14 @@
       });
       if (shouldReplayIntroduction) {
         this.pendingIntroductionSectionKey = null;
+      }
+      const shouldReplayCompletion =
+        currentSectionKey !== null && this.pendingSectionCompletionKey === currentSectionKey;
+      this.maybeTriggerSectionCompletion(this.state, {
+        allowReplay: shouldReplayCompletion,
+      });
+      if (shouldReplayCompletion) {
+        this.pendingSectionCompletionKey = null;
       }
       this.lastSyncedSectionKey = currentSectionKey;
       return this.state;
@@ -508,6 +517,10 @@
 
     requestMissionIntroduction(sectionKey) {
       this.pendingIntroductionSectionKey = sectionKey || null;
+    }
+
+    requestMissionCompletion(sectionKey) {
+      this.pendingSectionCompletionKey = sectionKey || null;
     }
 
     maybeTriggerMissionIntroduction(state, options = {}) {
@@ -571,9 +584,10 @@
       });
     }
 
-    maybeTriggerSectionCompletion(state) {
+    maybeTriggerSectionCompletion(state, options = {}) {
       const section = state.currentSection;
-      if (!section.isCompleted || this.sectionCompletionSeen.has(section.key)) {
+      const allowReplay = Boolean(options.allowReplay);
+      if (!section.isCompleted || (!allowReplay && this.sectionCompletionSeen.has(section.key))) {
         return;
       }
 
@@ -630,6 +644,7 @@
       this.state = null;
       this.introductionSeen.clear();
       this.pendingIntroductionSectionKey = null;
+      this.pendingSectionCompletionKey = null;
       this.midpointSeen.clear();
       this.sectionCompletionSeen.clear();
       this.finalSeen = false;

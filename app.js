@@ -755,7 +755,11 @@ function goToSection(section) {
   clearPendingAutoAdvance();
   deferredAdvanceQuestionIndex = -1;
   if (gamificationController) {
-    gamificationController.requestMissionIntroduction(section);
+    if (isSectionCompleted(section)) {
+      gamificationController.requestMissionCompletion(section);
+    } else {
+      gamificationController.requestMissionIntroduction(section);
+    }
   }
   currentIndex = firstUnansweredIndexForSection(section);
   renderQuestion();
