@@ -911,7 +911,10 @@ function renderQuestion() {
     }
 
     const letter = String.fromCharCode(65 + optionIndex);
-    const shouldShowRationale = validatedAnswer !== null && optionIndex === question.answer;
+    const shouldShowRationale =
+      validatedAnswer !== null &&
+      validatedAnswer !== question.answer &&
+      optionIndex === question.answer;
     button.innerHTML = `
       <span class="option-inner">
         <span class="option-letter">${letter}</span>
