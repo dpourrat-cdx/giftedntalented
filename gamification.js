@@ -621,29 +621,22 @@
       this.pendingIntroductionSectionKey = sectionKey || null;
     }
 
-    requestMissionCompletion(sectionKey) {
-      this.pendingSectionCompletionKey = sectionKey || null;
-    }
-
-    maybeTriggerMissionIntroduction(state, options = {}) {
-      const section = state.currentSection;
-      const allowReplay = Boolean(options.allowReplay);
-      if (
-        !state.hasStarted ||
-        !section ||
-        section.answeredCount > 0 ||
-        (!allowReplay && this.introductionSeen.has(section.key))
-      ) {
-        return;
+    sectionStateForKey(sectionKey) {
+      if (!this.state || !sectionKey) {
+        return null;
       }
 
-      this.introductionSeen.add(section.key);
+      return this.state.sections.find((section) => section.key === sectionKey) || null;
+    }
+
+    enqueueMissionIntroduction(state, section) {
       const mission = storyMissionForSection(section.key);
       const reward = this.theme.rewardStages[section.index];
       const rewardLabel = mission?.rocketPart || reward?.label || section.label;
 
       this.celebrationOverlay.enqueue({
         variant: "intro",
+        sectionKey: section.key,
         kicker: content?.gamification?.introductionTitle || "Mission Introduction",
         title: `${this.theme.missionLabel} ${section.index + 1}: ${mission?.title || section.label}`,
         body:
@@ -661,17 +654,11 @@
       });
     }
 
-    maybeTriggerMidpoint(state) {
-      const section = state.currentSection;
-      const midpointTarget = Math.ceil(section.totalQuestions / 2);
-      if (section.answeredCount !== midpointTarget || this.midpointSeen.has(section.key)) {
-        return;
-      }
-
-      this.midpointSeen.add(section.key);
+    enqueueMissionUpdate(state, section) {
       const mission = storyMissionForSection(section.key);
       this.celebrationOverlay.enqueue({
         variant: "midpoint",
+        sectionKey: section.key,
         kicker: `${this.theme.missionLabel} ${section.index + 1}`,
         title: content?.gamification?.midpointTitle || "Mission Update",
         body:
@@ -686,20 +673,14 @@
       });
     }
 
-    maybeTriggerSectionCompletion(state, options = {}) {
-      const section = state.currentSection;
-      const allowReplay = Boolean(options.allowReplay);
-      if (!section.isCompleted || (!allowReplay && this.sectionCompletionSeen.has(section.key))) {
-        return;
-      }
-
-      this.sectionCompletionSeen.add(section.key);
+    enqueueMissionCompletion(state, section) {
       const reward = this.theme.rewardStages[section.index];
       const mission = storyMissionForSection(section.key);
       const rewardLabel = mission?.rocketPart || reward.label;
 
       this.celebrationOverlay.enqueue({
         variant: "section",
+        sectionKey: section.key,
         kicker: `${this.theme.missionLabel} ${section.index + 1} complete`,
         title: formatTemplate(
           content?.gamification?.sectionCompleteTitle || "{reward} unlocked!",
@@ -719,6 +700,68 @@
         buttonLabel: content?.gamification?.sectionCompleteButton || "Next mission",
         blocksMission: true,
       });
+    }
+
+    showMissionUpdate(sectionKey) {
+      const section = this.sectionStateForKey(sectionKey);
+      if (!this.state || !section) {
+        return;
+      }
+
+      this.midpointSeen.add(section.key);
+      this.enqueueMissionUpdate(this.state, section);
+    }
+
+    showMissionCompletion(sectionKey) {
+      const section = this.sectionStateForKey(sectionKey);
+      if (!this.state || !section) {
+        return;
+      }
+
+      this.sectionCompletionSeen.add(section.key);
+      this.enqueueMissionCompletion(this.state, section);
+    }
+
+    requestMissionCompletion(sectionKey) {
+      this.pendingSectionCompletionKey = sectionKey || null;
+    }
+
+    maybeTriggerMissionIntroduction(state, options = {}) {
+      const section = state.currentSection;
+      const allowReplay = Boolean(options.allowReplay);
+      if (
+        !state.hasStarted ||
+        !section ||
+        section.answeredCount > 0 ||
+        (!allowReplay && this.introductionSeen.has(section.key))
+      ) {
+        return;
+      }
+
+      this.introductionSeen.add(section.key);
+      this.enqueueMissionIntroduction(state, section);
+    }
+
+    maybeTriggerMidpoint(state) {
+      const section = state.currentSection;
+      const midpointTarget = Math.ceil(section.totalQuestions / 2);
+      if (section.answeredCount !== midpointTarget || this.midpointSeen.has(section.key)) {
+        return;
+      }
+
+      this.midpointSeen.add(section.key);
+      this.enqueueMissionUpdate(state, section);
+    }
+
+    maybeTriggerSectionCompletion(state, options = {}) {
+      const section = state.currentSection;
+      const allowReplay = Boolean(options.allowReplay);
+      if (!section.isCompleted || (!allowReplay && this.sectionCompletionSeen.has(section.key))) {
+        return;
+      }
+
+      this.sectionCompletionSeen.add(section.key);
+      this.enqueueMissionCompletion(state, section);
     }
 
     maybeTriggerFinalCelebration(state) {

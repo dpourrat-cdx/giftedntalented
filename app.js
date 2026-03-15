@@ -62,6 +62,9 @@ const dom = {
   parentAreaToggle: document.getElementById("parentAreaToggle"),
   parentAreaKicker: document.getElementById("parentAreaKicker"),
   parentAreaCopy: document.getElementById("parentAreaCopy"),
+  storyOnlyToggle: document.getElementById("storyOnlyToggle"),
+  storyOnlyToggleLabel: document.getElementById("storyOnlyToggleLabel"),
+  storyOnlyToggleHelp: document.getElementById("storyOnlyToggleHelp"),
   resetScoresButton: document.getElementById("resetScoresButton"),
   timerLabel: document.getElementById("timerLabel"),
   timerDisplay: document.getElementById("timerDisplay"),
@@ -110,6 +113,8 @@ let autoAdvanceTimeoutId = null;
 let autoAdvanceQuestionIndex = -1;
 let isTimerPaused = false;
 let deferredAdvanceQuestionIndex = -1;
+let storyOnlyModeEnabled = false;
+let isStoryOnlySession = false;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -144,6 +149,7 @@ function createNewSession() {
   clearPendingAutoAdvance();
   deferredAdvanceQuestionIndex = -1;
   isTimerPaused = false;
+  isStoryOnlySession = false;
   sessionQuestions = buildTestSession();
   selectedAnswers = Array(totalQuestions()).fill(null);
   validatedAnswers = Array(totalQuestions()).fill(null);
@@ -353,6 +359,19 @@ function nextUnansweredIndexAfterCurrent() {
   return firstUnansweredIndex();
 }
 
+function completeSectionInStoryOnly(section) {
+  sessionQuestions.forEach((question, index) => {
+    if (question.section !== section || validatedAnswers[index] !== null) {
+      return;
+    }
+
+    selectedAnswers[index] = question.answer;
+    validatedAnswers[index] = question.answer;
+  });
+
+  updateProgress();
+}
+
 function titleCase(value) {
   return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -399,6 +418,8 @@ function applyStaticCopy() {
   dom.parentAreaToggle.textContent = parentAreaContent.toggle;
   dom.parentAreaKicker.textContent = parentAreaContent.kicker;
   dom.parentAreaCopy.textContent = parentAreaContent.copy;
+  dom.storyOnlyToggleLabel.textContent = parentAreaContent.storyOnlyLabel;
+  dom.storyOnlyToggleHelp.textContent = parentAreaContent.storyOnlyHelp;
   dom.restartButton.textContent = parentAreaContent.restart;
   dom.resetScoresButton.textContent = parentAreaContent.reset;
 
@@ -868,10 +889,10 @@ function renderQuestion() {
     renderIntroductionStory();
     renderRocketBuildStatus();
     dom.nameHint.textContent = playerName
-      ? startContent.readyNameHint
+      ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint)
       : startContent.emptyNameHint;
     dom.nextHint.textContent = playerName
-      ? startContent.readyNextHint
+      ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNextHint : startContent.readyNextHint)
       : startContent.emptyNextHint;
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.textContent = questionContent.buttons.check;
@@ -894,6 +915,29 @@ function renderQuestion() {
     : formatTemplate(startContent.playerReadyNote, { name: playerName });
   dom.playerNote.classList.remove("is-hidden");
   renderMissionStory(question.section);
+  setSectionBadgeContent(question.section);
+
+  if (isStoryOnlySession && !isSubmitted) {
+    const missionNumber = mission ? mission.number : sections.indexOf(question.section) + 1;
+    dom.questionCounter.textContent = `Mission ${missionNumber} story route`;
+    dom.questionPrompt.textContent = questionContent.storyOnlyPrompt;
+    dom.questionStimulus.textContent = "";
+    dom.questionStimulus.classList.add("is-hidden");
+    dom.optionsList.innerHTML = "";
+    dom.feedbackPanel.className = "feedback-panel is-hidden";
+    dom.feedbackPanel.innerHTML = "";
+    dom.nextHint.textContent = questionContent.storyOnlyHint;
+    dom.nextHint.classList.remove("is-hidden");
+    dom.nextButton.textContent = questionContent.buttons.storyOnly;
+    dom.nextButton.disabled = true;
+    if (shouldResetStageScroll) {
+      dom.questionStage.scrollTop = 0;
+    }
+    lastRenderedQuestionIndex = currentIndex;
+    syncGamification();
+    return;
+  }
+
   const selectedAnswer = selectedAnswers[currentIndex];
   const validatedAnswer = validatedAnswers[currentIndex];
   const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
@@ -901,7 +945,6 @@ function renderQuestion() {
   const isMissionTransitionReady = !isSubmitted && validatedAnswer !== null && !allQuestionsAnswered() && shouldAdvanceToNextMission();
   const isLocked = validatedAnswer !== null || isSubmitted;
 
-  setSectionBadgeContent(question.section);
   dom.questionCounter.textContent = formatTemplate(questionContent.counter, {
     current: question.id,
     total: totalQuestions(),
@@ -1056,14 +1099,22 @@ function renderResults() {
   const percentage = scorePercent(correct);
   dom.resultsSection.classList.remove("is-hidden");
   dom.reviewDetails.open = false;
-  dom.scoreHeadline.textContent = playerName
-    ? `${playerName} powered ${correct}/${totalQuestions()} mission steps (${percentage}%)`
-    : `You powered ${correct}/${totalQuestions()} mission steps (${percentage}%)`;
-  dom.scoreSummary.textContent = `${summaryText(percentage)} ${resultsContent.summarySuffix}`;
-  dom.timeSummary.textContent = formatTemplate(resultsContent.timeSummary, {
-    used: formatTime(testDurationSeconds() - timeRemaining),
-    total: formatTime(testDurationSeconds()),
-  });
+  if (isStoryOnlySession) {
+    dom.scoreHeadline.textContent = formatTemplate(resultsContent.storyOnlyHeadline, {
+      name: playerName || "Explorer",
+    });
+    dom.scoreSummary.textContent = resultsContent.storyOnlySummary;
+    dom.timeSummary.textContent = resultsContent.storyOnlyTimeSummary;
+  } else {
+    dom.scoreHeadline.textContent = playerName
+      ? `${playerName} powered ${correct}/${totalQuestions()} mission steps (${percentage}%)`
+      : `You powered ${correct}/${totalQuestions()} mission steps (${percentage}%)`;
+    dom.scoreSummary.textContent = `${summaryText(percentage)} ${resultsContent.summarySuffix}`;
+    dom.timeSummary.textContent = formatTemplate(resultsContent.timeSummary, {
+      used: formatTime(testDurationSeconds() - timeRemaining),
+      total: formatTime(testDurationSeconds()),
+    });
+  }
   renderEndingStory(percentage);
 
   dom.resultsBreakdown.innerHTML = "";
@@ -1143,7 +1194,14 @@ function startTestFromBeginning() {
 
   currentIndex = 0;
   hasStarted = true;
-  startTimer();
+  isStoryOnlySession = storyOnlyModeEnabled;
+  if (isStoryOnlySession) {
+    clearTimer();
+    setTimerPaused(true);
+    updateTimerDisplay();
+  } else {
+    startTimer();
+  }
   renderQuestion();
 }
 
@@ -1192,7 +1250,7 @@ function submitTest() {
   if (gamificationController) {
     gamificationController.onTestCompleted(buildGamificationSnapshot());
   }
-  if (scoreboardController) {
+  if (scoreboardController && !isStoryOnlySession) {
     scoreboardController.recordScore(buildFinalScoreRecord());
   }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1202,6 +1260,24 @@ function handleOverlayStateChange(overlayState) {
   const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
   const dismissedEvent = overlayState?.dismissedEvent || null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
+
+  if (!hasBlockingOverlay && isStoryOnlySession && !isSubmitted) {
+    if (dismissedEvent?.variant === "intro") {
+      gamificationController?.showMissionUpdate(dismissedEvent.sectionKey);
+      return;
+    }
+
+    if (dismissedEvent?.variant === "midpoint") {
+      gamificationController?.showMissionCompletion(dismissedEvent.sectionKey);
+      return;
+    }
+
+    if (dismissedEvent?.variant === "section") {
+      completeSectionInStoryOnly(dismissedEvent.sectionKey);
+      advanceToNextMissionStep({ preferNextMission: true });
+      return;
+    }
+  }
 
   if (!hasBlockingOverlay && dismissedEvent?.variant === "section") {
     advanceToNextMissionStep({ preferNextMission: true });
@@ -1220,6 +1296,10 @@ function handleOverlayStateChange(overlayState) {
 }
 
 dom.nextButton.addEventListener("click", () => {
+  if (isStoryOnlySession) {
+    return;
+  }
+
   const selectedAnswer = selectedAnswers[currentIndex];
   const validatedAnswer = validatedAnswers[currentIndex];
   const question = questionAt(currentIndex);
@@ -1259,6 +1339,10 @@ dom.nextButton.addEventListener("click", () => {
 
 dom.restartButton.addEventListener("click", restartTest);
 dom.retryButton.addEventListener("click", restartTest);
+dom.storyOnlyToggle.addEventListener("change", () => {
+  storyOnlyModeEnabled = dom.storyOnlyToggle.checked;
+  renderQuestion();
+});
 dom.childNameInput.addEventListener("input", () => {
   playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
   if (scoreboardController) {
@@ -1312,6 +1396,7 @@ if (window.GiftedScoreboard) {
 
 createNewSession();
 applyStaticCopy();
+dom.storyOnlyToggle.checked = storyOnlyModeEnabled;
 updateProgress();
 updateTimerDisplay();
 renderQuestion();
