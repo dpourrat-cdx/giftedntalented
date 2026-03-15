@@ -260,7 +260,7 @@
       endings: [
         {
           id: "ending_95_plus",
-          label: "Legendary Launch",
+          label: "Excellent",
           minScore: 95,
           maxScore: 100,
           text: storyText([
@@ -275,7 +275,7 @@
         },
         {
           id: "ending_85_94",
-          label: "Great Galactic Mission",
+          label: "Great Job",
           minScore: 85,
           maxScore: 94,
           text: storyText([
@@ -291,7 +291,7 @@
         },
         {
           id: "ending_75_84",
-          label: "Good Mission, Shorter Journey",
+          label: "Nice Work",
           minScore: 75,
           maxScore: 84,
           text: storyText([
@@ -308,7 +308,7 @@
         },
         {
           id: "ending_60_74",
-          label: "Partial Success",
+          label: "Good Effort",
           minScore: 60,
           maxScore: 74,
           text: storyText([
@@ -324,7 +324,7 @@
         },
         {
           id: "ending_below_60",
-          label: "Launch Day Setback",
+          label: "Keep Trying",
           minScore: 0,
           maxScore: 59,
           text: storyText([
@@ -520,6 +520,7 @@
       finalTitle: "All missions complete!",
       finalBody: "Every rocket system is in place. Captain Nova can begin the final countdown.",
       finalReward: "Rocket fully assembled",
+      finalButton: "Finish mission",
     },
   };
 

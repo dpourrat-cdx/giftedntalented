@@ -679,7 +679,7 @@ function renderEndingStory(percentage) {
   const ending = endingStoryForPercentage(percentage);
   dom.endingStory.innerHTML = `
     <p class="story-kicker">${escapeHtml(ending.label)}</p>
-    <h3>${escapeHtml(resultsContent.endingTitle)}</h3>
+    <h3>${escapeHtml(`${ending.label} - ${resultsContent.endingTitle}`)}</h3>
     <div class="story-pills">
       <span class="story-pill">${escapeHtml(formatTemplate(resultsContent.scorePill, { percent: percentage }))}</span>
       <span class="story-pill">${escapeHtml(resultsContent.completePill)}</span>
