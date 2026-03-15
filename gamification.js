@@ -164,6 +164,87 @@
     `;
   }
 
+  function missionRewardIconSvg(key) {
+    const icons = {
+      base: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="11" y="24" width="26" height="8" rx="3"></rect>
+          <path d="M16 32v5M32 32v5M8 39h32"></path>
+        </svg>
+      `,
+      body: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 8c6 4 10 11 10 19v8H14v-8c0-8 4-15 10-19Z"></path>
+          <path d="M18 35h12"></path>
+        </svg>
+      `,
+      window: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 9c6 4 10 11 10 18v8H14v-8c0-7 4-14 10-18Z"></path>
+          <circle cx="24" cy="23" r="5"></circle>
+        </svg>
+      `,
+      wings: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 8c5 4 8 10 8 17v10H16V25c0-7 3-13 8-17Z"></path>
+          <path d="M16 28l-7 5 7 2M32 28l7 5-7 2"></path>
+        </svg>
+      `,
+      engine: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 8c5 4 8 10 8 17v6H16v-6c0-7 3-13 8-17Z"></path>
+          <path d="M18 31h12"></path>
+          <path d="M20 31l-2 7h12l-2-7"></path>
+        </svg>
+      `,
+      astronaut: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="15" r="5"></circle>
+          <path d="M17 30v-7c0-3 3-5 7-5s7 2 7 5v7"></path>
+          <path d="M18 31h12v7H18z"></path>
+        </svg>
+      `,
+      flames: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M24 9c5 4 8 10 8 17v4H16v-4c0-7 3-13 8-17Z"></path>
+          <path d="M24 39c-4 0-7-3-7-7 0-3 2-5 4-7 1 2 2 3 3 4 1-2 3-4 5-6 2 2 3 5 3 8 0 4-4 8-8 8Z"></path>
+        </svg>
+      `,
+      launch: `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="7"></circle>
+          <path d="M24 6v7M24 35v7M6 24h7M35 24h7M12 12l5 5M31 31l5 5M12 36l5-5M31 17l5-5"></path>
+        </svg>
+      `,
+    };
+
+    return icons[key] || icons.base;
+  }
+
+  function renderCelebrationVisual(event) {
+    if (!event) {
+      return "";
+    }
+
+    if (event.variant === "section" && event.rewardKey) {
+      return `
+        <div class="celebration-reward-visual reward-${event.rewardKey}" aria-hidden="true">
+          ${missionRewardIconSvg(event.rewardKey)}
+        </div>
+      `;
+    }
+
+    if (event.variant === "final") {
+      return `
+        <div class="celebration-rocket-wrap">
+          ${renderRocketScene(event.stageCount, event.boostCount, true)}
+        </div>
+      `;
+    }
+
+    return "";
+  }
+
   class EncouragementMessageManager {
     constructor(theme) {
       this.theme = theme;
@@ -396,9 +477,7 @@
               <h3>${escapeHtml(this.current.title)}</h3>
               ${celebrationBodyHtml(this.current.body)}
               ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
-              <div class="celebration-rocket-wrap">
-                ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
-              </div>
+              ${renderCelebrationVisual(this.current)}
             </div>
             ${
               this.current.showButton
@@ -635,6 +714,7 @@
           ),
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
+        rewardKey: reward.key,
         showButton: true,
         buttonLabel: content?.gamification?.sectionCompleteButton || "Next mission",
         blocksMission: true,
