@@ -388,21 +388,25 @@
         : "";
 
       this.root.innerHTML = `
-        <div class="celebration-overlay is-${this.current.variant}">
+        <div class="celebration-overlay is-${this.current.variant}" role="dialog" aria-modal="true">
           ${confetti}
           <div class="celebration-card">
-            <p class="celebration-kicker">${escapeHtml(this.current.kicker)}</p>
-            <h3>${escapeHtml(this.current.title)}</h3>
-            ${celebrationBodyHtml(this.current.body)}
-            ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
-            <div class="celebration-rocket-wrap">
-              ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
+            <div class="celebration-content">
+              <p class="celebration-kicker">${escapeHtml(this.current.kicker)}</p>
+              <h3>${escapeHtml(this.current.title)}</h3>
+              ${celebrationBodyHtml(this.current.body)}
+              ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
+              <div class="celebration-rocket-wrap">
+                ${renderRocketScene(this.current.stageCount, this.current.boostCount, this.current.variant === "final")}
+              </div>
             </div>
             ${
               this.current.showButton
-                ? `<button class="celebration-button" type="button" data-dismiss-celebration>${escapeHtml(
-                    this.current.buttonLabel || "Back to Mission",
-                  )}</button>`
+                ? `<div class="celebration-actions">
+                    <button class="celebration-button" type="button" data-dismiss-celebration>${escapeHtml(
+                      this.current.buttonLabel || "Back to Mission",
+                    )}</button>
+                  </div>`
                 : ""
             }
           </div>
