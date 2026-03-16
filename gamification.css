@@ -518,6 +518,107 @@
   stroke-linejoin: round;
 }
 
+.celebration-artwork-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border: 1px solid rgba(24, 53, 61, 0.08);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 14px 24px rgba(24, 53, 61, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.celebration-artwork-toggle:hover,
+.celebration-artwork-toggle:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 18px 28px rgba(24, 53, 61, 0.14);
+}
+
+.celebration-artwork-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.celebration-card.is-artwork-expanded {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #08121f;
+}
+
+.celebration-artwork-stage {
+  position: relative;
+  display: grid;
+  min-height: min(84dvh, 760px);
+  padding: 56px 14px 14px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 24%),
+    #08121f;
+}
+
+.celebration-artwork-figure {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.celebration-artwork-canvas {
+  width: 100%;
+  min-height: min(70dvh, 660px);
+  max-height: min(76dvh, 720px);
+  border-radius: 24px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.32);
+}
+
+.celebration-artwork-back {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(10, 24, 40, 0.76);
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.celebration-artwork-back-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+
+.celebration-artwork-back-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .celebration-reward-visual.reward-base {
   color: #73563d;
   background: linear-gradient(135deg, #f5dfc3, #e8b985);
@@ -648,9 +749,32 @@
     border-radius: 24px;
   }
 
+  .celebration-artwork-toggle {
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+  }
+
   .celebration-reward-visual svg {
     width: 42px;
     height: 42px;
+  }
+
+  .celebration-artwork-stage {
+    min-height: min(82dvh, 640px);
+    padding: 60px 12px 12px;
+  }
+
+  .celebration-artwork-canvas {
+    min-height: min(56dvh, 420px);
+    max-height: min(68dvh, 520px);
+    border-radius: 18px;
+  }
+
+  .celebration-artwork-back {
+    top: 12px;
+    left: 12px;
+    padding: 9px 12px;
   }
 
   .celebration-actions {

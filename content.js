@@ -33,6 +33,10 @@
           number: 1,
           title: "Verbal Challenge",
           rocketPart: "Rocket Base",
+          completionArtwork: {
+            src: "./assets/mission-1-rocket-base-unlocked.png",
+            alt: "Mission 1 complete scene showing Captain Nova celebrating as the Rocket Base unlocks and rises into place.",
+          },
           introduction: storyText([
             "Captain Nova rushes into the Word Vault, where glowing letters zip through the air like tiny comets and words crash together in bright loops of color.",
             "Beneath the storm, the **Rocket Base** lies sealed under a crystal floor of coded phrases.",

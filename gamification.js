@@ -53,6 +53,63 @@
     return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
+  function buildCelebrationArtworkThumbnail(event) {
+    if (!event?.artwork?.src) {
+      return "";
+    }
+
+    const alt = event.artwork.alt || event.title || "Mission artwork";
+    return `
+      <button
+        class="celebration-artwork-toggle"
+        type="button"
+        data-expand-artwork
+        aria-label="Open mission artwork"
+      >
+        <img
+          class="celebration-artwork-thumb"
+          src="${escapeHtml(event.artwork.src)}"
+          alt="${escapeHtml(alt)}"
+          loading="lazy"
+          decoding="async"
+        />
+      </button>
+    `;
+  }
+
+  function buildCelebrationArtworkExpanded(event) {
+    if (!event?.artwork?.src) {
+      return "";
+    }
+
+    const alt = event.artwork.alt || event.title || "Mission artwork";
+    return `
+      <div class="celebration-artwork-stage">
+        <button
+          class="celebration-artwork-back"
+          type="button"
+          data-collapse-artwork
+          aria-label="Back to mission story"
+        >
+          <span class="celebration-artwork-back-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M15 5l-7 7 7 7"></path>
+            </svg>
+          </span>
+          <span>Back to story</span>
+        </button>
+        <figure class="celebration-artwork-figure">
+          <div
+            class="celebration-artwork-canvas"
+            role="img"
+            aria-label="${escapeHtml(alt)}"
+            style="background-image: url('${escapeHtml(event.artwork.src)}');"
+          ></div>
+        </figure>
+      </div>
+    `;
+  }
+
   function celebrationBodyHtml(text) {
     const sentences = String(text || "")
       .trim()
@@ -228,6 +285,10 @@
   function renderCelebrationVisual(event) {
     if (!event) {
       return "";
+    }
+
+    if (event.variant === "section" && event.artwork?.src) {
+      return buildCelebrationArtworkThumbnail(event);
     }
 
     if (event.variant === "section" && event.rewardKey) {
@@ -419,6 +480,7 @@
       this.queue = [];
       this.current = null;
       this.timeoutId = null;
+      this.isArtworkExpanded = false;
       this.onStateChange = options.onStateChange || null;
       this.boundClick = this.handleClick.bind(this);
       this.root.addEventListener("click", this.boundClick);
@@ -444,28 +506,41 @@
     handleClick(event) {
       const dismissButton = event.target.closest("[data-dismiss-celebration]");
       if (!dismissButton) {
+        const expandArtworkButton = event.target.closest("[data-expand-artwork]");
+        if (expandArtworkButton) {
+          this.isArtworkExpanded = true;
+          this.renderCurrent();
+          return;
+        }
+
+        const collapseArtworkButton = event.target.closest("[data-collapse-artwork]");
+        if (collapseArtworkButton) {
+          this.isArtworkExpanded = false;
+          this.renderCurrent();
+        }
         return;
       }
 
       this.dismiss();
     }
 
-    enqueue(event) {
-      this.queue.push(event);
-      if (this.current) {
-        this.notifyStateChange();
+    renderCurrent() {
+      if (!this.current) {
+        this.root.innerHTML = "";
         return;
       }
 
-      this.showNext();
-    }
-
-    showNext() {
-      if (this.current || this.queue.length === 0) {
+      if (this.isArtworkExpanded && this.current.artwork?.src) {
+        this.root.innerHTML = `
+          <div class="celebration-overlay is-${this.current.variant}" role="dialog" aria-modal="true">
+            <div class="celebration-card is-artwork-expanded">
+              ${buildCelebrationArtworkExpanded(this.current)}
+            </div>
+          </div>
+        `;
         return;
       }
 
-      this.current = this.queue.shift();
       const confetti = this.current.variant === "final"
         ? Array.from({ length: 10 }, (_, index) => {
             return `<span class="celebration-confetti celebration-confetti-${index + 1}"></span>`;
@@ -495,6 +570,26 @@
           </div>
         </div>
       `;
+    }
+
+    enqueue(event) {
+      this.queue.push(event);
+      if (this.current) {
+        this.notifyStateChange();
+        return;
+      }
+
+      this.showNext();
+    }
+
+    showNext() {
+      if (this.current || this.queue.length === 0) {
+        return;
+      }
+
+      this.current = this.queue.shift();
+      this.isArtworkExpanded = false;
+      this.renderCurrent();
       this.notifyStateChange();
     }
 
@@ -506,6 +601,7 @@
 
       const dismissedEvent = this.current;
       this.current = null;
+      this.isArtworkExpanded = false;
       this.root.innerHTML = "";
       this.notifyStateChange({ dismissedEvent });
 
@@ -522,6 +618,7 @@
 
       this.queue = [];
       this.current = null;
+      this.isArtworkExpanded = false;
       this.root.innerHTML = "";
       this.notifyStateChange();
     }
@@ -534,6 +631,7 @@
 
       this.queue = [];
       this.current = null;
+      this.isArtworkExpanded = false;
       this.root.innerHTML = "";
       this.notifyStateChange();
     }
@@ -697,6 +795,7 @@
               "Mission complete. Captain Nova just locked {reward} into place.",
             { reward: rewardLabel },
           ),
+        artwork: mission?.completionArtwork || null,
         stageCount: state.completedSections,
         boostCount: state.midpointBoosts,
         rewardKey: reward.key,
