@@ -22,11 +22,9 @@
         text: [
           "Welcome, Explorer. **Tonight, Mission Control has a real emergency in the stars.**",
           "A mysterious beacon has started flashing from deep space - far beyond Earth, past the Moon, past the comet trails, beyond even the maps in the station archives. Captain Nova has traced the signal to a hidden planet called Luma-7, a world wrapped in silver storms, glowing rings, and skies no human has ever seen. But the path to reach it is unstable. It opens only once, like a secret tunnel through space, and it is already beginning to flicker.",
-          "**There is only one ship fast enough to answer the call.**",
-          "**There is just one problem: the rocket is not finished.**",
+          "There is only one ship fast enough to answer the call. **There is just one problem: the rocket is not finished.**",
           "Across the station, eight sealed chambers protect the missing rocket parts. Each chamber contains a challenge, a vital system, and another piece of the route to Luma-7. Solve the mission in each chamber, unlock the next rocket part, and help Captain Nova rebuild the ship before the skyway closes.",
-          "**Move fast. Think clearly. Stay brave.**",
-          "If you can wake the rocket piece by piece, Captain Nova may become the first explorer ever to reach Luma-7.",
+          "If you can wake the rocket piece by piece, Captain Nova may become the first explorer ever to reach Luma-7. **Move fast. Think clearly. Stay brave.**",
         ],
       },
       missions: [
