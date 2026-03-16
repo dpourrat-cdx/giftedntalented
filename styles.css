@@ -456,12 +456,14 @@ h1 {
 }
 
 .story-artwork-figure.is-introduction {
-  max-width: 430px;
-  margin-inline: auto;
+  max-width: none;
 }
 
 .story-artwork-image.is-introduction {
-  max-height: 520px;
+  aspect-ratio: 3 / 2;
+  max-height: 440px;
+  object-fit: cover;
+  object-position: center;
 }
 
 .story-artwork-image.is-ending {
@@ -1438,7 +1440,8 @@ h1 {
   }
 
   .story-artwork-image.is-introduction {
-    max-height: 420px;
+    aspect-ratio: 4 / 3;
+    max-height: 300px;
   }
 
   .story-artwork-image.is-ending {
