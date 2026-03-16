@@ -253,6 +253,10 @@
           number: 7,
           title: "Sorting Protocol",
           rocketPart: "Launch Flames",
+          completionArtwork: {
+            src: "./assets/mission-8-launch-glow-unlocked.png",
+            alt: "Mission 7 complete scene showing Captain Nova as the Launch Flames ignite beneath the rocket and the countdown wakes.",
+          },
           introduction: storyText([
             "Captain Nova enters the Launch Grid, where glowing objects drift through the air in crossing streams of light.",
             "Some belong together, some do not, and the ignition system will stay locked until the right groups are sorted into perfect order.",
@@ -288,7 +292,7 @@
           title: "Final Logic System",
           rocketPart: "Launch Glow",
           completionArtwork: {
-            src: "./assets/mission-8-launch-glow-unlocked.png",
+            src: "./assets/mission-8-launch-glow-unlocked-v2.png",
             alt: "Mission 8 complete scene showing Captain Nova as the final launch system surges awake and the rocket glows with full power.",
           },
           introduction: storyText([
