@@ -7,6 +7,10 @@
     cinematicCaptainNova: {
       id: "cinematicCaptainNova",
       title: "Captain Nova's Rocket Mission",
+      introductionArtwork: {
+        src: "./assets/captain-nova-launch-bay.png",
+        alt: "Captain Nova standing in the launch bay in front of the unfinished rocket before the mission begins.",
+      },
       endingArtwork: {
         src: "./assets/luma7-final-flight.png",
         alt: "Captain Nova standing on Luma-7 beside the landed rocket under a ringed planet, lightning, and green auroras.",

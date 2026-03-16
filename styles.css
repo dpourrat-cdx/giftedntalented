@@ -435,7 +435,7 @@ h1 {
   margin-top: 18px;
 }
 
-.ending-story-figure {
+.story-artwork-figure {
   margin: 18px 0 0;
   padding: 12px;
   border-radius: 26px;
@@ -446,14 +446,26 @@ h1 {
   box-shadow: 0 18px 30px rgba(24, 53, 61, 0.1);
 }
 
-.ending-story-image {
+.story-artwork-image {
   display: block;
   width: 100%;
-  max-height: 420px;
   margin: 0 auto;
   border-radius: 18px;
   object-fit: contain;
   background: linear-gradient(180deg, rgba(15, 41, 70, 0.94), rgba(26, 69, 108, 0.84));
+}
+
+.story-artwork-figure.is-introduction {
+  max-width: 430px;
+  margin-inline: auto;
+}
+
+.story-artwork-image.is-introduction {
+  max-height: 520px;
+}
+
+.story-artwork-image.is-ending {
+  max-height: 420px;
 }
 
 .story-panel.is-compact {
@@ -1415,14 +1427,21 @@ h1 {
     gap: 14px;
   }
 
-  .ending-story-figure {
+  .story-artwork-figure {
     margin-top: 16px;
     padding: 10px;
     border-radius: 22px;
   }
 
-  .ending-story-image {
-    max-height: 340px;
+  .story-artwork-image {
     border-radius: 16px;
+  }
+
+  .story-artwork-image.is-introduction {
+    max-height: 420px;
+  }
+
+  .story-artwork-image.is-ending {
+    max-height: 340px;
   }
 }

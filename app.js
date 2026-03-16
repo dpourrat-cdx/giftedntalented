@@ -479,6 +479,28 @@ function buildStoryParagraphs(lines) {
   return storyLines(lines).map((line) => `<p>${formatStoryInline(line)}</p>`).join("");
 }
 
+function buildStoryArtworkMarkup(artwork, options = {}) {
+  if (!artwork || !artwork.src) {
+    return "";
+  }
+
+  const figureClass = options.figureClass || "story-artwork-figure";
+  const imageClass = options.imageClass || "story-artwork-image";
+  const alt = artwork.alt || `${storyContent.title} artwork`;
+
+  return `
+    <figure class="${figureClass}">
+      <img
+        class="${imageClass}"
+        src="${escapeHtml(artwork.src)}"
+        alt="${escapeHtml(alt)}"
+        loading="lazy"
+        decoding="async"
+      />
+    </figure>
+  `;
+}
+
 function buildMissionUiState(section) {
   const missionQuestions = sessionQuestions
     .map((question, index) => ({ question, index }))
@@ -643,6 +665,7 @@ function renderStoryPanel(content) {
       </div>
     </div>
     ${pills.length ? `<div class="story-pills">${pills.join("")}</div>` : ""}
+    ${content.mediaHtml || ""}
     ${lines.length ? `<div class="story-copy">${buildStoryParagraphs(lines)}</div>` : ""}
     ${content.footerHtml || ""}
   `;
@@ -654,6 +677,10 @@ function renderIntroductionStory() {
     title: storyContent.title,
     pill: storyContent.introduction.pill,
     secondaryPill: storyContent.introduction.secondaryPill,
+    mediaHtml: buildStoryArtworkMarkup(storyContent.introductionArtwork, {
+      figureClass: "story-artwork-figure is-introduction",
+      imageClass: "story-artwork-image is-introduction",
+    }),
     lines: storyLines(storyContent.introduction.text),
   });
 }
@@ -681,21 +708,6 @@ function renderMissionStory(section) {
 
 function renderEndingStory(percentage) {
   const ending = endingStoryForPercentage(percentage);
-  const artwork = storyContent.endingArtwork;
-  const artworkMarkup =
-    artwork && artwork.src
-      ? `
-        <figure class="ending-story-figure">
-          <img
-            class="ending-story-image"
-            src="${escapeHtml(artwork.src)}"
-            alt="${escapeHtml(artwork.alt || `${storyContent.title} ending artwork`)}"
-            loading="lazy"
-            decoding="async"
-          />
-        </figure>
-      `
-      : "";
   dom.endingStory.innerHTML = `
     <p class="story-kicker">${escapeHtml(ending.label)}</p>
     <h3>${escapeHtml(`${ending.label} - ${resultsContent.endingTitle}`)}</h3>
@@ -703,7 +715,10 @@ function renderEndingStory(percentage) {
       <span class="story-pill">${escapeHtml(formatTemplate(resultsContent.scorePill, { percent: percentage }))}</span>
       <span class="story-pill">${escapeHtml(resultsContent.completePill)}</span>
     </div>
-    ${artworkMarkup}
+    ${buildStoryArtworkMarkup(storyContent.endingArtwork, {
+      figureClass: "story-artwork-figure is-ending",
+      imageClass: "story-artwork-image is-ending",
+    })}
     <div class="story-copy">
       ${buildStoryParagraphs(ending.text)}
     </div>
