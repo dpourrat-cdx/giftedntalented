@@ -144,6 +144,10 @@
           number: 4,
           title: "Spatial Assembly",
           rocketPart: "Rocket Wings",
+          completionArtwork: {
+            src: "./assets/mission-4-rocket-wings-unlocked.png",
+            alt: "Mission 4 complete scene showing Captain Nova as the Rocket Wings unfold into place in the Assembly Bay.",
+          },
           introduction: storyText([
             "Captain Nova enters the Assembly Bay, where metal pieces drift in slow circles through a chamber full of humming magnetic light.",
             "Some parts are curved, some are sharp, and some only make sense when turned in exactly the right direction.",
@@ -175,6 +179,10 @@
           number: 5,
           title: "Pattern Reactor",
           rocketPart: "Rocket Engine",
+          completionArtwork: {
+            src: "./assets/mission-5-rocket-engine-unlocked.png",
+            alt: "Mission 5 complete scene showing Captain Nova as the Rocket Engine ignites with bright energy in the Reactor Core.",
+          },
           introduction: storyText([
             "Captain Nova descends into the Reactor Core, where deep mechanical light pulses through the chamber in repeating streams of symbols.",
             "At the center waits the **Rocket Engine**, silent for now, because one missing symbol has broken the code that wakes its power.",
@@ -209,6 +217,10 @@
           number: 6,
           title: "Analogy Link",
           rocketPart: "Astronaut Seat",
+          completionArtwork: {
+            src: "./assets/mission-6-astronaut-seat-unlocked.png",
+            alt: "Mission 6 complete scene showing Captain Nova as the Astronaut Seat rises into the Command Chamber and links to the cockpit.",
+          },
           introduction: storyText([
             "Captain Nova enters the Command Chamber, where the next lock is hidden inside chains of connected ideas glowing across the main screen.",
             "Pairs of clues appear, linked by a relationship that must be understood before the system will open.",
@@ -275,6 +287,10 @@
           number: 8,
           title: "Final Logic System",
           rocketPart: "Launch Glow",
+          completionArtwork: {
+            src: "./assets/mission-8-launch-glow-unlocked.png",
+            alt: "Mission 8 complete scene showing Captain Nova as the final launch system surges awake and the rocket glows with full power.",
+          },
           introduction: storyText([
             "Captain Nova enters the Final Control Room, where the last challenge protects the launch sequence itself.",
             "Across the main console stretches a chain of clues, and each one must be understood in the right order before the rocket will accept the command to fly.",
