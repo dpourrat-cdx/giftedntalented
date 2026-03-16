@@ -69,6 +69,10 @@
           number: 2,
           title: "Math Challenge",
           rocketPart: "Rocket Body",
+          completionArtwork: {
+            src: "./assets/mission-2-rocket-body-unlocked.png",
+            alt: "Mission 2 complete scene showing Captain Nova as the Rocket Body lowers into place over the base.",
+          },
           introduction: storyText([
             "Captain Nova steps into the Number Chamber, where giant glowing rings of numbers spin through the air like the gears of a cosmic machine.",
             "At the center floats the **Rocket Body**, trapped inside a buzzing field of shifting math energy.",
