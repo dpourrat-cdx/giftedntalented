@@ -49,6 +49,10 @@
     });
   }
 
+  function formatStoryInline(value) {
+    return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
   function celebrationBodyHtml(text) {
     const sentences = String(text || "")
       .trim()
@@ -62,7 +66,7 @@
     const paragraphs = [];
     for (let index = 0; index < sentences.length; index += 2) {
       const paragraph = sentences.slice(index, index + 2).join(" ");
-      paragraphs.push(`<p>${escapeHtml(paragraph)}</p>`);
+      paragraphs.push(`<p>${formatStoryInline(paragraph)}</p>`);
     }
 
     return `<div class="celebration-body">${paragraphs.join("")}</div>`;
