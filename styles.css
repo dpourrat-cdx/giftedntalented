@@ -93,17 +93,6 @@ body::before {
   margin-top: 0;
 }
 
-.hero-card::after,
-.question-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 10% 14%, rgba(255, 255, 255, 0.78), transparent 18%),
-    linear-gradient(135deg, rgba(231, 111, 81, 0.06), transparent 42%);
-  pointer-events: none;
-}
-
 .hero-card::before {
   content: "";
   position: absolute;
