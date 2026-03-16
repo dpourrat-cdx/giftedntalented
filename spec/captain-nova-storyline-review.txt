@@ -12,7 +12,19 @@ This file is a review copy of the currently active storyline, formatted in markd
 **Pill:** Before Mission 1  
 **Secondary Pill:** 8 Rocket Parts to Unlock
 
-Welcome, Explorer. Tonight Mission Control is racing the stars. Captain Nova has traced a shimmering beacon to the hidden planet Luma-7, a world wrapped in silver storms far beyond Earth. The flight path to reach it opens only once before the skyway closes, and the station's unfinished rocket is the only ship fast enough to answer the call. Eight sealed chambers hold the missing parts. In each one, a different challenge guards a vital system and another piece of the route. Solve every mission, wake the rocket piece by piece, and help Captain Nova launch before the window fades into darkness forever.
+Welcome, Explorer. Tonight, Mission Control has a real emergency in the stars.
+
+A mysterious beacon has started flashing from deep space - far beyond Earth, past the Moon, past the comet trails, beyond even the maps in the station archives. Captain Nova has traced the signal to a hidden planet called Luma-7, a world wrapped in silver storms, glowing rings, and skies no human has ever seen. But the path to reach it is unstable. It opens only once, like a secret tunnel through space, and it is already beginning to flicker.
+
+There is only one ship fast enough to answer the call.
+
+There is just one problem: the rocket is not finished.
+
+Across the station, eight sealed chambers protect the missing rocket parts. Each chamber contains a challenge, a vital system, and another piece of the route to Luma-7. Solve the mission in each chamber, unlock the next rocket part, and help Captain Nova rebuild the ship before the skyway closes.
+
+Move fast. Think clearly. Stay brave.
+
+If you can wake the rocket piece by piece, Captain Nova may become the first explorer ever to reach Luma-7.
 
 ## Mission 1
 
@@ -162,20 +174,86 @@ Mission complete. The final clue locks into place, and the entire control system
 
 ### Excellent (95-100)
 
-With every chamber solved, Captain Nova seals the hatch, settles into the Astronaut Seat, and begins the final countdown. The Rocket Base grips the launch pad, the Window shines with the path you uncovered, the Wings hold true, the Engine roars awake, the Launch Flames bloom gold, and the Launch Glow washes the hull in starlight. At zero, the ship blasts upward through steam and silver fire, leaving Earth and then the Moon behind. Guided by the patterns, numbers, and clues you restored, Captain Nova threads the ship through the debris field, crosses the Comet Gate, and follows the beacon all the way to Luma-7. At last the hidden planet rises ahead - blue oceans, glassy storm rings, and valleys glowing beneath green auroras. Captain Nova sends Mission Control the first clear hello from the new world, glides through the shining sky, and lands where no explorer has ever stood. Because of your brilliant work, the beacon was answered, the planet was reached, and this mission becomes a legendary chapter in space history.
+With every chamber solved, Captain Nova seals the hatch, settles into the Astronaut Seat, and begins the final countdown. The Rocket Base grips the launch pad, the Window shines with the path you uncovered, the Wings lock into perfect position, the Engine roars awake, the Launch Flames surge beneath the platform, and the Launch Glow washes the hull in bright silver light.
+
+At zero, the rocket launches.
+
+It blasts upward through clouds of steam and roaring fire, shaking the station as it tears into the night sky. Earth falls away. The Moon flashes past. Stars open in every direction.
+
+Captain Nova follows the route you restored, flying through a river of tumbling debris, banking between spinning rocks and broken ice, then bursting through a glowing comet gate that lights the whole ship blue-white. Every part works beautifully. Every system responds instantly. The rocket flies like it was always meant to reach the impossible.
+
+And then, through the silver storm ahead, Luma-7 appears.
+
+It is more incredible than anyone imagined: blue oceans glowing beneath crystal clouds, giant glassy storm rings circling the planet, green auroras pouring through the sky, and valleys sparkling like they are filled with stars. Captain Nova guides the ship through the shining atmosphere, dodges a crown of silver lightning, and lands in a wide glowing plain at the foot of a crystal mountain range.
+
+Mission Control erupts in cheers loud enough to rattle the speakers. Captain Nova sends the first clear hello from Luma-7 back to Earth, followed by images of its skies, its rings, and its mysterious glowing land.
+
+Because of your brilliant work, the beacon was answered. The hidden planet was reached. Captain Nova becomes the first explorer to stand on Luma-7, and this mission is remembered forever as one of the greatest adventures in space history.
 
 ### Great Job (85-94)
 
-The countdown ends in a roar, and Captain Nova launches into the night with a rocket that feels strong, bright, and nearly perfect. The ship climbs past the clouds, slips beyond the Moon, and races through the dark with the route to Luma-7 glowing in the Window you helped unlock. The Engine holds steady, the Wings guide the ship through drifting debris, and the beacon ahead grows brighter with every passing minute. Soon Luma-7 appears in the distance - a shimmering world ringed with silver weather and rivers of light. Captain Nova reaches its orbit and sends back breathtaking images of glowing seas, storm crowns, and mountain shadows moving beneath the clouds. A few systems are not tuned quite well enough for a full landing, so Mission Control orders a careful turn back before the descent becomes risky. Even so, the mission is a triumph. The beacon was reached, the hidden planet was revealed, and Captain Nova returns home carrying discoveries that will guide the next launch even farther into the unknown.
+The countdown reaches zero, and Captain Nova launches into the night with a rocket that feels strong, fast, and almost perfect. The ship rises in a roar of light, breaks through the clouds, and races away from Earth toward the narrow skyway leading to Luma-7.
+
+The Window glows with the route you helped uncover. The Engine hums with steady power. The Wings guide the ship through drifting debris and shimmering comet dust as Captain Nova flies deeper into space. The beacon ahead grows brighter and brighter until, at last, the hidden planet comes into view.
+
+Luma-7.
+
+A shimmering world wrapped in silver weather, swirling rings, and glowing rivers of light. Captain Nova reaches orbit and circles the planet, sending back breathtaking images of shining seas, bright storm crowns, enormous mountain shadows, and flashes of green aurora racing across the sky. Mission Control can barely believe what it is seeing.
+
+But a few systems are not tuned quite well enough for a safe landing. The ship can orbit. It can scan. It can get close. But the descent would be too risky.
+
+So Mission Control gives the order to turn back.
+
+Even so, the mission is a triumph. The beacon was reached. The hidden planet was revealed. Captain Nova returns to Earth carrying maps, data, and images that will guide the next launch even farther into the unknown. The first landing will have to wait - but because of you, the path is open.
 
 ### Nice Work (75-84)
 
-Captain Nova launches with courage and a rocket that rises cleanly into the dark, carrying the dream of Luma-7 high above Earth. The ship clears the atmosphere, passes the Moon, and follows the route you rebuilt through fields of drifting light and shadow. For a while, everything feels possible. The beacon ahead grows stronger, and Captain Nova even catches a first distant glimpse of Luma-7 glowing at the far edge of space like a lantern behind storm clouds. But as the journey stretches on, a few systems begin to strain. The ship can still fly, yet not with the power and precision needed to cross the final distance safely. Mission Control makes the hard call to turn back before the mission slips into danger. Captain Nova returns with real spaceflight experience, a clearer map, and the thrill of having come close enough to see the hidden world with their own eyes. The journey falls short of landing, but it proves that the next rocket could go all the way.
+Captain Nova launches with courage and a rocket that climbs cleanly into the dark, carrying the dream of Luma-7 high above Earth. The ship clears the atmosphere, speeds past the Moon, and follows the route you rebuilt through drifting fields of ice, dust, and silent starlight.
+
+For a while, everything feels possible.
+
+The beacon ahead grows stronger. The Window stays bright. Captain Nova even catches a first real glimpse of Luma-7 at the far edge of space - glowing through silver storms like a lantern hidden behind clouds. Mission Control receives distant scans and blurry but thrilling images of the planet's ringed skies.
+
+But as the journey continues, a few systems begin to strain. Power wobbles. Guidance needs extra correction. The ship can still fly, but not with the steady strength needed to cross the final distance safely and begin an approach.
+
+Mission Control makes the hard call to turn back before the mission slips into danger.
+
+Captain Nova returns to Earth with real spaceflight experience, a clearer map, fresh readings of the beacon, and the unforgettable thrill of having seen the hidden world with their own eyes. The mission falls short of orbit or landing, but it proves something important:
+
+Luma-7 is real. The route works. And the next rocket could go all the way.
 
 ### Good Effort (60-74)
 
-The rocket launches with a fierce shake, and Captain Nova guides it upward as alarms flicker across the console and the station falls away below. For one shining moment the mission breaks into space. Earth turns blue and quiet beneath the Window, the stars open wide ahead, and far in the darkness the beacon of Luma-7 glimmers like a promise. But the voyage cannot hold steady for long. Some systems struggle to work together, power rises and falls unevenly, and the ship cannot gather the strength it needs to leave near-Earth space and chase the hidden planet safely. Mission Control orders an early return before the journey becomes too dangerous. Captain Nova brings the ship home with skill, and the mission still earns an important victory: the rocket flew, the beacon was seen, and the path ahead became a little clearer. This was not the great crossing to Luma-7, but it was a brave step toward it - and the next build can aim much higher.
+The rocket launches with a fierce shake, and Captain Nova guides it upward as alarms flicker and the station falls away below. The ship breaks through the clouds and reaches space, where Earth glows blue beneath the Window and the stars stretch wide in every direction.
+
+Far ahead in the darkness, the beacon of Luma-7 glimmers like a promise.
+
+For one shining stretch of the journey, it feels like the mission might make it. The ship follows the early part of the route, crosses into near-Earth space, and captures valuable readings from the skyway. Captain Nova keeps the rocket steady with skill and focus while Mission Control tracks the flickering signal ahead.
+
+But the voyage cannot hold together for long.
+
+Some systems struggle to work together. Power rises and falls unevenly. Guidance needs more correction than the rocket can handle. The ship does not have the strength or stability it needs to chase Luma-7 safely across deep space.
+
+Mission Control orders an early return.
+
+Captain Nova brings the ship home with calm hands and strong flying, and the mission still earns an important victory: the rocket flew, the beacon was seen, data was collected, and the path ahead became clearer than ever before. This was not the great crossing to Luma-7 - not yet - but it was a brave step toward it, and the next build will be better prepared.
 
 ### Keep Trying (0-59)
 
-Captain Nova begins the countdown, and for a heartbeat the whole station seems to hold its breath. The Rocket Engine tries to rise, the Launch Flames burst unevenly, and the glowing route to Luma-7 shimmers across the Window like a dream almost within reach. But the ship is not ready. Warning lights spill across the cockpit, key systems pull against each other, and the rocket climbs only a short distance before Mission Control calls for an immediate stop. With calm hands and careful skill, Captain Nova guides the ship safely back to the launch pad while the last of the skyway fades above the station. No one reaches Luma-7 today, and the beacon remains unanswered for now. Even so, the mission is not lost. Every chamber you cleared revealed a little more of what the rocket still needs, and every attempt brought Captain Nova closer to the stars. The hidden planet is still waiting beyond the dark, and with stronger problem-solving on the next run, this unfinished launch could one day become a triumphant journey.
+Captain Nova begins the countdown, and for one breathless moment the whole station seems to hold still.
+
+The Engine surges. The Launch Flames burst unevenly beneath the rocket. The glowing route to Luma-7 shines across the Window like a dream almost close enough to touch. Slowly, the ship rises from the pad in a roar of heat and light.
+
+But the rocket is not ready.
+
+Warning lights flood the cockpit. Key systems pull against one another. The climb becomes shaky, then unstable. Captain Nova fights to steady the controls as Mission Control watches the numbers swing in the wrong direction.
+
+The rocket rises only a short distance before the order comes: abort and return.
+
+With calm focus and careful skill, Captain Nova guides the ship safely back to the launch pad while the last of the skyway fades above the station. The beacon still flashes somewhere far beyond the darkness, unanswered for now.
+
+No one reaches Luma-7 today.
+
+But the mission is not wasted.
+
+Every chamber you cleared revealed more of what the rocket needs. Every answer brought Captain Nova one step closer to the stars. Every attempt helped build the path forward. The hidden planet is still waiting out there beyond the storm rings and the dark, and with stronger problem-solving on the next run, this unfinished launch could one day become a triumphant journey all the way to Luma-7.
