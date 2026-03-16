@@ -12,7 +12,9 @@
         alt: "Captain Nova standing in Mission Control beside the unfinished rocket while a glowing route opens toward deep space and Luma-7.",
       },
       endingArtwork: {
-        src: "./assets/luma7-final-flight.png",
+        src: "./assets/luma7-final-flight-wide.png",
+        mobileSrc: "./assets/luma7-final-flight.png",
+        desktopSrc: "./assets/luma7-final-flight-wide.png",
         alt: "Captain Nova standing on Luma-7 beside the landed rocket under a ringed planet, lightning, and green auroras.",
       },
       introduction: {

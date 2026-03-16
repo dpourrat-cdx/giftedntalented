@@ -495,16 +495,26 @@ function buildStoryArtworkMarkup(artwork, options = {}) {
   const figureClass = options.figureClass || "story-artwork-figure";
   const imageClass = options.imageClass || "story-artwork-image";
   const alt = artwork.alt || `${storyContent.title} artwork`;
+  const mobileSource = artwork.mobileSrc
+    ? `<source media="(max-width: 720px)" srcset="${escapeHtml(artwork.mobileSrc)}" />`
+    : "";
+  const desktopSource = artwork.desktopSrc
+    ? `<source media="(min-width: 721px)" srcset="${escapeHtml(artwork.desktopSrc)}" />`
+    : "";
 
   return `
     <figure class="${figureClass}">
-      <img
-        class="${imageClass}"
-        src="${escapeHtml(artwork.src)}"
-        alt="${escapeHtml(alt)}"
-        loading="lazy"
-        decoding="async"
-      />
+      <picture>
+        ${mobileSource}
+        ${desktopSource}
+        <img
+          class="${imageClass}"
+          src="${escapeHtml(artwork.src)}"
+          alt="${escapeHtml(alt)}"
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
     </figure>
   `;
 }
