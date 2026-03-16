@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 12 cinematic-story, mission-modal, mission-routing, and completed-state updates.
+This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 15 cinematic-story, mobile-modal, story-only, and ending-label updates.
 
 The product is a static, story-driven gifted practice site for children. It combines an 8-mission question flow, rocket-building rewards, per-child score tracking, and a parent-only control area.
 
@@ -30,6 +30,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 - The story introduction appears before the child name prompt.
 - The child enters an explorer name before starting Mission 1.
 - The currently shipped story comes from the active storyline pack in `content.js`.
+- The parent area includes a `Story Only` toggle for narrative-only play.
 
 ### Mission Structure
 
@@ -54,6 +55,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 
 - Mission introductions are shown in dedicated modals instead of inside the main question card.
 - Mission update and mission-complete moments also use blocking modals.
+- The final all-missions-complete celebration also uses a modal before the results screen.
 - The timer pauses while any of these blocking mission modals are on screen:
   - mission introduction
   - mission update
@@ -63,8 +65,12 @@ The product is a static, story-driven gifted practice site for children. It comb
   - `Start mission`
   - `Continue mission`
   - `Next mission`
+- The final all-missions-complete modal uses `Finish mission`.
 - Mission introduction text, mission update text, and mission-complete text are authored to tell one connected story beat per mission.
 - Story content is split into swappable storyline packs in `content.js`, and the app resolves content from `activeStorylineId`.
+- Intro and mission-update modals use a text-led layout with no decorative mission image.
+- Mission-complete modals use a mission-specific reward icon that matches the unlocked rocket part.
+- On phones, mission modals are centered, use a scrollable content area, and keep their primary action visible in a fixed footer.
 
 ### Question Flow
 
@@ -87,6 +93,21 @@ The product is a static, story-driven gifted practice site for children. It comb
   - current unanswered step is highlighted
   - validated correct steps turn green
   - validated wrong steps turn red
+
+### Story Only Mode
+
+- The parent area includes a toggle that enables `Story Only` mode before the child starts.
+- In Story Only mode:
+  - the child still enters an explorer name
+  - the app starts with Mission 1 and plays only the story scenes
+  - each mission runs through:
+    - mission introduction
+    - mission update
+    - mission completion
+  - the question panel is replaced with story-only placeholder copy instead of answer choices
+  - the timer is not used for active play
+  - live score saving and final score persistence are skipped
+- Story Only mode still routes from one mission to the next and ends on the shared final results/ending flow.
 
 ### Mission Navigation And Routing
 
@@ -132,6 +153,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 
 - Parent controls are hidden behind a collapsed `Parent Area`.
 - Parent actions currently include:
+  - toggle Story Only mode
   - restart mission
   - reset saved scores
 
@@ -146,6 +168,14 @@ The product is a static, story-driven gifted practice site for children. It comb
   - section-by-section breakdown cards
   - a collapsed Mission Debrief for missed questions
 - Final endings are longer-form cinematic outcomes matched to score bands.
+- The current ending labels are:
+  - `Excellent`
+  - `Great Job`
+  - `Nice Work`
+  - `Good Effort`
+  - `Keep Trying`
+- The ending headline is shown as `{ending label} - Captain Nova's Final Flight`.
+- Story Only sessions use story-only summary copy in the results header but still reuse the shared ending screen.
 
 ## Content Model
 
@@ -197,6 +227,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Saved child names and scores can remain on shared devices.
 - There is no automated test suite in the repo yet.
 - Storyline selection is still code-configured rather than parent-configurable.
+- Story Only mode currently reuses the normal ending screen and score-band ending story instead of having a separate story-only finale.
 
 ## Acceptance Criteria For Current Product
 
@@ -205,14 +236,19 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Each mission midpoint shows mission-specific update text.
 - Each mission completion shows mission-specific reward/debrief text.
 - The timer pauses while mission introduction, mission update, and mission-complete modals are visible.
+- The final all-missions-complete modal uses `Finish mission`.
+- Mission intro and update modals do not show the decorative rocket visual, while mission-complete modals show a mission-specific reward icon.
+- On phones, the modal action remains visible without needing to scroll past the full story text.
 - Reopening an unstarted mission replays its mission introduction.
 - Reopening a completed mission replays its mission-complete modal.
 - The last step of a mission uses `Next mission` and routes to the next unfinished mission.
 - Correct answers do not show explanation text but still auto-advance when no blocking modal is shown.
+- Story Only mode can be enabled from the parent area and plays the mission scenes without requiring question answers.
+- Story Only mode does not save explorer scores.
 - Explorer Record shows the child-specific best score, percentage, and elapsed time.
 - Mission overlays persist until the child advances.
 - Completed mission cards show a clear completion marker in the sidebar.
-- The results page shows the score-banded ending story first.
+- The results page shows the score-banded ending story first, with the ending label prefixed in the title.
 - Mission Debrief remains collapsed by default.
 
 ## Main Files

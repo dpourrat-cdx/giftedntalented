@@ -4,7 +4,7 @@
 
 Refresh the quiz app so it feels like one coherent Captain Nova rocket adventure instead of a school test with themed add-ons. The experience should stay readable and child-friendly while making the story, rewards, progress, and final launch feel exciting and connected.
 
-This spec now reflects the implemented UX direction after the March 12 story and mission-flow refinements.
+This spec now reflects the implemented UX direction after the March 15 story, modal, mobile, and parent-control refinements.
 
 ## Problem Statement
 
@@ -19,6 +19,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Deliver a stronger final launch moment before exposing detailed review.
 - Make mission storytelling feel chapter-based, with a clear opening, midpoint, and reward moment for each mission.
 - Keep modal reading moments calm by pausing time pressure while they are visible.
+- Keep story modals comfortable to use on phones without losing the primary action.
 
 ## Non-Goals
 
@@ -42,12 +43,17 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Each mission must have a blocking introduction modal before the child starts its first unanswered question.
 - Each mission must have a midpoint update modal with a `Continue mission` action.
 - Each mission must have a mission-complete modal with a `Next mission` action.
+- The final celebration modal must use `Finish mission`.
 - The timer must pause while any blocking mission modal is on screen.
 - The primary CTA labels must read `Check Answer`, `Next Mission Step`, and `Launch the Rocket` in the correct states.
 - The last question of a mission must use `Next mission` instead of `Next Mission Step`.
 - The question layout must keep the CTA visually stable without creating a large empty gap.
+- Mission intro and mission-update modals should stay text-led and uncluttered.
+- Mission-complete modals should visually reinforce the unlocked rocket part with a mission-specific reward icon.
+- On phones, story modals must remain centered and keep the action button visible in a fixed footer.
 - Dashboard cards must use rocket/mission language instead of generic test language.
 - Completed mission cards in the sidebar must show a clear finished marker.
+- The parent area may offer a `Story Only` path that plays the narrative scenes without quiz answering.
 - Results must show the ending story first, then summary cards, with detailed review collapsed by default.
 
 ## UX Flow
@@ -59,9 +65,10 @@ The app already has rocket rewards, mission structure, and story text, but the e
 5. At the midpoint, a `Mission Update` modal appears and pauses the timer until dismissed.
 6. On mission completion, a reward modal confirms the rocket part is earned and routes the child to the next unfinished mission.
 7. Completed missions show a clear finished-state marker in the sidebar so the child can see progress at a glance.
-8. After the final mission step, the launch ending appears first.
-9. Summary cards explain performance by mission.
-10. A parent can open the Mission Debrief to review missed steps and correct answers.
+8. If a parent enables `Story Only`, the child progresses through mission scenes without answering questions.
+9. After the final mission step, the launch ending appears first.
+10. Summary cards explain performance by mission.
+11. A parent can open the Mission Debrief to review missed steps and correct answers.
 
 ## Content Model
 
@@ -81,6 +88,11 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Mission overlays must coordinate with timer state and auto-advance rules.
 - Re-entering a mission before its first answer is validated must replay the mission introduction.
 - Re-entering a completed mission must replay the mission-complete modal instead of dropping the child back on a solved last question.
+- Story modals should use a split layout with scrollable content and a stable action footer for mobile safety.
+- The visual treatment of mission modals should vary by state:
+  - intro and update modals stay text-first
+  - completion modals show the unlocked reward icon
+- Story Only mode should be implemented as a real alternate flow, not as hidden simulated button clicks.
 
 ## Acceptance Criteria
 
@@ -91,11 +103,15 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Opening a mission before its first validated answer replays the mission introduction modal.
 - Opening a completed mission replays the mission-complete modal.
 - The timer pauses while mission introduction, mission update, and mission-complete modals are visible.
+- The final celebration modal uses `Finish mission`.
 - The CTA label changes correctly across unanswered, validated, and complete states.
 - The last question in a mission uses `Next mission`.
 - The CTA stays in the same document position when selecting an option and validating an answer.
+- On phones, the modal action button remains visible and the modal appears centered rather than bottom-locked.
 - Completed missions show a clear finished-state marker in the sidebar.
+- Story Only mode can be enabled from the parent area and plays the mission scenes without answering questions.
 - Results display the ending story before the summary cards.
+- The ending headline includes the score-band label before `Captain Nova's Final Flight`.
 - Mission Debrief is collapsed by default and still contains the missed-question review.
 - Restart, reset PIN protection, and per-child score record behavior continue to work.
 
@@ -106,8 +122,17 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Answer and validate one question and verify the CTA does not jump.
 - Trigger a mission midpoint and verify the `Mission Update` modal pauses the timer and uses `Continue mission`.
 - Complete a mission section and verify the reward copy matches the unlocked rocket part and the modal uses `Next mission`.
+- Complete the full app and verify the final modal button reads `Finish mission`.
 - Reopen an unstarted mission and verify its introduction modal reappears.
 - Reopen a completed mission and verify the mission-complete modal appears instead of the solved question.
+- On a phone-sized viewport, verify the modal remains centered and the action button stays visible.
+- Enable `Story Only` in the parent area and verify the app advances mission-to-mission through modals without requiring answer selection.
 - Trigger final results and verify the ending story appears before the breakdown.
+- Verify the ending title includes the correct score-band label:
+  - `Excellent`
+  - `Great Job`
+  - `Nice Work`
+  - `Good Effort`
+  - `Keep Trying`
 - Open the Mission Debrief and verify review content is still available.
 - Open the parent area and verify restart/reset controls still function.

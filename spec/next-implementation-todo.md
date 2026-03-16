@@ -28,6 +28,8 @@ This backlog captures the next high-value work for the Captain Nova app, with se
 - Add a parent-friendly storyline selector so future story packs can be chosen without editing code.
 - Move storyline packs out of the main JS bundle into dedicated content files or JSON for easier writing and review.
 - Add a story-content validation helper that checks mission text length, ending length, and missing story beats before deploy.
+- Give Story Only mode its own finale/report path instead of reusing the score-banded results screen.
+- Decide whether Story Only mode should persist as a remembered parent preference on the device.
 - Add a child-friendly rocket build summary card on results that shows all unlocked parts together.
 - Add a mission recap view that lets the child revisit completed rocket parts after each mission.
 - Add optional sound effects and a mute control for mission rewards and launch moments.
@@ -39,9 +41,11 @@ This backlog captures the next high-value work for the Captain Nova app, with se
 - Add an automated browser smoke test suite for:
   - start flow and name entry
   - mission introductions, mission updates, and mission-complete modals
+  - story-only mode progression
   - timer pause/resume behavior while modals are visible
   - mission routing to the next unfinished mission
   - completed-mission sidebar markers
+  - mobile modal action visibility
   - scoreboard, results, and Mission Debrief
 - Add a small build or release script to bump asset versions automatically before deploys.
 - Centralize repeated mission and reward mapping logic so story, gamification, and UI all read from the same source.
@@ -55,6 +59,7 @@ This backlog captures the next high-value work for the Captain Nova app, with se
 - Review all `innerHTML` render paths and replace them with safer DOM construction where practical.
 - Add feature flags or environment guards so debug-friendly browser globals are not exposed more than necessary.
 - Audit modal accessibility for focus trapping, keyboard dismissal rules, and screen-reader announcement order.
+- Review the new parent-area toggle controls for keyboard accessibility and accidental child activation.
 
 ## Suggested Delivery Order
 

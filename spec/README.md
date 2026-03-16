@@ -14,13 +14,15 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 
 ## Current Status
 
-These specs were refreshed through the March 12, 2026 product pass. The shipped app now includes:
+These specs were refreshed through the March 15, 2026 product pass. The shipped app now includes:
 
 - cinematic story content with a swappable storyline-pack structure
-- blocking mission introduction, update, and completion modals
+- blocking mission introduction, update, completion, and final-launch modals
 - timer pause behavior while story modals are open
+- phone-safe centered modals with fixed action footers
 - mission-to-mission routing that skips completed missions
 - completed-mission markers in the sidebar
+- a parent-controlled `Story Only` mode that plays the narrative scenes without quiz answering
 
 Instead of jumping straight into implementation, we write down:
 
