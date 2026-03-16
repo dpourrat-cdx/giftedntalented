@@ -322,6 +322,16 @@ function isSectionCompleted(section) {
   });
 }
 
+function isSectionPerfect(section) {
+  if (!isSectionCompleted(section)) {
+    return false;
+  }
+
+  return sessionQuestions.every((question, index) => {
+    return question.section !== section || validatedAnswers[index] === question.answer;
+  });
+}
+
 function nextIncompleteSectionAfter(section) {
   const sectionIndex = sections.indexOf(section);
   if (sectionIndex === -1) {
@@ -786,10 +796,25 @@ function setSectionBadgeContent(label) {
   `;
 }
 
-function missionCompletionBadgeSvg() {
+function missionCompletionStarBadgeSvg() {
   return `
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3.2l2.3 4.67 5.15.75-3.73 3.64.88 5.14L12 14.98 7.4 17.4l.88-5.14L4.55 8.62l5.15-.75L12 3.2z"></path>
+      <path fill="currentColor" d="M12 3.2l2.3 4.67 5.15.75-3.73 3.64.88 5.14L12 14.98 7.4 17.4l.88-5.14L4.55 8.62l5.15-.75L12 3.2z"></path>
+    </svg>
+  `;
+}
+
+function missionCompletionCheckBadgeSvg() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M5.5 12.5l4.2 4.2L18.5 8"
+      ></path>
     </svg>
   `;
 }
@@ -816,6 +841,12 @@ function buildSectionButton(section, isActive, sectionIndex) {
   const reward = missionRewardForIndex(sectionIndex);
   const mission = missionStoryForSection(section);
   const isCompleted = isSectionCompleted(section);
+  const isPerfect = isCompleted && isSectionPerfect(section);
+  const completionLabel = isPerfect ? "Mission completed with all answers correct." : "Mission completed.";
+  const completionBadgeClass = isPerfect ? "is-perfect" : "is-check";
+  const completionBadgeIcon = isPerfect
+    ? missionCompletionStarBadgeSvg()
+    : missionCompletionCheckBadgeSvg();
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
@@ -823,7 +854,7 @@ function buildSectionButton(section, isActive, sectionIndex) {
   button.setAttribute(
     "aria-label",
     mission
-      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.${isCompleted ? " Mission completed." : ""}`
+      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.${isCompleted ? ` ${completionLabel}` : ""}`
       : `${section}. Mission reward: ${reward.label}.`,
   );
 
@@ -833,13 +864,16 @@ function buildSectionButton(section, isActive, sectionIndex) {
 
   if (isCompleted) {
     button.classList.add("is-complete");
+    if (!isPerfect) {
+      button.classList.add("is-complete-check");
+    }
   }
 
   button.innerHTML = `
     ${
       isCompleted
-        ? `<span class="section-button-status" aria-hidden="true">
-            <span class="section-button-status-icon">${missionCompletionBadgeSvg()}</span>
+        ? `<span class="section-button-status ${completionBadgeClass}" aria-hidden="true">
+            <span class="section-button-status-icon ${completionBadgeClass}">${completionBadgeIcon}</span>
             <span class="section-button-status-text">Done</span>
           </span>`
         : ""
