@@ -430,6 +430,32 @@ h1 {
   margin-top: 18px;
 }
 
+.story-panel-results .story-copy {
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.ending-story-figure {
+  margin: 18px 0 0;
+  padding: 12px;
+  border-radius: 26px;
+  border: 1px solid rgba(42, 157, 143, 0.14);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 34%),
+    linear-gradient(160deg, rgba(15, 41, 70, 0.12), rgba(42, 157, 143, 0.08) 48%, rgba(244, 185, 66, 0.12));
+  box-shadow: 0 18px 30px rgba(24, 53, 61, 0.1);
+}
+
+.ending-story-image {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  margin: 0 auto;
+  border-radius: 18px;
+  object-fit: contain;
+  background: linear-gradient(180deg, rgba(15, 41, 70, 0.94), rgba(26, 69, 108, 0.84));
+}
+
 .story-panel.is-compact {
   padding: 16px 18px;
   border-radius: 24px;
@@ -506,6 +532,11 @@ h1 {
   margin: 0;
   color: var(--ink-soft);
   line-height: 1.5;
+}
+
+.story-copy strong {
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .story-panel.is-compact .story-pills {
@@ -1378,5 +1409,20 @@ h1 {
 
   .status-strip {
     grid-template-columns: 1fr;
+  }
+
+  .story-panel-results .story-copy {
+    gap: 14px;
+  }
+
+  .ending-story-figure {
+    margin-top: 16px;
+    padding: 10px;
+    border-radius: 22px;
+  }
+
+  .ending-story-image {
+    max-height: 340px;
+    border-radius: 16px;
   }
 }

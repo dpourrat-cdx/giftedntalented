@@ -471,8 +471,12 @@ function storyLines(value) {
   return [String(value)];
 }
 
+function formatStoryInline(value) {
+  return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
 function buildStoryParagraphs(lines) {
-  return storyLines(lines).map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+  return storyLines(lines).map((line) => `<p>${formatStoryInline(line)}</p>`).join("");
 }
 
 function buildMissionUiState(section) {
@@ -677,6 +681,21 @@ function renderMissionStory(section) {
 
 function renderEndingStory(percentage) {
   const ending = endingStoryForPercentage(percentage);
+  const artwork = storyContent.endingArtwork;
+  const artworkMarkup =
+    artwork && artwork.src
+      ? `
+        <figure class="ending-story-figure">
+          <img
+            class="ending-story-image"
+            src="${escapeHtml(artwork.src)}"
+            alt="${escapeHtml(artwork.alt || `${storyContent.title} ending artwork`)}"
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
+      `
+      : "";
   dom.endingStory.innerHTML = `
     <p class="story-kicker">${escapeHtml(ending.label)}</p>
     <h3>${escapeHtml(`${ending.label} - ${resultsContent.endingTitle}`)}</h3>
@@ -684,6 +703,7 @@ function renderEndingStory(percentage) {
       <span class="story-pill">${escapeHtml(formatTemplate(resultsContent.scorePill, { percent: percentage }))}</span>
       <span class="story-pill">${escapeHtml(resultsContent.completePill)}</span>
     </div>
+    ${artworkMarkup}
     <div class="story-copy">
       ${buildStoryParagraphs(ending.text)}
     </div>
