@@ -379,6 +379,10 @@ h1 {
   border: 1px solid var(--line);
 }
 
+.question-panel:not(.is-start-screen) .quick-sections {
+  display: none;
+}
+
 .start-briefing-row {
   display: flex;
   flex-wrap: wrap;

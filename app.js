@@ -36,8 +36,6 @@ const dom = {
   answeredCount: document.getElementById("answeredCount"),
   progressFill: document.getElementById("progressFill"),
   buildKicker: document.getElementById("buildKicker"),
-  buildNote: document.getElementById("buildNote"),
-  rocketBuildStatus: document.getElementById("rocketBuildStatus"),
   sectionStats: document.getElementById("sectionStats"),
   missionsKicker: document.getElementById("missionsKicker"),
   gamificationHud: document.getElementById("gamificationHud"),
@@ -426,7 +424,6 @@ function applyStaticCopy() {
   dom.buildKicker.textContent = dashboardContent.buildTitle;
   dom.timerLabel.textContent = dashboardContent.timerLabel;
   dom.scoreLabel.textContent = dashboardContent.scoreLabel;
-  dom.buildNote.textContent = dashboardContent.buildNote;
   dom.missionsKicker.textContent = dashboardContent.missionsTitle;
   dom.tipKicker.textContent = dashboardContent.tipTitle;
   dom.tipCopy.textContent = dashboardContent.tipCopy;
@@ -596,21 +593,6 @@ function renderRocketSceneMarkup(stageCount, boostCount) {
       <div class="rocket-engine rocket-part ${partClass(stageCount >= 5)}"></div>
       <div class="rocket-astronaut rocket-part ${partClass(stageCount >= 6)}"></div>
       <div class="rocket-flames rocket-part ${partClass(stageCount >= 7)}"></div>
-    </div>
-  `;
-}
-
-function renderRocketBuildStatus() {
-  const stageCount = completedSectionCount();
-  const boostCount = midpointBoostCount();
-
-  dom.rocketBuildStatus.innerHTML = `
-    <div class="rocket-build-copy">
-      <p class="rocket-build-kicker">Rocket Stages</p>
-      <strong>${stageCount} of ${missionRewards.length} unlocked</strong>
-    </div>
-    <div class="rocket-build-visual">
-      ${renderRocketSceneMarkup(stageCount, boostCount)}
     </div>
   `;
 }
@@ -890,7 +872,6 @@ function updateProgress() {
   dom.answeredCount.textContent = `${totalAnswered} of ${totalQuestions()}`;
   dom.progressFill.style.width = `${(totalAnswered / totalQuestions()) * 100}%`;
   dom.scoreDisplay.textContent = formatScore(liveCorrectTotal());
-  renderRocketBuildStatus();
   renderSectionStats();
   syncGamification();
 }
@@ -922,7 +903,6 @@ function renderQuestion() {
     dom.feedbackPanel.className = "feedback-panel is-hidden";
     dom.feedbackPanel.innerHTML = "";
     renderIntroductionStory();
-    renderRocketBuildStatus();
     dom.nameHint.textContent = playerName
       ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint)
       : startContent.emptyNameHint;
