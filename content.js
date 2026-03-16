@@ -108,6 +108,10 @@
           number: 3,
           title: "Pattern Vision",
           rocketPart: "Rocket Window",
+          completionArtwork: {
+            src: "./assets/mission-3-rocket-window-unlocked.png",
+            alt: "Mission 3 complete scene showing Captain Nova in the Hall of Patterns as the Rocket Window and hidden star route come into view.",
+          },
           introduction: storyText([
             "Captain Nova enters the silent Hall of Patterns, where glowing shapes drift across the walls like pieces of a living star map.",
             "Triangles slide, circles turn, and lines blink in and out of view.",
