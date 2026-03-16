@@ -68,6 +68,7 @@ const dom = {
   timerDisplay: document.getElementById("timerDisplay"),
   scoreLabel: document.getElementById("scoreLabel"),
   scoreDisplay: document.getElementById("scoreDisplay"),
+  tipCard: document.getElementById("tipCard"),
   tipKicker: document.getElementById("tipKicker"),
   tipCopy: document.getElementById("tipCopy"),
   questionPanel: document.getElementById("questionPanel"),
@@ -892,6 +893,7 @@ function renderQuestion() {
 
   if (!hasStarted) {
     dom.questionPanel.classList.add("is-start-screen");
+    dom.tipCard?.classList.remove("is-hidden");
     dom.nameEntry.classList.remove("is-hidden");
     dom.playerNote.classList.add("is-hidden");
     dom.questionPrompt.textContent = playerName
@@ -919,6 +921,7 @@ function renderQuestion() {
   }
 
   dom.questionPanel.classList.remove("is-start-screen");
+  dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   const question = questionAt(currentIndex);
   const mission = missionStoryForSection(question.section);
