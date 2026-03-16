@@ -94,8 +94,7 @@ body::before {
 }
 
 .hero-card::after,
-.question-panel::after,
-.results-section::after {
+.question-panel::after {
   content: "";
   position: absolute;
   inset: 0;
