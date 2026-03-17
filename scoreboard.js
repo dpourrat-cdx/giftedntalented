@@ -421,14 +421,42 @@
       this.cachePlayerScore(topScore);
     }
 
+    async syncPreferredScore(playerName, preferredScore, fallbackScore = null) {
+      const normalizedName = normalizePlayerName(playerName);
+      const normalizedPreferred = this.normalizeTopScore(preferredScore, normalizedName);
+      const normalizedFallback = this.normalizeTopScore(fallbackScore, normalizedName);
+
+      if (!normalizedName || !normalizedPreferred) {
+        return {
+          score: normalizedFallback,
+          synced: false,
+        };
+      }
+
+      try {
+        await this.service.saveScore(normalizedPreferred);
+        const refreshedRecord = await this.service.fetchPlayerTopScore(normalizedName);
+        return {
+          score: this.normalizeTopScore(refreshedRecord, normalizedName) || normalizedPreferred,
+          synced: true,
+        };
+      } catch (error) {
+        return {
+          score: normalizedFallback || normalizedPreferred,
+          synced: false,
+        };
+      }
+    }
+
     async refreshTopScoreForPlayer(playerName, options = {}) {
       const normalizedName = normalizePlayerName(playerName);
       const requestToken = ++this.lookupToken;
+      let shouldPreserveStatus = Boolean(options.preserveStatus);
 
       if (!normalizedName) {
         this.activePlayerName = "";
         this.renderAwaitingNameState();
-        if (!options.preserveStatus) {
+        if (!shouldPreserveStatus) {
           this.clearStatus();
         }
         return null;
@@ -452,19 +480,34 @@
           return null;
         }
 
-        const remoteScore = this.normalizeTopScore(record, normalizedName);
-        const preferredScore = this.betterScore(remoteScore, cachedScore);
+        let remoteScore = this.normalizeTopScore(record, normalizedName);
+
+        if (cachedScore && this.compareScoreEntries(cachedScore, remoteScore) > 0) {
+          const syncResult = await this.syncPreferredScore(normalizedName, cachedScore, remoteScore);
+          remoteScore = syncResult.score;
+
+          if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
+            return null;
+          }
+
+          if (!syncResult.synced) {
+            shouldPreserveStatus = true;
+            this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
+          }
+        }
+
+        const preferredScore = remoteScore || cachedScore;
 
         if (!preferredScore) {
           this.renderNoScoreState(normalizedName);
-          if (!options.preserveStatus) {
+          if (!shouldPreserveStatus) {
             this.clearStatus();
           }
           return null;
         }
 
         this.renderTopScore(preferredScore, normalizedName);
-        if (!options.preserveStatus) {
+        if (!shouldPreserveStatus) {
           this.clearStatus();
         }
         return preferredScore;
@@ -567,11 +610,7 @@
 
         return true;
       } catch (error) {
-        if (!isRemoteUnavailableError(error)) {
-          this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
-        } else if (options.showSuccessMessage) {
-          this.setStatus(scoreboardContent.localSaveSuccess, "success");
-        }
+        this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
 
         return true;
       }
