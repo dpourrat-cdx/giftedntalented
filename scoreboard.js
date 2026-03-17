@@ -9,6 +9,7 @@
     loading: "Checking this explorer's saved record.",
     empty: "No saved record yet for this explorer.",
     localSaveSuccess: "Explorer record saved on this device.",
+    deviceOnlyScore: "Showing a score saved only on this device.",
     deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
     deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
     allResetSuccess: "Every saved explorer record has been cleared.",
@@ -418,33 +419,6 @@
       this.cachePlayerScore(topScore);
     }
 
-    async syncPreferredScore(playerName, preferredScore, fallbackScore = null) {
-      const normalizedName = normalizePlayerName(playerName);
-      const normalizedPreferred = this.normalizeTopScore(preferredScore, normalizedName);
-      const normalizedFallback = this.normalizeTopScore(fallbackScore, normalizedName);
-
-      if (!normalizedName || !normalizedPreferred) {
-        return {
-          score: normalizedFallback,
-          synced: false,
-        };
-      }
-
-      try {
-        await this.service.saveScore(normalizedPreferred);
-        const refreshedRecord = await this.service.fetchPlayerTopScore(normalizedName);
-        return {
-          score: this.normalizeTopScore(refreshedRecord, normalizedName) || normalizedPreferred,
-          synced: true,
-        };
-      } catch (error) {
-        return {
-          score: normalizedFallback || normalizedPreferred,
-          synced: false,
-        };
-      }
-    }
-
     async refreshTopScoreForPlayer(playerName, options = {}) {
       const normalizedName = normalizePlayerName(playerName);
       const requestToken = ++this.lookupToken;
@@ -477,37 +451,25 @@
           return null;
         }
 
-        let remoteScore = this.normalizeTopScore(record, normalizedName);
+        const remoteScore = this.normalizeTopScore(record, normalizedName);
 
-        if (cachedScore && this.compareScoreEntries(cachedScore, remoteScore) > 0) {
-          const syncResult = await this.syncPreferredScore(normalizedName, cachedScore, remoteScore);
-          remoteScore = syncResult.score;
-
-          if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
-            return null;
-          }
-
-          if (!syncResult.synced) {
-            shouldPreserveStatus = true;
-            this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
-          }
-        }
-
-        const preferredScore = remoteScore || cachedScore;
-
-        if (!preferredScore) {
+        if (!remoteScore) {
           this.renderNoScoreState(normalizedName);
+          if (cachedScore) {
+            shouldPreserveStatus = true;
+            this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
+          }
           if (!shouldPreserveStatus) {
             this.clearStatus();
           }
           return null;
         }
 
-        this.renderTopScore(preferredScore, normalizedName);
+        this.renderTopScore(remoteScore, normalizedName);
         if (!shouldPreserveStatus) {
           this.clearStatus();
         }
-        return preferredScore;
+        return remoteScore;
       } catch (error) {
         if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
           return null;
@@ -515,12 +477,12 @@
 
         if (cachedScore) {
           this.renderTopScore(cachedScore, normalizedName);
+          this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
         } else {
           this.renderNoScoreState(normalizedName);
-        }
-
-        if (!isRemoteUnavailableError(error)) {
-          this.setStatus(buildFriendlyError(error), "info", true);
+          if (!isRemoteUnavailableError(error)) {
+            this.setStatus(buildFriendlyError(error), "info", true);
+          }
         }
         return cachedScore;
       }
