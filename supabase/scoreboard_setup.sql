@@ -247,7 +247,8 @@ begin
     raise exception 'That admin PIN did not match.';
   end if;
 
-  delete from public.test_scores;
+  delete from public.test_scores
+  where true;
   get diagnostics deleted_count = row_count;
 
   return jsonb_build_object(
