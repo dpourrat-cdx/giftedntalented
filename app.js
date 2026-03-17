@@ -519,6 +519,72 @@ function buildStoryArtworkMarkup(artwork, options = {}) {
   `;
 }
 
+function resultsGalleryItems(percentage, sectionScores) {
+  const ending = endingStoryForPercentage(percentage);
+  const items = [
+    {
+      kicker: storyContent.introduction.kicker,
+      title: storyContent.title,
+      meta: storyContent.introduction.pill,
+      artwork: storyContent.introductionArtwork,
+    },
+  ];
+
+  for (const section of sections) {
+    const mission = missionStoryForSection(section);
+    if (!mission || !mission.completionArtwork) {
+      continue;
+    }
+
+    const missionScore = sectionScores[section] || { correct: 0, total: 0 };
+    const meta = isStoryOnlySession
+      ? "Story scene unlocked"
+      : `${formatTemplate(resultsContent.sectionSummary, missionScore)} • ${formatTemplate(
+          resultsContent.sectionPercent,
+          { percent: scorePercent(missionScore.correct, missionScore.total) },
+        )}`;
+
+    items.push({
+      kicker: `Mission ${mission.number}`,
+      title: mission.title,
+      meta,
+      artwork: mission.completionArtwork,
+    });
+  }
+
+  items.push({
+    kicker: ending.label,
+    title: resultsContent.endingTitle,
+    meta: isStoryOnlySession
+      ? "Final story ending"
+      : formatTemplate(resultsContent.scorePill, { percent: percentage }),
+    artwork: storyContent.endingArtwork,
+  });
+
+  return items;
+}
+
+function renderResultsGallery(percentage, sectionScores) {
+  dom.resultsBreakdown.innerHTML = "";
+
+  resultsGalleryItems(percentage, sectionScores).forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "breakdown-card";
+    card.innerHTML = `
+      ${buildStoryArtworkMarkup(item.artwork, {
+        figureClass: "breakdown-media",
+        imageClass: "breakdown-image",
+      })}
+      <div class="breakdown-copy">
+        <p class="breakdown-kicker">${escapeHtml(item.kicker)}</p>
+        <strong>${escapeHtml(item.title)}</strong>
+        <span class="breakdown-meta">${escapeHtml(item.meta)}</span>
+      </div>
+    `;
+    dom.resultsBreakdown.appendChild(card);
+  });
+}
+
 function buildMissionUiState(section) {
   const missionQuestions = sessionQuestions
     .map((question, index) => ({ question, index }))
@@ -1179,21 +1245,7 @@ function renderResults() {
   }
   renderEndingStory(percentage);
 
-  dom.resultsBreakdown.innerHTML = "";
-  for (const section of sections) {
-    const { correct: sectionCorrect, total } = sectionScores[section];
-    const mission = missionStoryForSection(section);
-    const card = document.createElement("div");
-    card.className = "breakdown-card";
-    card.innerHTML = `
-      <strong>${mission ? `Mission ${mission.number}: ${mission.title}` : section}</strong>
-      <span>${formatTemplate(resultsContent.sectionSummary, { correct: sectionCorrect, total })}</span>
-      <span>${formatTemplate(resultsContent.sectionPercent, {
-        percent: scorePercent(sectionCorrect, total),
-      })}</span>
-    `;
-    dom.resultsBreakdown.appendChild(card);
-  }
+  renderResultsGallery(percentage, sectionScores);
 
   dom.reviewList.innerHTML = "";
   if (missed.length === 0) {
