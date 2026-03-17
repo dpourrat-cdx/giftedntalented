@@ -1,7 +1,8 @@
 (function () {
   const SUPABASE_URL = "https://hwafspusaijqjkgweptv.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_-hPDn_wxDliucO3L5pP7-Q_Cd8MBvy-";
-  const CACHE_KEY = "gifted-scoreboard-player-best-scores";
+  const CACHE_KEY = "gifted-scoreboard-player-best-scores-v2";
+  const LEGACY_CACHE_KEYS = ["gifted-scoreboard-player-best-scores"];
   const LOCAL_RESET_PIN = "123";
   const scoreboardContent = window.CaptainNovaContent?.scoreboard || {
     awaitingName: "Type an explorer name",
@@ -70,6 +71,12 @@
 
   function readCachedScoreMap() {
     try {
+      LEGACY_CACHE_KEYS.forEach((legacyKey) => {
+        if (legacyKey !== CACHE_KEY) {
+          window.localStorage.removeItem(legacyKey);
+        }
+      });
+
       const raw = window.localStorage.getItem(CACHE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
       return parsed && typeof parsed === "object" ? parsed : {};
@@ -434,11 +441,7 @@
       }
 
       this.activePlayerName = normalizedName;
-
-      const cachedScore = this.getCachedPlayerScore(normalizedName);
-      if (cachedScore) {
-        this.renderTopScore(cachedScore, normalizedName);
-      } else if (options.showLoading !== false) {
+      if (options.showLoading !== false) {
         this.renderLoadingState(normalizedName);
       } else {
         this.renderNoScoreState(normalizedName);
@@ -501,12 +504,7 @@
       }
 
       this.activePlayerName = normalizedName;
-      const cachedScore = this.getCachedPlayerScore(normalizedName);
-      if (cachedScore) {
-        this.renderTopScore(cachedScore, normalizedName);
-      } else {
-        this.renderLoadingState(normalizedName);
-      }
+      this.renderLoadingState(normalizedName);
       this.clearStatus();
 
       this.lookupDelayId = window.setTimeout(() => {
