@@ -14,7 +14,7 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 
 ## Current Status
 
-These specs were refreshed through the March 15, 2026 product pass. The shipped app now includes:
+These specs were refreshed through the March 16, 2026 product pass. The shipped app now includes:
 
 - cinematic story content with a swappable storyline-pack structure
 - blocking mission introduction, update, completion, and final-launch modals
@@ -23,6 +23,10 @@ These specs were refreshed through the March 15, 2026 product pass. The shipped 
 - mission-to-mission routing that skips completed missions
 - completed-mission markers in the sidebar
 - a parent-controlled `Story Only` mode that plays the narrative scenes without quiz answering
+- mission-specific completion artwork plus intro/ending artwork
+- a results recap gallery built from the active storyline artwork
+- Supabase-backed per-child best-score storage with one best row per child name
+- device-only score fallback messaging instead of silent local-first score display
 
 Instead of jumping straight into implementation, we write down:
 

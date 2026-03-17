@@ -4,7 +4,7 @@
 
 Refresh the quiz app so it feels like one coherent Captain Nova rocket adventure instead of a school test with themed add-ons. The experience should stay readable and child-friendly while making the story, rewards, progress, and final launch feel exciting and connected.
 
-This spec now reflects the implemented UX direction after the March 15 story, modal, mobile, and parent-control refinements.
+This spec now reflects the implemented UX direction after the March 16 story, artwork, gallery, and Supabase-record refinements.
 
 ## Problem Statement
 
@@ -24,9 +24,9 @@ The app already has rocket rewards, mission structure, and story text, but the e
 ## Non-Goals
 
 - No change to question bank logic or scoring rules.
-- No change to Supabase/local score persistence behavior.
+- No change to question bank logic or scoring rules.
 - No removal of existing icons, rocket stages, midpoint boosts, or celebration overlays.
-- No backend schema or API changes.
+- No move away from the current static frontend deployment model.
 
 ## Users
 
@@ -55,6 +55,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Completed mission cards in the sidebar must show a clear finished marker.
 - The parent area may offer a `Story Only` path that plays the narrative scenes without quiz answering.
 - Results must show the ending story first, then summary cards, with detailed review collapsed by default.
+- Results recap should feel like a visual story epilogue rather than a spreadsheet of section stats.
 
 ## UX Flow
 
@@ -67,7 +68,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 7. Completed missions show a clear finished-state marker in the sidebar so the child can see progress at a glance.
 8. If a parent enables `Story Only`, the child progresses through mission scenes without answering questions.
 9. After the final mission step, the launch ending appears first.
-10. Summary cards explain performance by mission.
+10. A recap gallery lets the child scroll through the introduction, unlocked mission moments, and final ending artwork.
 11. A parent can open the Mission Debrief to review missed steps and correct answers.
 
 ## Content Model
@@ -85,6 +86,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Review detail can use a native `details` element for a simple collapsed debrief.
 - The stable question CTA should rely on a compact question dock with reserved feedback space rather than a very large fixed blank stage.
 - Story content should resolve from an active storyline id so alternate story packs can be added later.
+- Story artwork should also resolve from storyline config, including optional responsive mobile/desktop variants.
 - Mission overlays must coordinate with timer state and auto-advance rules.
 - Re-entering a mission before its first answer is validated must replay the mission introduction.
 - Re-entering a completed mission must replay the mission-complete modal instead of dropping the child back on a solved last question.
@@ -112,6 +114,8 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - Story Only mode can be enabled from the parent area and plays the mission scenes without answering questions.
 - Results display the ending story before the summary cards.
 - The ending headline includes the score-band label before `Captain Nova's Final Flight`.
+- The results recap renders as a responsive gallery using the active storyline artwork set.
+- On phones, the ending gallery uses the portrait ending art while larger screens use the wider ending art.
 - Mission Debrief is collapsed by default and still contains the missed-question review.
 - Restart, reset PIN protection, and per-child score record behavior continue to work.
 
@@ -128,6 +132,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - On a phone-sized viewport, verify the modal remains centered and the action button stays visible.
 - Enable `Story Only` in the parent area and verify the app advances mission-to-mission through modals without requiring answer selection.
 - Trigger final results and verify the ending story appears before the breakdown.
+- Trigger final results and verify the recap gallery includes intro art, mission art, and ending art.
 - Verify the ending title includes the correct score-band label:
   - `Excellent`
   - `Great Job`
@@ -136,3 +141,4 @@ The app already has rocket rewards, mission structure, and story text, but the e
   - `Keep Trying`
 - Open the Mission Debrief and verify review content is still available.
 - Open the parent area and verify restart/reset controls still function.
+- Verify Explorer Record waits for the remote score lookup instead of flashing local cached score first.

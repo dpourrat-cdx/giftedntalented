@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 15 cinematic-story, mobile-modal, story-only, and ending-label updates.
+This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 16 story-gallery, artwork-expansion, and Supabase score-sync updates.
 
 The product is a static, story-driven gifted practice site for children. It combines an 8-mission question flow, rocket-building rewards, per-child score tracking, and a parent-only control area.
 
@@ -136,9 +136,13 @@ The product is a static, story-driven gifted practice site for children. It comb
   - elapsed time when that best score was reached
 
 - Saving behavior:
-  - records are saved locally in browser storage
-  - records are also sent to Supabase when available
+  - records are written to Supabase as the preferred shared source of truth
+  - browser local storage is kept only as a device fallback cache
+  - the UI no longer shows cached local score optimistically before the Supabase lookup finishes
+  - if Supabase is unavailable, the app may show a cached local score with explicit device-only messaging
+  - cached local score is not auto-pushed back to Supabase later
   - if two saved records have the same score and percentage, the faster time wins
+  - Supabase is now intended to keep only one best-score row per normalized child name
 
 ### Mission Sidebar And Rocket Build Status
 
@@ -165,7 +169,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 
 - When the test is completed, the child sees:
   - a score-banded final story outcome
-  - section-by-section breakdown cards
+  - a story recap gallery
   - a collapsed Mission Debrief for missed questions
 - Final endings are longer-form cinematic outcomes matched to score bands.
 - The current ending labels are:
@@ -176,6 +180,14 @@ The product is a static, story-driven gifted practice site for children. It comb
   - `Keep Trying`
 - The ending headline is shown as `{ending label} - Captain Nova's Final Flight`.
 - Story Only sessions use story-only summary copy in the results header but still reuse the shared ending screen.
+- The recap gallery currently includes:
+  - the introduction artwork
+  - the 8 mission-complete artworks
+  - the ending artwork
+- Gallery cards keep short captions, and quiz-mode sessions still show mission power details there.
+- The ending artwork is responsive:
+  - portrait Luma-7 art on phones
+  - wider Luma-7 art on larger screens
 
 ## Content Model
 
@@ -194,16 +206,18 @@ The product is a static, story-driven gifted practice site for children. It comb
   - `storylines`
   - `activeStorylineId`
   - the derived `story` object used by the app
+- Story artwork can define `src`, `mobileSrc`, and `desktopSrc` so the app can swap images by viewport.
 - This structure is intended to support alternate story packs in the future without rewriting the app.
 
 ## Persistence Model
 
 - Local browser storage:
-  - per-child best record cache
+  - per-child best record cache used only as a device fallback when Supabase cannot be reached
 
 - Remote persistence:
   - Supabase `test_scores` table
   - `get_player_top_score` RPC
+  - `save_player_score` RPC
   - reset RPC for clearing scores
 
 - Saved record fields:
@@ -213,17 +227,22 @@ The product is a static, story-driven gifted practice site for children. It comb
   - total questions
   - elapsed seconds
 
+- Current row model:
+  - one best-score row per normalized child name
+  - new attempts overwrite that row only when the new result is better
+  - reset clears the table through the Supabase reset RPC
+
 ## Constraints
 
 - This is a static frontend app.
 - The frontend currently performs scoring and timing calculations.
-- Remote storage depends on Supabase schema being kept in sync with the frontend.
+- Remote storage depends on Supabase schema being kept in sync with the frontend and rerunning `supabase/scoreboard_setup.sql` when schema logic changes.
 - The question bank and answer logic ship to the browser.
 
 ## Known Limitations
 
 - Score integrity is still browser-trusted.
-- Parent reset protection still relies on frontend behavior.
+- Parent reset still relies on the current browser prompt flow plus the Supabase reset RPC.
 - Saved child names and scores can remain on shared devices.
 - There is no automated test suite in the repo yet.
 - Storyline selection is still code-configured rather than parent-configurable.
@@ -246,9 +265,12 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Story Only mode can be enabled from the parent area and plays the mission scenes without requiring question answers.
 - Story Only mode does not save explorer scores.
 - Explorer Record shows the child-specific best score, percentage, and elapsed time.
+- Explorer Record does not show cached local score first while the remote lookup is pending.
+- If a cached local score is shown because Supabase is unavailable, the UI explicitly labels it as device-only.
 - Mission overlays persist until the child advances.
 - Completed mission cards show a clear completion marker in the sidebar.
 - The results page shows the score-banded ending story first, with the ending label prefixed in the title.
+- The recap below the ending story is an artwork gallery instead of a plain section-only score grid.
 - Mission Debrief remains collapsed by default.
 
 ## Main Files
