@@ -190,13 +190,10 @@
     }
 
     async saveScore(scoreEntry) {
-      return this.request("/rest/v1/test_scores", {
+      return this.request("/rest/v1/rpc/save_player_score", {
         method: "POST",
-        headers: {
-          Prefer: "return=minimal",
-        },
         body: JSON.stringify({
-          player_name: normalizePlayerName(scoreEntry.playerName),
+          target_player_name: normalizePlayerName(scoreEntry.playerName),
           score: scoreEntry.score,
           percentage: scoreEntry.percentage,
           total_questions: scoreEntry.totalQuestions,
