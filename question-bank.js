@@ -12,6 +12,8 @@
 
   const QUESTIONS_PER_SECTION = 134;
   const QUESTIONS_PER_TEST_SECTION = 8;
+  const QUESTION_HISTORY_STORAGE_KEY = "gifted-question-history-v1";
+  const RECENT_HISTORY_LIMIT = QUESTIONS_PER_TEST_SECTION * 4;
 
   function seededShuffle(items, seed) {
     const list = [...items];
@@ -106,6 +108,75 @@
       [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
     }
     return copy.slice(0, count);
+  }
+
+  function loadQuestionHistory() {
+    if (!window.localStorage) {
+      return {};
+    }
+
+    try {
+      const rawValue = window.localStorage.getItem(QUESTION_HISTORY_STORAGE_KEY);
+      if (!rawValue) {
+        return {};
+      }
+
+      const parsed = JSON.parse(rawValue);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveQuestionHistory(history) {
+    if (!window.localStorage) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(QUESTION_HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } catch (error) {
+      // Ignore storage failures and keep question selection working.
+    }
+  }
+
+  function mergeRecentQuestionIds(previousIds, nextIds) {
+    return [...nextIds, ...previousIds.filter((id) => !nextIds.includes(id))].slice(0, RECENT_HISTORY_LIMIT);
+  }
+
+  function assignBankQuestionIds(pool) {
+    const questionPoolWithIds = {};
+
+    SECTIONS.forEach((section) => {
+      questionPoolWithIds[section] = pool[section].map((question, index) => ({
+        ...question,
+        bankId: `${section}:${index + 1}`,
+      }));
+    });
+
+    return questionPoolWithIds;
+  }
+
+  function selectQuestionsForSection(section, historyBySection, pool) {
+    const sectionQuestions = pool[section];
+    const recentIds = Array.isArray(historyBySection[section]) ? historyBySection[section] : [];
+    const recentIdSet = new Set(recentIds);
+    const freshQuestions = sectionQuestions.filter((question) => !recentIdSet.has(question.bankId));
+
+    let selectedQuestions = [];
+
+    if (freshQuestions.length >= QUESTIONS_PER_TEST_SECTION) {
+      selectedQuestions = sampleWithoutReplacement(freshQuestions, QUESTIONS_PER_TEST_SECTION);
+    } else {
+      const recentQuestions = sectionQuestions.filter((question) => recentIdSet.has(question.bankId));
+      selectedQuestions = [
+        ...sampleWithoutReplacement(freshQuestions, freshQuestions.length),
+        ...sampleWithoutReplacement(recentQuestions, QUESTIONS_PER_TEST_SECTION - freshQuestions.length),
+      ];
+      selectedQuestions = sampleWithoutReplacement(selectedQuestions, selectedQuestions.length);
+    }
+
+    return selectedQuestions;
   }
 
   function buildAnswerSlotPlan(count) {
@@ -2256,15 +2327,22 @@
   }
 
   try {
-    const QUESTION_POOL = buildQuestionPool();
+    const QUESTION_POOL = assignBankQuestionIds(buildQuestionPool());
     validateQuestionPool(QUESTION_POOL);
 
     function buildTestSession() {
       const session = [];
+      const historyBySection = loadQuestionHistory();
+      const nextHistory = { ...historyBySection };
 
       SECTIONS.forEach((section) => {
-        const sampledQuestions = sampleWithoutReplacement(QUESTION_POOL[section], QUESTIONS_PER_TEST_SECTION);
+        const sampledQuestions = selectQuestionsForSection(section, historyBySection, QUESTION_POOL);
         const answerSlots = buildAnswerSlotPlan(QUESTIONS_PER_TEST_SECTION);
+
+        nextHistory[section] = mergeRecentQuestionIds(
+          Array.isArray(historyBySection[section]) ? historyBySection[section] : [],
+          sampledQuestions.map((question) => question.bankId),
+        );
 
         sampledQuestions.forEach((question, questionIndex) => {
           const questionForSession = placeCorrectAnswer(question, answerSlots[questionIndex]);
@@ -2275,6 +2353,8 @@
           });
         });
       });
+
+      saveQuestionHistory(nextHistory);
 
       return session;
     }
