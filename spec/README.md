@@ -8,13 +8,14 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 
 ## Current Feature Specs
 
+- `backend-api-spec.md` - live Render backend architecture, API responsibilities, current security model, and branch/deployment notes
 - `captain-nova-ux-refresh.md` - story-first UX architecture for the Captain Nova mission flow, including mission modals, progress feedback, and payoff-first results
-- `captain-nova-current-product-spec.md` - current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, score saving, and parent controls
-- `next-implementation-todo.md` - prioritized backlog after the March 12 mission-story and navigation updates, with security hardening still first
+- `captain-nova-current-product-spec.md` - current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, backend-backed score saving, and parent controls
+- `next-implementation-todo.md` - prioritized backlog after the March 18 backend deployment and frontend API integration, with deeper security hardening still first
 
 ## Current Status
 
-These specs were refreshed through the March 16, 2026 product pass. The shipped app now includes:
+These specs were refreshed through the March 18, 2026 backend integration pass. The shipped system now includes:
 
 - cinematic story content with a swappable storyline-pack structure
 - blocking mission introduction, update, completion, and final-launch modals
@@ -25,8 +26,21 @@ These specs were refreshed through the March 16, 2026 product pass. The shipped 
 - a parent-controlled `Story Only` mode that plays the narrative scenes without quiz answering
 - mission-specific completion artwork plus intro/ending artwork
 - a results recap gallery built from the active storyline artwork
-- Supabase-backed per-child best-score storage with one best row per child name
+- a live Render backend for score read/save/reset
+- backend-to-Supabase score persistence with one best row per child name
 - device-only score fallback messaging instead of silent local-first score display
+- server-side reset PIN verification instead of browser-held reset logic
+
+## Current Architecture Note
+
+The live system is currently split across branches:
+
+- `master`
+  - the frontend that ships to GitHub Pages
+- `codex/backend`
+  - the deployed backend that runs on Render
+
+This split was intentional for a safer rollout. The next backlog now includes deciding when and how to unify that structure.
 
 Instead of jumping straight into implementation, we write down:
 

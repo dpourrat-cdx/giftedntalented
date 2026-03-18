@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 16 story-gallery, artwork-expansion, and Supabase score-sync updates.
+This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 18 backend deployment and frontend API integration updates.
 
 The product is a static, story-driven gifted practice site for children. It combines an 8-mission question flow, rocket-building rewards, per-child score tracking, and a parent-only control area.
 
@@ -136,13 +136,14 @@ The product is a static, story-driven gifted practice site for children. It comb
   - elapsed time when that best score was reached
 
 - Saving behavior:
-  - records are written to Supabase as the preferred shared source of truth
+  - the frontend now sends score reads and writes to the deployed backend
+  - the backend writes records to Supabase as the preferred shared source of truth
   - browser local storage is kept only as a device fallback cache
-  - the UI no longer shows cached local score optimistically before the Supabase lookup finishes
-  - if Supabase is unavailable, the app may show a cached local score with explicit device-only messaging
-  - cached local score is not auto-pushed back to Supabase later
+  - the UI no longer shows cached local score optimistically before the backend lookup finishes
+  - if the backend is unavailable, the app may show a cached local score with explicit device-only messaging
+  - cached local score is not auto-pushed back to the backend later
   - if two saved records have the same score and percentage, the faster time wins
-  - Supabase is now intended to keep only one best-score row per normalized child name
+  - the backend and Supabase are intended to keep only one best-score row per normalized child name
 
 ### Mission Sidebar And Rocket Build Status
 
@@ -162,8 +163,10 @@ The product is a static, story-driven gifted practice site for children. It comb
   - reset saved scores
 
 - Reset protection:
-  - the current implementation requires an admin PIN in the browser flow
-  - local reset and remote reset share that flow
+  - the current implementation still uses a browser prompt for entering the admin PIN
+  - the frontend no longer contains the correct PIN
+  - reset verification now happens server-side through the backend
+  - successful reset clears the shared remote records
 
 ### Results Screen
 
@@ -212,13 +215,17 @@ The product is a static, story-driven gifted practice site for children. It comb
 ## Persistence Model
 
 - Local browser storage:
-  - per-child best record cache used only as a device fallback when Supabase cannot be reached
+  - per-child best record cache used only as a device fallback when the backend cannot be reached
 
 - Remote persistence:
-  - Supabase `test_scores` table
-  - `get_player_top_score` RPC
-  - `save_player_score` RPC
-  - reset RPC for clearing scores
+  - Render backend API
+  - backend-to-Supabase score persistence
+  - server-side reset verification and delete flow
+
+- Current live API paths used by the frontend:
+  - `GET /api/v1/players/:playerName/record`
+  - `POST /api/v1/players/:playerName/record`
+  - `POST /api/v1/admin/scores/reset`
 
 - Saved record fields:
   - player name
@@ -235,18 +242,20 @@ The product is a static, story-driven gifted practice site for children. It comb
 ## Constraints
 
 - This is a static frontend app.
-- The frontend currently performs scoring and timing calculations.
-- Remote storage depends on Supabase schema being kept in sync with the frontend and rerunning `supabase/scoreboard_setup.sql` when schema logic changes.
+- The frontend currently still performs scoring and timing calculations before submitting them to the backend.
+- Remote storage depends on the Render backend staying in sync with its Supabase schema.
 - The question bank and answer logic ship to the browser.
+- The backend implementation is currently maintained on a separate branch from `master`.
 
 ## Known Limitations
 
-- Score integrity is still browser-trusted.
-- Parent reset still relies on the current browser prompt flow plus the Supabase reset RPC.
+- Score integrity is still browser-trusted even though writes now route through the backend.
+- Parent reset still relies on a browser prompt for PIN entry, even though verification is server-side.
 - Saved child names and scores can remain on shared devices.
 - There is no automated test suite in the repo yet.
 - Storyline selection is still code-configured rather than parent-configurable.
 - Story Only mode currently reuses the normal ending screen and score-band ending story instead of having a separate story-only finale.
+- Older secrets and reset values may still exist in git history from earlier public versions.
 
 ## Acceptance Criteria For Current Product
 
@@ -265,8 +274,9 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Story Only mode can be enabled from the parent area and plays the mission scenes without requiring question answers.
 - Story Only mode does not save explorer scores.
 - Explorer Record shows the child-specific best score, percentage, and elapsed time.
-- Explorer Record does not show cached local score first while the remote lookup is pending.
-- If a cached local score is shown because Supabase is unavailable, the UI explicitly labels it as device-only.
+- Explorer Record does not show cached local score first while the backend lookup is pending.
+- If a cached local score is shown because the backend is unavailable, the UI explicitly labels it as device-only.
+- The live frontend no longer embeds the old reset PIN or direct Supabase score credentials.
 - Mission overlays persist until the child advances.
 - Completed mission cards show a clear completion marker in the sidebar.
 - The results page shows the score-banded ending story first, with the ending label prefixed in the title.
@@ -284,3 +294,4 @@ The product is a static, story-driven gifted practice site for children. It comb
 - `scoreboard.css`
 - `gamification.css`
 - `supabase/scoreboard_setup.sql`
+- `spec/backend-api-spec.md`

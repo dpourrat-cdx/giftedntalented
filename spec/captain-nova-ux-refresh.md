@@ -4,7 +4,7 @@
 
 Refresh the quiz app so it feels like one coherent Captain Nova rocket adventure instead of a school test with themed add-ons. The experience should stay readable and child-friendly while making the story, rewards, progress, and final launch feel exciting and connected.
 
-This spec now reflects the implemented UX direction after the March 16 story, artwork, gallery, and Supabase-record refinements.
+This spec now reflects the implemented UX direction after the March 18 story, artwork, gallery, and backend-record refinements.
 
 ## Problem Statement
 
@@ -82,6 +82,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 ## Technical Notes
 
 - Main implementation areas: `index.html`, `content.js`, `app.js`, `gamification.js`, `scoreboard.js`, and shared CSS.
+- Explorer Record and reset interactions now route through the deployed backend API rather than direct browser-to-Supabase calls.
 - Parent controls should remain the same buttons and listeners, only moved into a hidden-by-default container.
 - Review detail can use a native `details` element for a simple collapsed debrief.
 - The stable question CTA should rely on a compact question dock with reserved feedback space rather than a very large fixed blank stage.
@@ -117,6 +118,7 @@ The app already has rocket rewards, mission structure, and story text, but the e
 - The results recap renders as a responsive gallery using the active storyline artwork set.
 - On phones, the ending gallery uses the portrait ending art while larger screens use the wider ending art.
 - Mission Debrief is collapsed by default and still contains the missed-question review.
+- Explorer Record no longer depends on direct browser-held Supabase credentials.
 - Restart, reset PIN protection, and per-child score record behavior continue to work.
 
 ## Test Scenarios
