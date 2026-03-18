@@ -2,26 +2,21 @@
 
 ## Overview
 
-This document captures the current backend architecture that now powers the live Captain Nova score and reset flows.
+This document captures the current backend architecture that powers the live Captain Nova score and reset flows.
 
 The backend is deployed on Render at:
 
 - `https://giftedntalented.onrender.com`
 
-The web frontend on GitHub Pages now calls this backend for score read, score save, and score reset behavior.
-
-At the moment, the backend implementation itself lives on the separate git branch:
-
-- `codex/backend`
-
-The `master` branch contains the frontend integration that consumes the deployed API.
+The web frontend on GitHub Pages now calls this backend for score reads, score saves, and score reset behavior.
 
 ## Goal
 
 - Remove browser-held trust for score storage and reset actions.
 - Make cross-browser and cross-device explorer records consistent.
 - Keep the frontend static and GitHub Pages-friendly.
-- Prepare the platform for future Android support and push notifications.
+- Support the current web app and a future Android client from the same API surface.
+- Prepare the platform for Firebase Cloud Messaging support without exposing server credentials to the client.
 
 ## Technology Choices
 
@@ -31,8 +26,8 @@ The `master` branch contains the frontend integration that consumes the deployed
 - Validation: Zod
 - Logging: Pino
 - Security middleware: Helmet, CORS, rate limiting
-- Database access: Supabase with server-side service-role credentials
-- Push notification support: Firebase Admin / FCM scaffolding
+- Database access: Supabase using the service-role key on the server only
+- Push notifications: Firebase Admin SDK scaffolding for FCM
 - Deployment target: Render web service
 
 ## Current Deployment
@@ -41,6 +36,8 @@ The `master` branch contains the frontend integration that consumes the deployed
 - Health endpoint: `/api/v1/health`
 - Browser origin currently allowed:
   - `https://dpourrat-cdx.github.io`
+- Expected live frontend page:
+  - `https://dpourrat-cdx.github.io/giftedntalented/`
 
 ## Current Responsibilities
 
@@ -57,81 +54,45 @@ The backend currently owns:
 The frontend no longer needs to:
 
 - hold a reset PIN
+- embed a Supabase publishable key for score actions
 - talk directly to Supabase for scores
 - decide whether a reset request is authorized
 
-## Public API
+## Security Choices
 
-### `GET /api/v1/health`
+### Client Security Model
 
-Returns:
+Because the web client is a public GitHub Pages app, no browser-held secret is treated as trusted.
 
-- backend status
-- environment
-- timestamp
-- Supabase health
-- FCM configuration status
+Public client endpoints are allowed for:
 
-### `GET /api/v1/players/:playerName/record`
+- reading one player's best score
+- submitting a player's score
+- registering and unregistering device tokens
 
-Purpose:
+These public endpoints are protected with:
 
-- fetch the best saved record for one explorer
+- strict input validation
+- per-route rate limiting
+- normalized player names
+- server-side score comparison logic
+- CORS restricted to the GitHub Pages origin
 
-Returns:
+Protected admin endpoints are required for:
 
-- `playerName`
-- `score`
-- `percentage`
-- `totalQuestions`
-- `elapsedSeconds`
-- `completedAt`
-- `source`
+- sending push notifications
 
-Behavior:
+Admin routes use:
 
-- returns `404` if no record exists
-- uses normalized player names
+- `X-Admin-Key`
+- server-side environment variable validation
+- tighter rate limiting
 
-### `POST /api/v1/players/:playerName/record`
+The score reset route is designed for parent use and keeps the PIN server-side:
 
-Purpose:
-
-- submit a score attempt and keep only the best record
-
-Request body:
-
-- `score`
-- `percentage`
-- `totalQuestions`
-- `elapsedSeconds`
-- `clientType`
-- `mode`
-
-Behavior:
-
-- validates numeric ranges
-- ignores `story` mode for persistence
-- keeps only the best row per normalized player name
-- tie-breaker prefers faster elapsed time
-
-### `POST /api/v1/admin/scores/reset`
-
-Purpose:
-
-- clear saved records after PIN verification
-
-Request body:
-
-- `resetPin`
-
-Behavior:
-
-- backend verifies the stored hash in Supabase
-- browser never contains the correct PIN
-- route is more tightly rate-limited than normal player routes
-
-## Current Security Model
+- the client sends the parent-entered reset PIN to the backend
+- the backend verifies the stored hash in Supabase
+- the PIN is never embedded in frontend code
 
 ### Good Changes Already Landed
 
@@ -155,64 +116,325 @@ Behavior:
 - Explorer names remain guessable identifiers.
 - Old credentials and reset values may still exist in git history from earlier versions.
 
-## Database Responsibilities
+## CORS Policy
 
-The backend expects Supabase to provide:
+Allowed browser origin:
 
-- best-score storage
-- reset PIN hash storage
-- record lookup function
-- best-score upsert/update logic
+- `https://dpourrat-cdx.github.io`
 
-The backend also includes schema support for future notification-device storage.
+The backend may also allow local development origins by environment variable override.
 
-## Render Requirements
+## API Versioning
 
-- Root directory: `backend`
-- Build command: `npm install && npm run build`
-- Start command: `npm run start`
-- Health check path: `/api/v1/health`
+All endpoints are versioned under:
 
-Required environment variables:
+- `/api/v1`
+
+## Endpoints
+
+### Public Endpoints
+
+#### `GET /api/v1/health`
+
+Purpose:
+
+- health check for Render and monitoring
+
+Response:
+
+- service status
+- environment name
+- timestamp
+- whether Supabase is reachable
+- whether FCM is configured
+
+#### `GET /api/v1/players/:playerName/record`
+
+Purpose:
+
+- fetch the best saved score for one player
+
+Path params:
+
+- `playerName`
+
+Response:
+
+- `playerName`
+- `score`
+- `percentage`
+- `totalQuestions`
+- `elapsedSeconds`
+- `completedAt`
+- `source`
+
+Behavior:
+
+- returns `404` if no record exists
+- uses normalized player names
+
+#### `POST /api/v1/players/:playerName/record`
+
+Purpose:
+
+- save a score attempt and keep only the best record for that player
+
+Path params:
+
+- `playerName`
+
+Body:
+
+- `score`
+- `percentage`
+- `totalQuestions`
+- `elapsedSeconds`
+- `clientType` with values `web` or `android`
+- `mode` with values `quiz` or `story`
+
+Behavior:
+
+- validates all numeric ranges
+- rejects invalid totals
+- ignores `story` mode for persistence
+- updates the saved record only when the new result is better
+- tie-breaker prefers the faster elapsed time
+
+Response:
+
+- the stored best record after comparison
+
+#### `POST /api/v1/devices/register`
+
+Purpose:
+
+- register a device token for future push notifications
+
+Body:
+
+- `deviceToken`
+- `platform` with values `android` or `web`
+- `playerName` optional
+- `clientType` with values `web` or `android`
+- `appVersion` optional
+
+Behavior:
+
+- upserts the token
+- marks the token active
+- updates last-seen metadata
+
+Response:
+
+- success result and normalized token record metadata
+
+#### `POST /api/v1/devices/unregister`
+
+Purpose:
+
+- deactivate a device token without deleting historical metadata
+
+Body:
+
+- `deviceToken`
+
+Response:
+
+- success result
+
+### Parent/Admin Endpoints
+
+#### `POST /api/v1/admin/scores/reset`
+
+Purpose:
+
+- clear saved score records after verifying the parent PIN
+
+Body:
+
+- `resetPin`
+
+Behavior:
+
+- server verifies the PIN against the stored Supabase hash
+- route is heavily rate-limited
+- no reset logic is exposed in the browser
+
+Response:
+
+- number of deleted rows
+- reset timestamp
+
+#### `POST /api/v1/admin/push/send`
+
+Purpose:
+
+- send Android push notifications through FCM
+
+Headers:
+
+- `X-Admin-Key`
+
+Body:
+
+- `target`
+- `notification`
+- `data` optional
+
+Supported targets:
+
+- single token
+- all active tokens for one player
+- all active Android tokens
+
+Response:
+
+- send summary
+- number attempted
+- number succeeded
+- number failed
+
+## Database Model
+
+### Existing Tables Reused
+
+- `public.test_scores`
+- `public.app_admin_settings`
+
+### New Table Added
+
+`public.notification_devices`
+
+Columns:
+
+- `id`
+- `device_token`
+- `platform`
+- `client_type`
+- `player_name`
+- `app_version`
+- `is_active`
+- `created_at`
+- `updated_at`
+- `last_seen_at`
+
+Constraints:
+
+- unique token
+- optional normalized player name length limit
+- platform restricted to `android` or `web`
+- client type restricted to `android` or `web`
+
+## Score Persistence Rules
+
+- one best row per player name
+- score wins first
+- percentage breaks ties
+- faster elapsed time breaks equal-score ties
+- story-only mode does not create a score record
+
+## Error Handling
+
+Every error response returns structured JSON:
+
+- `error`
+- `message`
+- `requestId`
+
+Validation errors also include:
+
+- `details`
+
+No stack traces are returned in production.
+
+## Environment Variables
+
+Required:
 
 - `NODE_ENV`
 - `PORT`
-- `LOG_LEVEL`
-- `ALLOWED_ORIGINS`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `ALLOWED_ORIGINS`
 - `ADMIN_API_KEY`
 
-Optional environment variables:
+Optional FCM:
 
 - `FCM_PROJECT_ID`
 - `FCM_CLIENT_EMAIL`
 - `FCM_PRIVATE_KEY`
-- rate-limit tuning vars
 
-## Current Branching Model
+Optional app tuning:
+
+- `LOG_LEVEL`
+- `READ_RATE_LIMIT_WINDOW_MS`
+- `READ_RATE_LIMIT_MAX`
+- `WRITE_RATE_LIMIT_WINDOW_MS`
+- `WRITE_RATE_LIMIT_MAX`
+- `RESET_RATE_LIMIT_WINDOW_MS`
+- `RESET_RATE_LIMIT_MAX`
+- `ADMIN_RATE_LIMIT_WINDOW_MS`
+- `ADMIN_RATE_LIMIT_MAX`
+
+## Render Deployment
+
+Render service requirements:
+
+- root directory: `backend`
+- build command: `npm install && npm run build`
+- start command: `npm run start`
+- health check path: `/api/v1/health`
+
+Current live service:
+
+- branch currently targeted in Render should be `master` after branch cleanup
+- service URL: `https://giftedntalented.onrender.com`
+
+## Project Layout
+
+Current backend structure:
+
+- `backend/package.json`
+- `backend/tsconfig.json`
+- `backend/.env.example`
+- `backend/README.md`
+- `backend/src/server.ts`
+- `backend/src/app.ts`
+- `backend/src/config/*`
+- `backend/src/routes/*`
+- `backend/src/middleware/*`
+- `backend/src/services/*`
+- `backend/src/lib/*`
+- `backend/src/validators/*`
+- `backend/supabase/backend_schema.sql`
+
+## Repository Layout
+
+Current target layout:
 
 - `master`
   - static web app
   - live GitHub Pages frontend
-  - frontend integration to the deployed backend
+  - backend source under `backend/`
+  - Render deployment source
 
-- `codex/backend`
-  - backend implementation
-  - Render-targeted Node/Express service
+Obsolete feature branches can be deleted after Render is confirmed to point at `master`.
 
-## Next Architectural Decisions
+## Future Client Support
 
-- Decide whether to merge the backend branch into the mainline repo history once the API is stable.
-- Decide whether the old frontend-only Supabase SQL/docs should be archived as legacy references.
-- Decide whether future score integrity should use:
-  - backend-issued session tokens, or
-  - fully server-owned question delivery and answer validation
+The backend is designed so both the web client and Android client can use the same score API and the same device registration API.
+
+Android-specific support is added through:
+
+- FCM token registration
+- admin-triggered push send endpoints
+
+The backend intentionally avoids Android-only assumptions in the core score API so the same endpoints remain usable by both clients.
 
 ## Acceptance Criteria For Current Backend State
 
 - Render health checks pass.
-- The backend starts with valid environment variables and fails fast when secrets are missing.
+- The backend starts with valid environment variables and fails fast when required secrets are missing.
 - The frontend can read explorer records from the backend.
 - The frontend can save best-score records through the backend.
 - Reset requests require backend PIN verification.
