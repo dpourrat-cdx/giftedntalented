@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
-import pinoHttp from "pino-http";
+import pinoHttpImport from "pino-http";
+import type { Request } from "express";
 import { corsMiddleware } from "./config/cors.js";
 import { logger } from "./config/logger.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -13,13 +14,14 @@ import { scoresRouter } from "./routes/scores.routes.js";
 
 export function buildApp() {
   const app = express();
+  const pinoHttp = pinoHttpImport as unknown as typeof pinoHttpImport.default;
 
   app.set("trust proxy", 1);
   app.use(requestIdMiddleware);
   app.use(
     pinoHttp({
       logger,
-      customProps(request) {
+      customProps(request: Request) {
         return {
           requestId: request.requestId,
         };

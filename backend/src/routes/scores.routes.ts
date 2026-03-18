@@ -14,7 +14,8 @@ scoresRouter.get(
   readLimiter,
   validate({ params: playerNameParamsSchema }),
   asyncHandler(async (request, response) => {
-    const record = await scoreService.getPlayerRecord(request.params.playerName);
+    const playerName = String(request.params.playerName);
+    const record = await scoreService.getPlayerRecord(playerName);
 
     if (!record) {
       response.status(404).json({
@@ -38,8 +39,9 @@ scoresRouter.post(
   writeLimiter,
   validate({ params: playerNameParamsSchema, body: scoreRecordBodySchema }),
   asyncHandler(async (request, response) => {
+    const playerName = String(request.params.playerName);
     const result = await scoreService.savePlayerRecord({
-      playerName: request.params.playerName,
+      playerName,
       ...request.body,
     });
 
