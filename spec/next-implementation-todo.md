@@ -8,10 +8,10 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 
 ## Priority 0: Secret Hygiene And Security Cleanup
 
-- Rotate any values that were exposed in earlier public revisions, including:
-  - the old Supabase publishable key used by the score flow
-  - any earlier reset PIN values that were ever embedded in frontend code
-  - any temporary rollout/admin secrets that should not remain long-lived
+- Confirm and document the completed secret rotation work:
+  - old frontend-used Supabase publishable key rotated
+  - earlier public reset PIN value rotated
+  - Render backend `ADMIN_API_KEY` rotated
 - Decide whether to scrub old secrets from git history using a history-rewrite tool, or treat them as permanently rotated legacy values.
 - Add a small secret-rotation runbook so future key changes are fast and repeatable.
 - Review the live Render service and Supabase project for least-privilege settings and remove anything no longer needed from the old direct-frontend approach.
@@ -92,7 +92,7 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 
 ## Suggested Delivery Order
 
-1. Rotate old secrets and clean up trust boundaries.
+1. Finish secret-hygiene follow-through and decide on git-history cleanup.
 2. Improve score integrity and abuse resistance.
 3. Clean up branch/repo architecture and document the release flow.
 4. Add automated smoke tests and deployment checklists.

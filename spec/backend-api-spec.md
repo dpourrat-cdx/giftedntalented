@@ -142,6 +142,10 @@ Behavior:
 - CORS is restricted to the GitHub Pages origin.
 - Request payloads are validated server-side.
 - Rate limiting is applied to public and admin-sensitive routes.
+- Earlier exposed values were rotated after the backend rollout, including:
+  - the old frontend-used Supabase publishable key
+  - the old reset PIN value
+  - the Render admin API key used by backend admin routes
 
 ### Remaining Risks
 

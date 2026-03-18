@@ -167,6 +167,7 @@ The product is a static, story-driven gifted practice site for children. It comb
   - the frontend no longer contains the correct PIN
   - reset verification now happens server-side through the backend
   - successful reset clears the shared remote records
+  - the earlier public reset PIN value has now been rotated
 
 ### Results Screen
 
@@ -256,6 +257,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 - Storyline selection is still code-configured rather than parent-configurable.
 - Story Only mode currently reuses the normal ending screen and score-band ending story instead of having a separate story-only finale.
 - Older secrets and reset values may still exist in git history from earlier public versions.
+- The old frontend-used Supabase publishable key and old reset PIN value have already been rotated, so the remaining concern is historical exposure rather than current live use.
 
 ## Acceptance Criteria For Current Product
 
