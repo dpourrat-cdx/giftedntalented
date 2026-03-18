@@ -1,9 +1,7 @@
 (function () {
-  const SUPABASE_URL = "https://hwafspusaijqjkgweptv.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_-hPDn_wxDliucO3L5pP7-Q_Cd8MBvy-";
+  const BACKEND_BASE_URL = "https://giftedntalented.onrender.com/api/v1";
   const CACHE_KEY = "gifted-scoreboard-player-best-scores-v2";
   const LEGACY_CACHE_KEYS = ["gifted-scoreboard-player-best-scores"];
-  const LOCAL_RESET_PIN = "123";
   const scoreboardContent = window.CaptainNovaContent?.scoreboard || {
     awaitingName: "Type an explorer name",
     awaitingScore: "Enter the explorer name below to show only that explorer's best score.",
@@ -46,7 +44,21 @@
   }
 
   function isRemoteUnavailableError(error) {
-    return error && ["PGRST205", "PGRST202", "PGRST204", "42501", "42703"].includes(error.code);
+    if (!error) {
+      return false;
+    }
+
+    if (error.name === "TypeError") {
+      return true;
+    }
+
+    if (typeof error.status === "number" && error.status >= 500) {
+      return true;
+    }
+
+    return ["SUPABASE_READ_FAILED", "SUPABASE_WRITE_FAILED", "INTERNAL_SERVER_ERROR"].includes(
+      error.error || error.code,
+    );
   }
 
   function buildFriendlyError(error) {
@@ -54,12 +66,12 @@
       return "The score board could not update online just now.";
     }
 
-    if (error.code === "P0001") {
-      return error.message || "That admin PIN did not match.";
+    if (error.error === "INVALID_RESET_PIN" || error.code === "P0001" || error.status === 401) {
+      return error.message || "The admin PIN did not match.";
     }
 
     if (isRemoteUnavailableError(error)) {
-      return "The score board could not update online just now.";
+      return "The explorer record could not update online just now.";
     }
 
     if (typeof error.message === "string" && error.message.trim()) {
@@ -133,13 +145,10 @@
   class ScoreboardService {
     constructor(options) {
       this.baseUrl = options.baseUrl.replace(/\/$/, "");
-      this.apiKey = options.apiKey;
     }
 
     headers(extraHeaders = {}) {
       return {
-        apikey: this.apiKey,
-        Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
         ...extraHeaders,
       };
@@ -153,6 +162,10 @@
       });
 
       if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+
         let details = null;
 
         try {
@@ -183,38 +196,30 @@
         return null;
       }
 
-      const payload = await this.request("/rest/v1/rpc/get_player_top_score", {
-        method: "POST",
-        body: JSON.stringify({
-          target_player_name: normalizedName,
-        }),
-      });
-
-      if (Array.isArray(payload)) {
-        return payload[0] || null;
-      }
-
-      return payload || null;
+      return this.request(`/players/${encodeURIComponent(normalizedName)}/record`);
     }
 
     async saveScore(scoreEntry) {
-      return this.request("/rest/v1/rpc/save_player_score", {
+      const normalizedName = normalizePlayerName(scoreEntry.playerName);
+
+      return this.request(`/players/${encodeURIComponent(normalizedName)}/record`, {
         method: "POST",
         body: JSON.stringify({
-          target_player_name: normalizePlayerName(scoreEntry.playerName),
           score: scoreEntry.score,
           percentage: scoreEntry.percentage,
-          total_questions: scoreEntry.totalQuestions,
-          elapsed_seconds: normalizeElapsedSeconds(scoreEntry.elapsedSeconds),
+          totalQuestions: scoreEntry.totalQuestions,
+          elapsedSeconds: normalizeElapsedSeconds(scoreEntry.elapsedSeconds),
+          clientType: scoreEntry.clientType || "web",
+          mode: scoreEntry.mode || "quiz",
         }),
       });
     }
 
     async resetScores(resetPin) {
-      return this.request("/rest/v1/rpc/reset_scores", {
+      return this.request("/admin/scores/reset", {
         method: "POST",
         body: JSON.stringify({
-          reset_pin: resetPin,
+          resetPin: resetPin,
         }),
       });
     }
@@ -376,11 +381,6 @@
         return null;
       }
 
-      if (normalizedPin !== LOCAL_RESET_PIN) {
-        this.setStatus("Please enter the admin PIN.", "error", true);
-        return null;
-      }
-
       return normalizedPin;
     }
 
@@ -430,6 +430,7 @@
       const normalizedName = normalizePlayerName(playerName);
       const requestToken = ++this.lookupToken;
       let shouldPreserveStatus = Boolean(options.preserveStatus);
+      const cachedScore = this.getCachedPlayerScore(normalizedName);
 
       if (!normalizedName) {
         this.activePlayerName = "";
@@ -457,10 +458,12 @@
         const remoteScore = this.normalizeTopScore(record, normalizedName);
 
         if (!remoteScore) {
-          this.renderNoScoreState(normalizedName);
           if (cachedScore) {
+            this.renderTopScore(cachedScore, normalizedName);
             shouldPreserveStatus = true;
             this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
+          } else {
+            this.renderNoScoreState(normalizedName);
           }
           if (!shouldPreserveStatus) {
             this.clearStatus();
@@ -555,7 +558,11 @@
       }
 
       try {
-        await this.service.saveScore(normalizedEntry);
+        await this.service.saveScore({
+          ...normalizedEntry,
+          clientType: scoreEntry.clientType || "web",
+          mode: scoreEntry.mode || "quiz",
+        });
         await this.refreshTopScoreForPlayer(playerName, {
           preserveStatus: true,
           showLoading: false,
@@ -630,8 +637,7 @@
   function createScoreboardController(options) {
     return new ScoreboardController({
       service: new ScoreboardService({
-        baseUrl: SUPABASE_URL,
-        apiKey: SUPABASE_ANON_KEY,
+        baseUrl: BACKEND_BASE_URL,
       }),
       elements: options.elements,
     });

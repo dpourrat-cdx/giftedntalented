@@ -1287,6 +1287,8 @@ function buildFinalScoreRecord() {
     percentage: scorePercent(correct),
     totalQuestions: totalQuestions(),
     elapsedSeconds: elapsedMissionSeconds(),
+    clientType: "web",
+    mode: isStoryOnlySession ? "story" : "quiz",
   };
 }
 
@@ -1298,6 +1300,8 @@ function buildLiveScoreRecord() {
     percentage: scorePercent(correct),
     totalQuestions: totalQuestions(),
     elapsedSeconds: elapsedMissionSeconds(),
+    clientType: "web",
+    mode: isStoryOnlySession ? "story" : "quiz",
   };
 }
 
