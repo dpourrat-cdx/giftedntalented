@@ -246,7 +246,7 @@ The product is a static, story-driven gifted practice site for children. It comb
 - The frontend currently still performs scoring and timing calculations before submitting them to the backend.
 - Remote storage depends on the Render backend staying in sync with its Supabase schema.
 - The question bank and answer logic ship to the browser.
-- The backend implementation is currently maintained on a separate branch from `master`.
+- The backend now lives in the same repo and `master` branch as the frontend, but deploys from the `backend/` root on Render.
 
 ## Known Limitations
 

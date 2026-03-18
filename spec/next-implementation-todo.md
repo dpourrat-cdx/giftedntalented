@@ -2,19 +2,16 @@
 
 ## Goal
 
-This backlog captures the next high-value work for the Captain Nova app after the March 18 backend deployment and frontend API migration.
+This backlog captures the next high-value work for the Captain Nova app after the March 18 backend deployment, frontend API migration, backend merge into `master`, and Render branch cleanup.
 
 The biggest theme now is tightening trust and cleaning up the architecture around the new frontend -> Render backend -> Supabase flow.
 
 ## Priority 0: Secret Hygiene And Security Cleanup
 
-- Confirm and document the completed secret rotation work:
-  - old frontend-used Supabase publishable key rotated
-  - earlier public reset PIN value rotated
-  - Render backend `ADMIN_API_KEY` rotated
 - Decide whether to scrub old secrets from git history using a history-rewrite tool, or treat them as permanently rotated legacy values.
 - Add a small secret-rotation runbook so future key changes are fast and repeatable.
 - Review the live Render service and Supabase project for least-privilege settings and remove anything no longer needed from the old direct-frontend approach.
+- Review backend logs and env vars to ensure no secrets are accidentally echoed in startup or error output.
 
 ## Priority 1: Score Integrity And Abuse Resistance
 
@@ -41,17 +38,21 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 - Add a parent-facing `Clear this device cache` action for stale local fallback data.
 - Review whether explorer names should remain plain-text identifiers or move to a parent-managed profile model.
 - Define retention expectations for score history, reset logs, and device caches.
+- Decide whether the reset flow should move from a browser prompt to a small parent-only form with clearer error handling and fewer accidental submissions.
 
 ## Priority 3: Repo And Architecture Cleanup
 
-- Decide whether to merge `codex/backend` into the main repo history once the backend API is stable.
-- If the backend stays on its own branch for a while, document the release process clearly so frontend and backend changes do not drift.
-- Decide whether `supabase/scoreboard_setup.sql` on `master` should be archived or marked as legacy now that the live frontend uses the backend API.
+- Archive or clearly mark `supabase/scoreboard_setup.sql` on `master` as legacy now that the live score flow uses the backend schema under `backend/supabase/backend_schema.sql`.
 - Add a short architecture note or diagram showing:
   - GitHub Pages frontend
   - Render backend
   - Supabase database
   - optional future Android client
+  - frontend asset cache-busting expectations
+  - backend deploy expectations
+  - required post-deploy smoke checks
+- Decide whether the backend should eventually move to its own repository for operational isolation, or stay co-located with the frontend for simpler releases.
+- Add a short release checklist for unified `master` deploys so frontend and backend changes stay coordinated.
 
 ## Priority 4: Defensive Testing And Ops
 
@@ -68,8 +69,10 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
   - health endpoint verification
   - Supabase schema migration verification
   - post-deploy score save/read/reset smoke tests
+- Add one lightweight API smoke script that can validate the live backend in one command.
 - Add a build/release step that bumps frontend asset versions automatically before pushing to GitHub Pages.
 - Add dependency review and `npm audit` follow-up for the backend package set.
+- Add automated verification that Render is still targeting `master` and `backend/` after any service edits.
 
 ## Priority 5: Cyber Security Review
 
@@ -79,6 +82,7 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 - Add backend request logging rules that are useful for incident review without over-logging child data.
 - Add alerting for repeated reset failures, high error rates, and unusual public write activity.
 - Review the current admin key model for push-send endpoints and decide whether a stronger admin auth model is needed later.
+- Review the backend API surface for abuse paths such as player-name enumeration and repeated record probing.
 
 ## Priority 6: Product And Content Improvements
 
@@ -94,7 +98,7 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 
 1. Finish secret-hygiene follow-through and decide on git-history cleanup.
 2. Improve score integrity and abuse resistance.
-3. Clean up branch/repo architecture and document the release flow.
+3. Clean up legacy SQL/docs and document the unified release flow.
 4. Add automated smoke tests and deployment checklists.
 5. Improve parent privacy UX and safety controls.
 6. Continue story/content/product enhancements.

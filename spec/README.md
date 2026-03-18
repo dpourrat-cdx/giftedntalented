@@ -30,17 +30,19 @@ These specs were refreshed through the March 18, 2026 backend integration pass. 
 - backend-to-Supabase score persistence with one best row per child name
 - device-only score fallback messaging instead of silent local-first score display
 - server-side reset PIN verification instead of browser-held reset logic
+- backend source now merged into `master`
+- Render now deploys the backend from `master` with `backend/` as the root directory
 
 ## Current Architecture Note
 
-The live system is currently split across branches:
+The live system now ships from one main branch:
 
 - `master`
-  - the frontend that ships to GitHub Pages
-- `codex/backend`
-  - the deployed backend that runs on Render
+  - GitHub Pages frontend
+  - backend source under `backend/`
+  - Render deployment source with `backend/` as the service root
 
-This split was intentional for a safer rollout. The next backlog now includes deciding when and how to unify that structure.
+This means frontend, backend, and specs now live in one unified repo history.
 
 Instead of jumping straight into implementation, we write down:
 
