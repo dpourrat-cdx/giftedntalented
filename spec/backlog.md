@@ -35,7 +35,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-SonarCloud currently reports 12 critical cognitive-complexity violations (S3776). Highest severity first:
+SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
 
 - [ ] Refactor `renderQuestion()` in `app.js:1243` — complexity 56, worst function in the codebase. Split into question-render, option-render, feedback-render, and state-sync helpers.
   Progress: PR 32 extracts `renderStartScreen`, `renderStoryOnlyQuestion`, `renderOptions` (DOM construction, removes last user-data innerHTML), and `renderHintAndButton`. 12 new frontend tests, 156 → 168 passing.
@@ -44,6 +44,7 @@ SonarCloud currently reports 12 critical cognitive-complexity violations (S3776)
 - [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
   Progress: PR 33 extracts the activity-order, speed-order, and attribute-chain question families into focused helpers and adds frontend tests that lock down one generated prompt from each family.
 - [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
+  Progress: PR 37 extracts event-order, height-order, attribute-truth, and line-order families into focused helpers and adds frontend tests that lock down one generated question from each family.
 - [ ] Split `saveAuthoritativeScore()` in `backend/src/services/attempt.service.ts:560` — complexity 25. Aligns with the broader `attempt.service.ts` split into question-selection, attempt-state, and score-persistence helpers.
   Progress: PR 31 extracts `fetchOldBest`, `persistScoreLegacyFallback`, and `persistScorePrimary`; `saveAuthoritativeScore` becomes a thin orchestrator. 14 new unit tests, 147 → 161 passing.
 - [ ] Refactor `refreshTopScoreForPlayer()` in `scoreboard.js:639` — complexity 22.
