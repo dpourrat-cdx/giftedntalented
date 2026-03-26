@@ -445,7 +445,8 @@
         return null;
       }
 
-      const fingerprint = this.buildAttemptFingerprint(normalizedName, questions);
+      const effectiveQuestions = clientType === "web" && mode === "quiz" ? [] : questions;
+      const fingerprint = this.buildAttemptFingerprint(normalizedName, effectiveQuestions);
       if (this.activeAttemptId && this.activeAttemptFingerprint === fingerprint) {
         return {
           attemptId: this.activeAttemptId,
@@ -469,7 +470,7 @@
           playerName: normalizedName,
           clientType,
           mode,
-          questions,
+          questions: effectiveQuestions,
         })
         .then((result) => {
           this.activeAttemptId = result?.attemptId || null;

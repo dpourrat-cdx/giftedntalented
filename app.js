@@ -118,6 +118,7 @@ let deferredAdvanceQuestionIndex = -1;
 let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
 let questionBankLookup = null;
+let isStartingAttempt = false;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -272,11 +273,7 @@ function normalizeAttemptQuestions(questions) {
   return normalized;
 }
 
-function adoptBackendAttemptQuestions(questions) {
-  if (!hasStarted || isSubmitted || answeredTotal() !== 0 || currentIndex !== 0) {
-    return false;
-  }
-
+function applyAttemptQuestions(questions) {
   const normalizedQuestions = normalizeAttemptQuestions(questions);
   if (!normalizedQuestions || normalizedQuestions.length !== totalQuestions()) {
     return false;
@@ -285,10 +282,9 @@ function adoptBackendAttemptQuestions(questions) {
   sessionQuestions = normalizedQuestions;
   selectedAnswers = Array(totalQuestions()).fill(null);
   validatedAnswers = Array(totalQuestions()).fill(null);
+  currentIndex = 0;
+  timeRemaining = testDurationSeconds();
   lastRenderedQuestionIndex = -1;
-  updateProgress();
-  updateTimerDisplay();
-  renderQuestion();
   return true;
 }
 
@@ -1449,38 +1445,59 @@ function buildAttemptQuestionRegistration() {
 }
 
 function startTestFromBeginning() {
-  if (hasStarted || !playerName) {
+  if (hasStarted || !playerName || isStartingAttempt) {
     return;
   }
 
   currentIndex = 0;
-  hasStarted = true;
   isStoryOnlySession = storyOnlyModeEnabled;
   const isQuizSession = !isStoryOnlySession;
-  const attemptQuestions = isQuizSession ? buildAttemptQuestionRegistration() : [];
-  if (isStoryOnlySession) {
-    clearTimer();
-    setTimerPaused(true);
-    updateTimerDisplay();
-  } else {
-    startTimer();
+
+  function beginSessionWithQuestions(questions) {
+    if (Array.isArray(questions) && questions.length > 0) {
+      applyAttemptQuestions(questions);
+    }
+
+    hasStarted = true;
+    isStartingAttempt = false;
+    if (isStoryOnlySession) {
+      clearTimer();
+      setTimerPaused(true);
+      updateTimerDisplay();
+    } else {
+      startTimer();
+    }
+
+    renderQuestion();
   }
-  renderQuestion();
+
+  if (isStoryOnlySession) {
+    beginSessionWithQuestions([]);
+    return;
+  }
 
   if (scoreboardController && isQuizSession) {
+    isStartingAttempt = true;
+    dom.nextHint.textContent = "Preparing mission steps...";
+    dom.nextHint.classList.remove("is-hidden");
+    dom.nextButton.disabled = true;
     void scoreboardController
       .beginAttempt({
         playerName,
         clientType: "web",
         mode: "quiz",
-        questions: attemptQuestions,
       })
       .then((result) => {
-        if (result?.attemptId && result.questions && adoptBackendAttemptQuestions(result.questions)) {
-          return;
-        }
+        beginSessionWithQuestions(result?.questions ?? []);
+      })
+      .catch(() => {
+        beginSessionWithQuestions([]);
       });
+
+    return;
   }
+
+  beginSessionWithQuestions([]);
 }
 
 function restartTest() {
