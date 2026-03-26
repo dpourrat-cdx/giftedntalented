@@ -71,6 +71,36 @@ function expectRecordSnapshot(step: string, body: Record<string, unknown> | null
   };
 }
 
+function expectQuestionSnapshot(step: string, value: unknown) {
+  const question = expectObject(step, value);
+  const options = Array.isArray(question.options) ? question.options.map((option) => String(option)) : [];
+  assert(typeof question.bankId === "string", `${step} failed: question bankId was missing`);
+  assert(typeof question.questionId === "number", `${step} failed: questionId was missing`);
+  assert(options.length === 4, `${step} failed: question options were wrong`);
+
+  return {
+    bankId: String(question.bankId),
+    questionId: Number(question.questionId),
+    options,
+  };
+}
+
+function resolveCorrectAnswerIndex(args: {
+  step: string;
+  questionBank: Awaited<ReturnType<typeof getLoadedQuestionBank>>;
+  bankId: string;
+  options: string[];
+}) {
+  const canonicalQuestion = args.questionBank.questionIndex.get(args.bankId) as
+    | { answer: number; options: string[] }
+    | undefined;
+  assert(Boolean(canonicalQuestion), `${args.step} failed: canonical question was not found`);
+  const correctOption = canonicalQuestion?.options[canonicalQuestion.answer ?? 0];
+  const correctAnswerIndex = args.options.findIndex((option) => option === correctOption);
+  assert(correctAnswerIndex !== -1, `${args.step} failed: correct option was not present in returned options`);
+  return correctAnswerIndex;
+}
+
 async function main() {
   console.log(`Running live backend smoke checks against ${baseUrl.origin}${baseUrl.pathname}`);
   console.log(`Using player name ${playerName}`);
@@ -120,22 +150,20 @@ async function main() {
   const expectedQuestionCount = questionBank.sections.length * questionBank.questionsPerTestSection;
   assert(Number(startBody.totalQuestions) === expectedQuestionCount, "attempt start failed: totalQuestions was wrong");
   assert(startQuestions.length === expectedQuestionCount, "attempt start failed: total question count was wrong");
-  const firstQuestion = expectObject("attempt start question", startQuestions[0]);
-  assert(typeof firstQuestion.bankId === "string", "attempt start failed: first question bankId was missing");
-  assert(typeof firstQuestion.questionId === "number", "attempt start failed: first question questionId was missing");
-  const canonicalFirstQuestion = questionBank.questionIndex.get(String(firstQuestion.bankId)) as
-    | { answer: number }
-    | undefined;
-  assert(Boolean(canonicalFirstQuestion), "attempt start failed: first question was not found in canonical bank");
-  const firstQuestionOptions = Array.isArray(firstQuestion.options) ? firstQuestion.options : [];
-  assert(firstQuestionOptions.length === 4, "attempt start failed: first question options were wrong");
-  const wrongAnswer = ((canonicalFirstQuestion?.answer ?? 0) + 1) % firstQuestionOptions.length;
+  const firstQuestion = expectQuestionSnapshot("attempt start question", startQuestions[0]);
+  const correctAnswerIndex = resolveCorrectAnswerIndex({
+    step: "attempt start question",
+    questionBank,
+    bankId: firstQuestion.bankId,
+    options: firstQuestion.options,
+  });
+  const wrongAnswer = (correctAnswerIndex + 1) % firstQuestion.options.length;
 
   const answer = await requestJson(`/attempts/${encodeURIComponent(attemptId)}/answers`, {
     method: "POST",
     body: JSON.stringify({
-      questionId: Number(firstQuestion.questionId),
-      bankId: String(firstQuestion.bankId),
+      questionId: firstQuestion.questionId,
+      bankId: firstQuestion.bankId,
       selectedAnswer: wrongAnswer,
       elapsedSeconds: 12,
     }),
@@ -180,15 +208,17 @@ async function main() {
   assert(Number(replayStartBody.totalQuestions) === expectedQuestionCount, "replay attempt start failed: totalQuestions was wrong");
   assert(replayQuestions.length === expectedQuestionCount, "replay attempt start failed: total question count was wrong");
 
-  const correctAnswer = expectObject("replay question", replayQuestions[0]);
-  const canonicalReplayQuestion = questionBank.questionIndex.get(String(correctAnswer.bankId)) as
-    | { answer: number }
-    | undefined;
-  assert(Boolean(canonicalReplayQuestion), "replay attempt start failed: first replay question was not found in canonical bank");
+  const correctAnswer = expectQuestionSnapshot("replay question", replayQuestions[0]);
+  const replayCorrectAnswerIndex = resolveCorrectAnswerIndex({
+    step: "replay question",
+    questionBank,
+    bankId: correctAnswer.bankId,
+    options: correctAnswer.options,
+  });
   const correctSubmitBody = {
-    questionId: Number(correctAnswer.questionId),
-    bankId: String(correctAnswer.bankId),
-    selectedAnswer: Number(canonicalReplayQuestion?.answer ?? 0),
+    questionId: correctAnswer.questionId,
+    bankId: correctAnswer.bankId,
+    selectedAnswer: replayCorrectAnswerIndex,
     elapsedSeconds: 18,
   };
 
