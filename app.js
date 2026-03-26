@@ -116,6 +116,7 @@ let autoAdvanceQuestionIndex = -1;
 let isTimerPaused = false;
 let deferredAdvanceQuestionIndex = -1;
 let suppressNextButtonUntil = 0;
+let pendingAnswerQuestionIndex = -1;
 let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
 let questionBankLookup = null;
@@ -1213,6 +1214,7 @@ function renderQuestion() {
   const validatedAnswer = validatedAnswers[currentIndex];
   const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
   const isAutoAdvancing = answeredCorrectly && !isSubmitted && isAutoAdvancePendingForCurrentQuestion();
+  const isAwaitingAnswerSync = pendingAnswerQuestionIndex === currentIndex;
   const isMissionTransitionReady = !isSubmitted && validatedAnswer !== null && !allQuestionsAnswered() && shouldAdvanceToNextMission();
   const isLocked = validatedAnswer !== null || isSubmitted;
 
@@ -1297,6 +1299,8 @@ function renderQuestion() {
   } else {
     dom.nextHint.textContent = isAutoAdvancing
       ? questionContent.autoAdvanceHint
+      : isAwaitingAnswerSync
+        ? "Mission Control is checking that answer..."
       : isMissionTransitionReady
         ? (questionContent.nextMissionHint || "Rocket part secured. Press Next mission.")
         : questionContent.lockedHint;
@@ -1309,13 +1313,14 @@ function renderQuestion() {
       : questionContent.buttons.next
     : validatedAnswer === null
       ? questionContent.buttons.check
-      : allQuestionsAnswered()
-        ? questionContent.buttons.launch
-        : isMissionTransitionReady
-          ? (questionContent.buttons.nextMission || "Next mission")
-          : questionContent.buttons.next;
+    : allQuestionsAnswered()
+      ? questionContent.buttons.launch
+      : isMissionTransitionReady
+        ? (questionContent.buttons.nextMission || "Next mission")
+        : questionContent.buttons.next;
   dom.nextButton.disabled =
     isAutoAdvancing ||
+    isAwaitingAnswerSync ||
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === totalQuestions() - 1);
   if (shouldResetStageScroll) {
@@ -1636,17 +1641,45 @@ dom.nextButton.addEventListener("click", () => {
       return;
     }
 
+    const questionIndex = currentIndex;
     validatedAnswers[currentIndex] = selectedAnswer;
+    pendingAnswerQuestionIndex = questionIndex;
     updateProgress();
     renderQuestion();
-    const isCorrect = selectedAnswer === question.answer;
-    if (gamificationController) {
-      gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
-        questionId: question.id,
-        section: question.section,
-        isCorrect,
-      });
-    }
+    const handleAnswerEvaluation = (result) => {
+      if (questionAt(questionIndex)) {
+        const authoritativeCorrectAnswer =
+          Number.isInteger(result?.correctAnswer) && result.correctAnswer >= 0 && result.correctAnswer <= 3
+            ? result.correctAnswer
+            : question.answer;
+        sessionQuestions[questionIndex].answer = authoritativeCorrectAnswer;
+        const isCorrect = typeof result?.isCorrect === "boolean"
+          ? result.isCorrect
+          : selectedAnswer === authoritativeCorrectAnswer;
+
+        if (gamificationController) {
+          gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
+            questionId: question.id,
+            section: question.section,
+            isCorrect,
+          });
+        }
+
+        if (isCorrect) {
+          if (gamificationController && gamificationController.hasBlockingOverlay()) {
+            deferredAdvanceQuestionIndex = questionIndex;
+          } else {
+            scheduleAutoAdvance(questionIndex);
+          }
+        }
+      }
+
+      if (pendingAnswerQuestionIndex === questionIndex) {
+        pendingAnswerQuestionIndex = -1;
+      }
+      renderQuestion();
+    };
+
     if (scoreboardController) {
       void scoreboardController.recordValidatedAnswer({
         playerName,
@@ -1657,15 +1690,9 @@ dom.nextButton.addEventListener("click", () => {
         bankId: question.bankId,
         selectedAnswer,
         elapsedSeconds: elapsedMissionSeconds(),
-      });
-    }
-    if (isCorrect) {
-      if (gamificationController && gamificationController.hasBlockingOverlay()) {
-        deferredAdvanceQuestionIndex = currentIndex;
-      } else {
-        scheduleAutoAdvance(currentIndex);
-        renderQuestion();
-      }
+      }).then(handleAnswerEvaluation);
+    } else {
+      handleAnswerEvaluation(null);
     }
     return;
   }

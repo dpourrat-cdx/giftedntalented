@@ -893,9 +893,12 @@ export class AttemptService {
       progress,
       normalizeElapsedSeconds(input.elapsedSeconds),
     );
+    const correctAnswer = questionKey[slotIndex].correctAnswer;
 
     return {
       accepted: true,
+      correctAnswer,
+      isCorrect: input.selectedAnswer === correctAnswer,
       progress,
       record,
     };

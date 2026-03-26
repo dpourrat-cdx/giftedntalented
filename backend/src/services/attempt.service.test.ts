@@ -395,6 +395,8 @@ describe("AttemptService", () => {
       });
 
       expect(result.accepted).toBe(true);
+      expect(result.correctAnswer).toBe(0);
+      expect(result.isCorrect).toBe(true);
       expect(result.progress.correctCount).toBe(1);
       expect(result.progress.answeredCount).toBe(1);
       expect(result.record).toBeDefined();
@@ -413,6 +415,8 @@ describe("AttemptService", () => {
       });
 
       expect(result.accepted).toBe(true);
+      expect(result.correctAnswer).toBe(0);
+      expect(result.isCorrect).toBe(false);
       expect(result.progress.correctCount).toBe(0);
       expect(result.record).toBeNull();
       expect(mockRpc).not.toHaveBeenCalled();
