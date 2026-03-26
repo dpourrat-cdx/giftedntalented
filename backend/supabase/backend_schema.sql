@@ -222,6 +222,27 @@ begin
 end;
 $$;
 
+revoke all on function public.save_attempt_score_from_attempt(
+  uuid,
+  text,
+  integer,
+  integer,
+  integer,
+  integer,
+  text,
+  timestamptz
+) from public;
+grant execute on function public.save_attempt_score_from_attempt(
+  uuid,
+  text,
+  integer,
+  integer,
+  integer,
+  integer,
+  text,
+  timestamptz
+) to service_role;
+
 create or replace function public.touch_notification_device_updated_at()
 returns trigger
 language plpgsql
@@ -273,6 +294,9 @@ as $$
     scores.completed_at asc
   limit 1;
 $$;
+
+revoke all on function public.get_player_top_score(text) from public;
+grant execute on function public.get_player_top_score(text) to service_role;
 
 create or replace function public.save_player_score(
   target_player_name text,
@@ -366,6 +390,21 @@ begin
 end;
 $$;
 
+revoke all on function public.save_player_score(
+  text,
+  integer,
+  integer,
+  integer,
+  integer
+) from public;
+grant execute on function public.save_player_score(
+  text,
+  integer,
+  integer,
+  integer,
+  integer
+) to service_role;
+
 create or replace function public.set_reset_pin(new_reset_pin text)
 returns void
 language plpgsql
@@ -389,3 +428,6 @@ begin
     updated_at = timezone('utc', now());
 end;
 $$;
+
+revoke all on function public.set_reset_pin(text) from public;
+grant execute on function public.set_reset_pin(text) to service_role;
