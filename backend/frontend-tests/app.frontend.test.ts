@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { importBrowserScript, loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
+import { loadFrontendScript } from "./helpers/frontend-script";
 
 const attemptQuestion = {
   id: 1,
@@ -180,6 +181,37 @@ async function startApp(question = attemptQuestion, options: { storyOnly?: boole
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 
   return mocks;
+}
+
+async function loadNormalizeAttemptQuestion(question = attemptQuestion) {
+  await loadIndexHtml();
+  await loadFrontendScript("content.js");
+
+  window.GiftedQuestionBank = buildQuestionBankStub(question);
+  window.GiftedGamification = {
+    createGamificationController() {
+      return buildGamificationStub();
+    },
+  };
+  window.GiftedScoreboard = {
+    createScoreboardController() {
+      return {
+        init() {},
+        setActivePlayerName() {},
+        resetActiveAttempt() {},
+        beginAttempt: vi.fn().mockResolvedValue({ questions: [{ ...question, options: [...question.options] }] }),
+        recordValidatedAnswer: vi.fn().mockResolvedValue(null),
+        finalizeAttempt: vi.fn().mockResolvedValue(null),
+      };
+    },
+  };
+
+  await loadFrontendScript("app.js");
+
+  return window.eval("normalizeAttemptQuestion") as (
+    question: unknown,
+    index: number,
+  ) => Record<string, unknown> | null;
 }
 
 describe("app.js targeted coverage", () => {
@@ -567,6 +599,86 @@ describe("app.js targeted coverage", () => {
 
       const nextHint = document.getElementById("nextHint") as HTMLElement;
       expect(nextHint.classList.contains("is-hidden")).toBe(true);
+    });
+  });
+
+  describe("normalizeAttemptQuestion", () => {
+    it("returns null for non-object input", async () => {
+      const normalizeAttemptQuestion = await loadNormalizeAttemptQuestion();
+
+      expect(normalizeAttemptQuestion(null, 0)).toBeNull();
+      expect(normalizeAttemptQuestion("bad-input", 0)).toBeNull();
+    });
+
+    it("fills missing prompt, section, explanation, stimulus, and options from the canonical question", async () => {
+      const normalizeAttemptQuestion = await loadNormalizeAttemptQuestion();
+
+      const normalized = normalizeAttemptQuestion(
+        {
+          bankId: "Verbal-1",
+          id: 7,
+          answer: 2,
+        },
+        0,
+      );
+
+      expect(normalized).toMatchObject({
+        id: 7,
+        questionId: 7,
+        bankId: "Verbal-1",
+        section: "Verbal",
+        prompt: attemptQuestion.prompt,
+        explanation: attemptQuestion.explanation,
+        stimulus: "",
+        options: attemptQuestion.options,
+        answer: 2,
+      });
+    });
+
+    it("derives the answer index from the canonical correct option when only shuffled options are provided", async () => {
+      const normalizeAttemptQuestion = await loadNormalizeAttemptQuestion();
+
+      const normalized = normalizeAttemptQuestion(
+        {
+          bankId: "Verbal-1",
+          questionId: 9,
+          section: "Verbal",
+          prompt: attemptQuestion.prompt,
+          options: ["Gamma", "Alpha", "Beta", "Delta"],
+          explanation: attemptQuestion.explanation,
+        },
+        0,
+      );
+
+      expect(normalized).toMatchObject({
+        id: 9,
+        questionId: 9,
+        answer: 0,
+      });
+      expect(normalized?.options).toEqual(["Gamma", "Alpha", "Beta", "Delta"]);
+    });
+
+    it("prefers an explicit correctAnswer over the derived fallback and keeps stringified options", async () => {
+      const normalizeAttemptQuestion = await loadNormalizeAttemptQuestion();
+
+      const normalized = normalizeAttemptQuestion(
+        {
+          bankId: "Verbal-1",
+          section: "Verbal",
+          prompt: attemptQuestion.prompt,
+          correctAnswer: 1,
+          options: ["Alpha", 22, "Gamma", "Delta"],
+          explanation: attemptQuestion.explanation,
+        },
+        4,
+      );
+
+      expect(normalized).toMatchObject({
+        id: 5,
+        questionId: 5,
+        answer: 1,
+      });
+      expect(normalized?.options).toEqual(["Alpha", "22", "Gamma", "Delta"]);
     });
   });
 });
