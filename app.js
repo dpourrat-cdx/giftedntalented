@@ -629,6 +629,42 @@ function buildStoryParagraphs(lines) {
   return storyLines(lines).map((line) => `<p>${formatStoryInline(line)}</p>`).join("");
 }
 
+function buildStoryArtworkElement(artwork, options = {}) {
+  if (!artwork || !artwork.src) {
+    return null;
+  }
+
+  const figure = document.createElement("figure");
+  figure.className = options.figureClass || "story-artwork-figure";
+
+  const picture = document.createElement("picture");
+
+  if (artwork.mobileSrc) {
+    const mobileSource = document.createElement("source");
+    mobileSource.media = "(max-width: 720px)";
+    mobileSource.srcset = artwork.mobileSrc;
+    picture.appendChild(mobileSource);
+  }
+
+  if (artwork.desktopSrc) {
+    const desktopSource = document.createElement("source");
+    desktopSource.media = "(min-width: 721px)";
+    desktopSource.srcset = artwork.desktopSrc;
+    picture.appendChild(desktopSource);
+  }
+
+  const image = document.createElement("img");
+  image.className = options.imageClass || "story-artwork-image";
+  image.src = artwork.src;
+  image.alt = artwork.alt || `${storyContent.title} artwork`;
+  image.loading = "lazy";
+  image.decoding = "async";
+
+  picture.appendChild(image);
+  figure.appendChild(picture);
+  return figure;
+}
+
 function buildStoryArtworkMarkup(artwork, options = {}) {
   if (!artwork || !artwork.src) {
     return "";
@@ -801,6 +837,40 @@ function renderMissionDots(missionState) {
   `;
 }
 
+function renderMissionDotsElement(missionState) {
+  if (!missionState || missionState.totalQuestions === 0) {
+    return null;
+  }
+
+  const root = document.createElement("div");
+  root.className = "mission-dots mission-dots-inline";
+  root.setAttribute("role", "img");
+  root.setAttribute(
+    "aria-label",
+    `${missionState.answeredCount} of ${missionState.totalQuestions} steps finished in this mission`,
+  );
+
+  missionState.questions.forEach((question) => {
+    const dot = document.createElement("span");
+    dot.className = [
+      "mission-dot",
+      question.isCorrect ? "is-correct" : "",
+      question.isWrong ? "is-wrong" : "",
+      question.isCurrent && !question.isAnswered ? "is-current" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    dot.setAttribute("aria-hidden", "true");
+
+    const core = document.createElement("span");
+    core.className = "mission-dot-core";
+    dot.appendChild(core);
+    root.appendChild(dot);
+  });
+
+  return root;
+}
+
 function renderRocketSceneMarkup(stageCount, boostCount) {
   const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
     return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
@@ -851,35 +921,66 @@ function renderStoryPanel(content) {
   }
 
   dom.storyPanel.className = `story-panel${content.compact ? " is-compact" : ""}`;
-  const lines = storyLines(content.lines);
-  const pills = [];
-  if (content.pill) {
-    pills.push(`<span class="story-pill">${escapeHtml(content.pill)}</span>`);
-  }
-  if (content.secondaryPill) {
-    pills.push(`<span class="story-pill">${escapeHtml(content.secondaryPill)}</span>`);
-  }
-  const iconMarkup = content.iconKey
-    ? `
-      <span class="story-icon reward-${content.iconKey}" aria-hidden="true">
-        ${missionRewardSvg(content.iconKey)}
-      </span>
-    `
-    : "";
+  dom.storyPanel.innerHTML = "";
 
-  dom.storyPanel.innerHTML = `
-    <div class="story-heading">
-      ${iconMarkup}
-      <div class="story-heading-copy">
-        <p class="story-kicker">${escapeHtml(content.kicker)}</p>
-        <h3>${escapeHtml(content.title)}</h3>
-      </div>
-    </div>
-    ${pills.length ? `<div class="story-pills">${pills.join("")}</div>` : ""}
-    ${content.mediaHtml || ""}
-    ${lines.length ? `<div class="story-copy">${buildStoryParagraphs(lines)}</div>` : ""}
-    ${content.footerHtml || ""}
-  `;
+  const heading = document.createElement("div");
+  heading.className = "story-heading";
+
+  if (content.iconKey) {
+    const icon = document.createElement("span");
+    icon.className = `story-icon reward-${content.iconKey}`;
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = missionRewardSvg(content.iconKey);
+    heading.appendChild(icon);
+  }
+
+  const headingCopy = document.createElement("div");
+  headingCopy.className = "story-heading-copy";
+
+  const kicker = document.createElement("p");
+  kicker.className = "story-kicker";
+  kicker.textContent = content.kicker;
+  headingCopy.appendChild(kicker);
+
+  const title = document.createElement("h3");
+  title.textContent = content.title;
+  headingCopy.appendChild(title);
+
+  heading.appendChild(headingCopy);
+  dom.storyPanel.appendChild(heading);
+
+  if (content.pill || content.secondaryPill) {
+    const pills = document.createElement("div");
+    pills.className = "story-pills";
+
+    [content.pill, content.secondaryPill].filter(Boolean).forEach((pillText) => {
+      const pill = document.createElement("span");
+      pill.className = "story-pill";
+      pill.textContent = pillText;
+      pills.appendChild(pill);
+    });
+
+    dom.storyPanel.appendChild(pills);
+  }
+
+  if (content.artwork) {
+    const artwork = buildStoryArtworkElement(content.artwork, content.artworkOptions);
+    if (artwork) {
+      dom.storyPanel.appendChild(artwork);
+    }
+  }
+
+  const lines = storyLines(content.lines);
+  if (lines.length) {
+    const storyCopy = document.createElement("div");
+    storyCopy.className = "story-copy";
+    storyCopy.innerHTML = buildStoryParagraphs(lines);
+    dom.storyPanel.appendChild(storyCopy);
+  }
+
+  if (content.footerNode) {
+    dom.storyPanel.appendChild(content.footerNode);
+  }
 }
 
 function renderIntroductionStory() {
@@ -888,10 +989,11 @@ function renderIntroductionStory() {
     title: storyContent.title,
     pill: storyContent.introduction.pill,
     secondaryPill: storyContent.introduction.secondaryPill,
-    mediaHtml: buildStoryArtworkMarkup(storyContent.introductionArtwork, {
+    artwork: storyContent.introductionArtwork,
+    artworkOptions: {
       figureClass: "story-artwork-figure is-introduction",
       imageClass: "story-artwork-image is-introduction",
-    }),
+    },
     lines: storyLines(storyContent.introduction.text),
   });
 }
@@ -913,7 +1015,7 @@ function renderMissionStory(section) {
     lines: [],
     compact: true,
     iconKey: reward.key,
-    footerHtml: renderMissionDots(missionState),
+    footerNode: renderMissionDotsElement(missionState),
   });
 }
 
