@@ -43,7 +43,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
   - `POST /attempts/:attemptId/answers`
   - `POST /attempts/:attemptId/finalize`
   - legacy `POST /players/:playerName/record` disabled behavior
-- [ ] Add or refresh an architecture note showing GitHub Pages frontend, Render backend, Supabase, and the live verification path.
+- [x] Architecture note (`spec/architecture.md`) covers GitHub Pages, Render, Supabase, CI, release flow, and smoke checks.
 - [x] Add `CONTRIBUTING.md` with branch naming, test expectations, merge flow, and multi-agent working conventions.
 - [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
 
@@ -82,8 +82,8 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 ## Next Recommended Delivery Slice
 
-1. Add CI for backend check, test, and build.
-2. Enable or verify branch protection on `master`.
+1. ~~Add CI for backend check, test, and build.~~ ✅ Done
+2. ~~Enable or verify branch protection on `master`.~~ ✅ Done
 3. Land timing-safe admin auth plus admin middleware on score reset.
 4. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
 5. Start breaking up `attempt.service.ts` so future score-flow work is easier to land safely.

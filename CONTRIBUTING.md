@@ -32,9 +32,9 @@ If you are Claude and you need to start a task:
 2. Create a branch prefixed with `claude/` (e.g., `claude/api-spec-update`).
 3. Prefer using a worktree so the main working directory stays available for Codex.
 
-### Coordination Point: `spec/next-implementation-todo.md`
+### Coordination Point: `spec/backlog.md`
 
-Before starting any task, **read `spec/next-implementation-todo.md`** to see what is in progress or already done. Before pushing your branch, **update the todo file** to reflect completed checkboxes and any new findings. This file is the single source of truth for what each agent is working on.
+Before starting any task, **read `spec/backlog.md`** to see what is in progress or already done. Before pushing your branch, **update the todo file** to reflect completed checkboxes and any new findings. This file is the single source of truth for what each agent is working on.
 
 ### PR Review Ownership
 
@@ -60,7 +60,7 @@ If one agent has an open PR touching any of the files below, the other agent sho
 - `backend/src/lib/question-bank.data.json`
 - `backend/src/middleware/admin-auth.ts`
 - Any `backend/supabase/*.sql` file
-- `spec/next-implementation-todo.md` (coordinate via short-lived edits only)
+- `spec/backlog.md` (coordinate via short-lived edits only)
 
 ---
 
@@ -143,29 +143,15 @@ Every agent must complete this sequence before considering a task done:
 
 ## CI Pipeline
 
-`.github/workflows/ci.yml` runs on every push and PR targeting `master`:
+`.github/workflows/ci.yml` runs check → test → build → audit on every push and PR targeting `master`. All steps except `npm audit` are hard failures. The `Backend` job must be green before a PR can merge.
 
-| Step | Command | Failure behavior |
-|---|---|---|
-| Install | `npm ci` | Hard failure |
-| Type check | `npm run check` | Hard failure |
-| Test | `npm test` | Hard failure |
-| Build | `npm run build` | Hard failure |
-| Audit | `npm audit --audit-level=high` | `continue-on-error: true` (visible but non-blocking) |
-
-Concurrency: only one CI run per branch at a time; new pushes cancel in-flight runs.
+Full pipeline details and branch protection rules are in [`spec/architecture.md`](spec/architecture.md).
 
 ---
 
 ## Dependabot
 
-`.github/dependabot.yml` opens weekly PRs for backend npm updates every Monday:
-
-- `@types/*` packages are grouped into a single PR.
-- Major-version bumps for `express` and `zod` are ignored (require manual review).
-- PR limit: 5 open Dependabot PRs at a time.
-
-Review and merge Dependabot PRs promptly — the CI will validate them before they can be merged.
+Weekly PRs for `backend/` npm updates open every Monday. `@types/*` packages are grouped; major bumps for `express` and `zod` require manual review. Merge Dependabot PRs promptly — CI validates them before merge.
 
 ---
 
