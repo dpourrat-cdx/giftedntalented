@@ -48,6 +48,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+  Progress: PR 26 adds targeted `app.js` frontend coverage for the results/review path, including perfect-score and missed-question cards after the review-card DOM hardening slice.
 - [ ] Refactor the highest-complexity frontend functions in `app.js`, `question-bank.js`, and `scoreboard.js`.
 - [ ] Sweep remaining nested ternaries and similar readability debt file by file.
 
@@ -78,7 +79,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Next Recommended Delivery Slice
 
 1. Decide the `POST /api/v1/admin/scores/reset` security model.
-2. Continue frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
-3. Broaden source-attributed frontend coverage so future frontend PRs need fewer Sonar bridges.
-4. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
-5. Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
+2. Continue frontend render-sink cleanup beyond story mode, starting with the next practical `innerHTML` surface after review/results.
+3. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
+4. Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
+5. Decide whether browser-level mobile/desktop smoke coverage should land before the next larger frontend refactor slice.
