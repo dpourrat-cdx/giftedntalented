@@ -51,6 +51,69 @@ describe("GiftedScoreboard", () => {
     };
   });
 
+  it("renders the remote score when the lookup succeeds", async () => {
+    await loadFrontendScript("scoreboard.js");
+
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockResolvedValue({
+        player_name: "Alex",
+        score: 9,
+        total_questions: 10,
+        percentage: 90,
+        elapsed_seconds: 61,
+      }),
+    };
+
+    const result = await controller.refreshTopScoreForPlayer("Alex");
+
+    expect(result).toEqual({
+      playerName: "Alex",
+      score: 9,
+      totalQuestions: 10,
+      percentage: 90,
+      elapsedSeconds: 61,
+    });
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("9/10");
+    expect(controller.elements.score.innerHTML).toContain("90%");
+    expect(controller.elements.score.innerHTML).toContain("1m 1s");
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+  it("falls back to the cached score when the remote lookup returns nothing", async () => {
+    await loadFrontendScript("scoreboard.js");
+
+    window.localStorage.setItem(
+      "gifted-scoreboard-player-best-scores-v2",
+      JSON.stringify({
+        alex: {
+          playerName: "Alex",
+          score: 7,
+          totalQuestions: 8,
+          percentage: 88,
+          elapsedSeconds: 92,
+        },
+      }),
+    );
+
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockResolvedValue(null),
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.refreshTopScoreForPlayer("Alex");
+
+    expect(result).toBeNull();
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("7/8");
+    expect(controller.elements.score.innerHTML).toContain("88%");
+    expect(controller.elements.status.textContent).toBe(
+      "Showing a score saved only on this device.",
+    );
+  });
+
   it("falls back to the cached score when the remote lookup is unavailable", async () => {
     await loadFrontendScript("scoreboard.js");
 
@@ -88,28 +151,19 @@ describe("GiftedScoreboard", () => {
     );
   });
 
-  it("skips remote saves when the same fingerprint was already saved", async () => {
+  it("shows a friendly error when the remote lookup fails without a cached score", async () => {
     await loadFrontendScript("scoreboard.js");
 
     const controller = createController();
-    controller.activePlayerName = "Alex";
     controller.service = {
-      saveScore: vi.fn(),
-      fetchPlayerTopScore: vi.fn(),
+      fetchPlayerTopScore: vi.fn().mockRejectedValue(new Error("Remote lookup failed")),
     };
 
-    const scoreEntry = {
-      playerName: "Alex",
-      score: 8,
-      percentage: 100,
-      totalQuestions: 8,
-      elapsedSeconds: 80,
-    };
+    const result = await controller.refreshTopScoreForPlayer("Alex");
 
-    await controller.recordScore(scoreEntry);
-    const secondResult = await controller.recordScore(scoreEntry);
-
-    expect(secondResult).toBeNull();
-    expect(controller.service.saveScore).toHaveBeenCalledTimes(1);
+    expect(result).toBeNull();
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
+    expect(controller.elements.status.textContent).toBe("Remote lookup failed");
   });
 });
