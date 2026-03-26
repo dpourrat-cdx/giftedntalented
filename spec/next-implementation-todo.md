@@ -11,8 +11,9 @@ The biggest theme now is finishing the move from "browser-trusted score writes" 
 - Frontend score submission now goes through backend-owned score attempts instead of posting raw score payloads directly.
 - The legacy `POST /players/:playerName/record` endpoint is live but intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
 - Backend tests and TypeScript checks are in place and passing locally.
-- The live backend health endpoint and deployed frontend assets were verified after the March 25, 2026 merge.
-- The backend schema includes `score_attempts` locally, but the live Supabase migration still needs to be confirmed before the attempt flow is considered fully deployed.
+- The live backend health endpoint, attempt flow, and deployed frontend assets were verified after the March 25, 2026 merge.
+- The backend now uses a backend-owned question snapshot instead of executing the frontend question bundle at runtime.
+- Attempt expiry logic and fallback handling for missing `expires_at` schema/cache errors are live.
 - A one-command live backend smoke runner and deploy checklist now exist in `backend/` and `spec/`.
 
 ## Priority 0: Security And Secret Hygiene Follow-Through
@@ -27,9 +28,8 @@ The biggest theme now is finishing the move from "browser-trusted score writes" 
 - Decide the long-term trust model now that attempt-based sync is live:
   - backend-issued signed attempt tokens, or
   - fully backend-owned question delivery and answer validation
-- Remove the remaining trust gap where the backend still derives authoritative question shape from frontend-shipped content.
-- Decide whether question selection should move to the backend so refreshes cannot inspect or predict the full answer set in the browser.
-- Add attempt expiry / replay rules so stale attempts cannot be reused indefinitely.
+- Decide whether question selection itself should move to the backend so refreshes cannot inspect or predict the full answer set in the browser.
+- Tighten replay controls beyond the current expiry window.
 - Add an audit trail for score writes showing:
   - normalized player name
   - old best vs new best
@@ -53,7 +53,6 @@ The biggest theme now is finishing the move from "browser-trusted score writes" 
 
 ## Priority 3: Architecture And Repo Cleanup
 
-- Archive or clearly mark [supabase/scoreboard_setup.sql](../supabase/scoreboard_setup.sql) as legacy now that the live score flow uses [backend/supabase/backend_schema.sql](../backend/supabase/backend_schema.sql).
 - Add a short architecture note or diagram showing:
   - GitHub Pages frontend
   - Render backend
@@ -102,10 +101,10 @@ The biggest theme now is finishing the move from "browser-trusted score writes" 
 
 ## Next Recommended Delivery Slice
 
-1. Clean up docs and legacy SQL labeling so the current architecture is obvious to future contributors.
-2. Add live smoke tooling and deployment checklists so release verification is repeatable.
-3. Choose the next score-hardening direction and write it down before another score-flow rewrite.
-4. Tackle parent privacy UX and single-record deletion after the operational basics are documented.
+1. Reduce public player-name enumeration risk with throttling or response-shaping.
+2. Tackle parent privacy UX and single-record deletion.
+3. Decide whether question selection should move fully backend-side.
+4. Add richer attempt/score audit reporting and suspicious-activity monitoring.
 
 ## Done Definition For This Backlog
 
