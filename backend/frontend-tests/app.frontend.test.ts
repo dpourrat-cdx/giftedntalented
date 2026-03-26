@@ -112,6 +112,76 @@ async function completeSingleQuestionFlow(selectedOptionIndex: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 }
 
+async function setupApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
+  await loadIndexHtml();
+  await importBrowserScript("content.js");
+
+  window.GiftedQuestionBank = buildQuestionBankStub(question);
+  window.GiftedGamification = {
+    createGamificationController() {
+      return buildGamificationStub();
+    },
+  };
+
+  const beginAttempt = vi.fn().mockResolvedValue({
+    questions: [{ ...question, options: [...question.options] }],
+  });
+  const recordValidatedAnswer = vi.fn().mockResolvedValue({
+    accepted: true,
+    correctAnswer: question.answer,
+    isCorrect: false,
+    progress: {
+      answeredCount: 1,
+      correctCount: 0,
+      totalQuestions: 1,
+      percentage: 0,
+    },
+    record: null,
+  });
+  const finalizeAttempt = vi.fn().mockResolvedValue(null);
+
+  window.GiftedScoreboard = {
+    createScoreboardController() {
+      return {
+        init() {},
+        setActivePlayerName() {},
+        resetActiveAttempt() {},
+        beginAttempt,
+        recordValidatedAnswer,
+        finalizeAttempt,
+      };
+    },
+  };
+
+  await importBrowserScript("app.js");
+
+  if (options.storyOnly) {
+    const toggle = document.getElementById("storyOnlyToggle") as HTMLInputElement;
+    if (toggle) {
+      toggle.checked = true;
+      toggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+    }
+  }
+
+  return { beginAttempt, recordValidatedAnswer, finalizeAttempt };
+}
+
+async function startApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
+  const mocks = await setupApp(question, options);
+
+  const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+  nameInput.value = "Alex";
+  nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+  nameInput.dispatchEvent(
+    new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+  );
+
+  await Promise.resolve();
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+  return mocks;
+}
+
 describe("app.js targeted coverage", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -284,5 +354,219 @@ describe("app.js targeted coverage", () => {
     expect(reviewCard.querySelector("b")).toBeNull();
     expect((window as Window & typeof globalThis & Record<string, unknown>).__promptInjected).toBeUndefined();
     expect((window as Window & typeof globalThis & Record<string, unknown>).__stimulusInjected).toBeUndefined();
+  });
+
+  describe("renderStartScreen", () => {
+    it("shows the start screen with name entry visible and next button disabled", async () => {
+      await setupApp();
+
+      const questionPanel = document.getElementById("questionPanel") as HTMLElement;
+      const nameEntry = document.getElementById("nameEntry") as HTMLElement;
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+
+      expect(questionPanel.classList.contains("is-start-screen")).toBe(true);
+      expect(nameEntry.classList.contains("is-hidden")).toBe(false);
+      expect(nextButton.disabled).toBe(true);
+      expect(nextHint.classList.contains("is-hidden")).toBe(false);
+    });
+
+    it("shows the empty next hint when no name has been entered", async () => {
+      await setupApp();
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      expect(nextHint.textContent).toBe("Type your name to begin the mission.");
+    });
+
+    it("shows the ready next hint when a name is entered", async () => {
+      await setupApp();
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      expect(nextHint.textContent).toBe("Press Enter to start Mission 1: Verbal Challenge.");
+    });
+  });
+
+  describe("renderStoryOnlyQuestion", () => {
+    it("renders the story-only prompt with button disabled after starting in story-only mode", async () => {
+      await startApp(attemptQuestion, { storyOnly: true });
+
+      const questionCounter = document.getElementById("questionCounter") as HTMLElement;
+      const questionPrompt = document.getElementById("questionPrompt") as HTMLElement;
+      const optionsList = document.getElementById("optionsList") as HTMLUListElement;
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+
+      expect(questionCounter.textContent).toContain("story route");
+      expect(questionPrompt.textContent).toBe(
+        "Story Only mode is on. Follow Captain Nova through each mission scene.",
+      );
+      expect(optionsList.children).toHaveLength(0);
+      expect(nextButton.disabled).toBe(true);
+      expect(nextHint.textContent).toBe("Use the modal button to continue the story.");
+    });
+  });
+
+  describe("renderOptions", () => {
+    it("renders all option buttons with no selection state when nothing selected", async () => {
+      await startApp();
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      expect(buttons).toHaveLength(4);
+      buttons.forEach((btn) => {
+        expect(btn.classList.contains("is-selected")).toBe(false);
+        expect(btn.classList.contains("is-correct")).toBe(false);
+        expect(btn.classList.contains("is-wrong")).toBe(false);
+        expect(btn.disabled).toBe(false);
+      });
+    });
+
+    it("marks the clicked option as selected", async () => {
+      await startApp();
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[1].click();
+
+      const updatedButtons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      expect(updatedButtons[1].classList.contains("is-selected")).toBe(true);
+    });
+
+    it("renders option text via textContent (no HTML injection from option strings)", async () => {
+      const xssQuestion = {
+        ...attemptQuestion,
+        options: ['<img src=x onerror="window.__xssHit=true">', "Beta", "Gamma", "Delta"],
+      };
+      await startApp(xssQuestion);
+
+      const firstButton = document.querySelector("#optionsList button") as HTMLButtonElement;
+      const optionText = firstButton.querySelector(".option-text") as HTMLElement;
+      expect(optionText.textContent).toContain("<img");
+      expect(firstButton.querySelector("img")).toBeNull();
+      expect((window as Window & typeof globalThis & Record<string, unknown>).__xssHit).toBeUndefined();
+    });
+
+    it("shows rationale on the correct answer button when a wrong answer is validated", async () => {
+      const { recordValidatedAnswer } = await startApp();
+
+      recordValidatedAnswer.mockResolvedValue({
+        accepted: true,
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: false,
+        progress: { answeredCount: 1, correctCount: 0, totalQuestions: 1, percentage: 0 },
+        record: null,
+      });
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[0].click();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      await Promise.resolve();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+      const correctButton = document.querySelectorAll("#optionsList button")[attemptQuestion.answer] as HTMLButtonElement;
+      const rationale = correctButton.querySelector(".option-rationale");
+      expect(rationale).not.toBeNull();
+      expect(rationale?.textContent).toContain(attemptQuestion.explanation);
+      expect(correctButton.classList.contains("is-correct")).toBe(true);
+      expect((document.querySelectorAll("#optionsList button")[0] as HTMLButtonElement).classList.contains("is-wrong")).toBe(true);
+    });
+  });
+
+  describe("renderHintAndButton", () => {
+    it("shows select hint and disables next button when no answer is selected", async () => {
+      await startApp();
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      expect(nextHint.textContent).toBe("Choose an answer to power up Check Answer.");
+      expect(nextButton.disabled).toBe(true);
+    });
+
+    it("shows validate hint and enables next button after selecting an answer", async () => {
+      await startApp();
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[1].click();
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      expect(nextHint.textContent).toBe("Press Check Answer to power the next rocket step.");
+      expect(nextButton.disabled).toBe(false);
+    });
+
+    it("shows all-answered hint and launch button after validating the last question", async () => {
+      const { recordValidatedAnswer } = await startApp();
+
+      recordValidatedAnswer.mockResolvedValue({
+        accepted: true,
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: true,
+        progress: { answeredCount: 1, correctCount: 1, totalQuestions: 1, percentage: 100 },
+        record: {
+          playerName: "Alex",
+          score: 1,
+          totalQuestions: 1,
+          percentage: 100,
+          elapsedSeconds: 10,
+        },
+      });
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[attemptQuestion.answer].click();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      await Promise.resolve();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      expect(nextHint.textContent).toContain("All");
+      expect(nextHint.textContent).toContain("mission steps are complete");
+      expect(nextButton.textContent).toBe("Launch the Rocket");
+    });
+
+    it("hides the next hint after submitting", async () => {
+      await startAttemptWithScoreboard(attemptQuestion, {
+        accepted: true,
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: true,
+        progress: {
+          answeredCount: 1,
+          correctCount: 1,
+          totalQuestions: 1,
+          percentage: 100,
+        },
+        record: {
+          playerName: "Alex",
+          score: 1,
+          totalQuestions: 1,
+          percentage: 100,
+          elapsedSeconds: 10,
+        },
+      });
+
+      await completeSingleQuestionFlow(attemptQuestion.answer);
+
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      expect(nextHint.classList.contains("is-hidden")).toBe(true);
+    });
   });
 });

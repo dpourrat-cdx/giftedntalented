@@ -1266,98 +1266,55 @@ function renderFeedback(question, validatedAnswer) {
   dom.feedbackPanel.innerHTML = "";
 }
 
-function renderQuestion() {
-  const shouldResetStageScroll = hasStarted && lastRenderedQuestionIndex !== currentIndex;
-  renderStartBadges();
-  renderSectionStats();
+function renderStartScreen() {
+  dom.questionPanel.classList.add("is-start-screen");
+  dom.tipCard?.classList.remove("is-hidden");
+  dom.nameEntry.classList.remove("is-hidden");
+  dom.playerNote.classList.add("is-hidden");
+  dom.questionPrompt.textContent = playerName
+    ? formatTemplate(startContent.readyPrompt, { name: playerName })
+    : startContent.emptyPrompt;
+  dom.questionStimulus.textContent = "";
+  dom.questionStimulus.classList.add("is-hidden");
+  dom.optionsList.innerHTML = "";
+  dom.feedbackPanel.className = "feedback-panel is-hidden";
+  dom.feedbackPanel.innerHTML = "";
+  renderIntroductionStory();
+  dom.nameHint.textContent = playerName
+    ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint)
+    : startContent.emptyNameHint;
+  dom.nextHint.textContent = playerName
+    ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNextHint : startContent.readyNextHint)
+    : startContent.emptyNextHint;
+  dom.nextHint.classList.remove("is-hidden");
+  dom.nextButton.textContent = questionContent.buttons.check;
+  dom.nextButton.disabled = true;
+  lastRenderedQuestionIndex = -1;
+  dom.questionStage.scrollTop = 0;
+  syncGamification();
+}
 
-  if (!hasStarted) {
-    dom.questionPanel.classList.add("is-start-screen");
-    dom.tipCard?.classList.remove("is-hidden");
-    dom.nameEntry.classList.remove("is-hidden");
-    dom.playerNote.classList.add("is-hidden");
-    dom.questionPrompt.textContent = playerName
-      ? formatTemplate(startContent.readyPrompt, { name: playerName })
-      : startContent.emptyPrompt;
-    dom.questionStimulus.textContent = "";
-    dom.questionStimulus.classList.add("is-hidden");
-    dom.optionsList.innerHTML = "";
-    dom.feedbackPanel.className = "feedback-panel is-hidden";
-    dom.feedbackPanel.innerHTML = "";
-    renderIntroductionStory();
-    dom.nameHint.textContent = playerName
-      ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint)
-      : startContent.emptyNameHint;
-    dom.nextHint.textContent = playerName
-      ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNextHint : startContent.readyNextHint)
-      : startContent.emptyNextHint;
-    dom.nextHint.classList.remove("is-hidden");
-    dom.nextButton.textContent = questionContent.buttons.check;
-    dom.nextButton.disabled = true;
-    lastRenderedQuestionIndex = -1;
+function renderStoryOnlyQuestion(question, mission, shouldResetStageScroll) {
+  const missionNumber = mission ? mission.number : sections.indexOf(question.section) + 1;
+  dom.questionCounter.textContent = `Mission ${missionNumber} story route`;
+  dom.questionPrompt.textContent = questionContent.storyOnlyPrompt;
+  dom.questionStimulus.textContent = "";
+  dom.questionStimulus.classList.add("is-hidden");
+  dom.optionsList.innerHTML = "";
+  dom.feedbackPanel.className = "feedback-panel is-hidden";
+  dom.feedbackPanel.innerHTML = "";
+  dom.nextHint.textContent = questionContent.storyOnlyHint;
+  dom.nextHint.classList.remove("is-hidden");
+  dom.nextButton.textContent = questionContent.buttons.storyOnly;
+  dom.nextButton.disabled = true;
+  if (shouldResetStageScroll) {
     dom.questionStage.scrollTop = 0;
-    syncGamification();
-    return;
   }
+  lastRenderedQuestionIndex = currentIndex;
+  syncGamification();
+}
 
-  dom.questionPanel.classList.remove("is-start-screen");
-  dom.tipCard?.classList.add("is-hidden");
-  dom.nameEntry.classList.add("is-hidden");
-  const question = questionAt(currentIndex);
-  const mission = missionStoryForSection(question.section);
-  dom.playerNote.textContent = mission
-    ? formatTemplate(questionContent.playerNote, {
-        name: playerName,
-        missionNumber: mission.number,
-      })
-    : formatTemplate(startContent.playerReadyNote, { name: playerName });
-  dom.playerNote.classList.remove("is-hidden");
-  renderMissionStory(question.section);
-  setSectionBadgeContent(question.section);
-
-  if (isStoryOnlySession && !isSubmitted) {
-    const missionNumber = mission ? mission.number : sections.indexOf(question.section) + 1;
-    dom.questionCounter.textContent = `Mission ${missionNumber} story route`;
-    dom.questionPrompt.textContent = questionContent.storyOnlyPrompt;
-    dom.questionStimulus.textContent = "";
-    dom.questionStimulus.classList.add("is-hidden");
-    dom.optionsList.innerHTML = "";
-    dom.feedbackPanel.className = "feedback-panel is-hidden";
-    dom.feedbackPanel.innerHTML = "";
-    dom.nextHint.textContent = questionContent.storyOnlyHint;
-    dom.nextHint.classList.remove("is-hidden");
-    dom.nextButton.textContent = questionContent.buttons.storyOnly;
-    dom.nextButton.disabled = true;
-    if (shouldResetStageScroll) {
-      dom.questionStage.scrollTop = 0;
-    }
-    lastRenderedQuestionIndex = currentIndex;
-    syncGamification();
-    return;
-  }
-
-  const selectedAnswer = selectedAnswers[currentIndex];
-  const validatedAnswer = validatedAnswers[currentIndex];
-  const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
-  const isAutoAdvancing = answeredCorrectly && !isSubmitted && isAutoAdvancePendingForCurrentQuestion();
-  const isAwaitingAnswerSync = pendingAnswerQuestionIndex === currentIndex;
-  const isMissionTransitionReady = !isSubmitted && validatedAnswer !== null && !allQuestionsAnswered() && shouldAdvanceToNextMission();
-  const isLocked = validatedAnswer !== null || isSubmitted;
-
-  dom.questionCounter.textContent = formatTemplate(questionContent.counter, {
-    current: question.id,
-    total: totalQuestions(),
-  });
-  dom.questionPrompt.textContent = question.prompt;
-
-  if (question.stimulus) {
-    dom.questionStimulus.textContent = question.stimulus;
-    dom.questionStimulus.classList.remove("is-hidden");
-  } else {
-    dom.questionStimulus.textContent = "";
-    dom.questionStimulus.classList.add("is-hidden");
-  }
-
+function renderOptions(question, selectedAnswer, validatedAnswer, isLocked) {
   dom.optionsList.innerHTML = "";
 
   question.options.forEach((option, optionIndex) => {
@@ -1385,19 +1342,38 @@ function renderQuestion() {
       validatedAnswer !== null &&
       validatedAnswer !== question.answer &&
       optionIndex === question.answer;
-    button.innerHTML = `
-      <span class="option-inner">
-        <span class="option-letter">${letter}</span>
-        <span class="option-copy">
-          <span class="option-text">${escapeHtml(option)}</span>
-          ${
-            shouldShowRationale
-              ? `<span class="option-rationale"><span class="option-rationale-label">${escapeHtml(questionContent.feedback.why)}</span> ${escapeHtml(question.explanation)}</span>`
-              : ""
-          }
-        </span>
-      </span>
-    `;
+
+    const inner = document.createElement("span");
+    inner.className = "option-inner";
+
+    const letterSpan = document.createElement("span");
+    letterSpan.className = "option-letter";
+    letterSpan.textContent = letter;
+    inner.appendChild(letterSpan);
+
+    const copy = document.createElement("span");
+    copy.className = "option-copy";
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "option-text";
+    textSpan.textContent = option;
+    copy.appendChild(textSpan);
+
+    if (shouldShowRationale) {
+      const rationale = document.createElement("span");
+      rationale.className = "option-rationale";
+
+      const rationaleLabel = document.createElement("span");
+      rationaleLabel.className = "option-rationale-label";
+      rationaleLabel.textContent = questionContent.feedback.why;
+      rationale.appendChild(rationaleLabel);
+
+      rationale.appendChild(document.createTextNode(" " + question.explanation));
+      copy.appendChild(rationale);
+    }
+
+    inner.appendChild(copy);
+    button.appendChild(inner);
     button.disabled = isLocked;
 
     if (!isLocked) {
@@ -1410,8 +1386,17 @@ function renderQuestion() {
     item.appendChild(button);
     dom.optionsList.appendChild(item);
   });
+}
 
-  renderFeedback(question, validatedAnswer);
+function renderHintAndButton(state) {
+  const {
+    selectedAnswer,
+    validatedAnswer,
+    isSubmitted,
+    isAutoAdvancing,
+    isAwaitingAnswerSync,
+    isMissionTransitionReady,
+  } = state;
 
   if (isSubmitted) {
     dom.nextHint.classList.add("is-hidden");
@@ -1431,9 +1416,9 @@ function renderQuestion() {
       ? questionContent.autoAdvanceHint
       : isAwaitingAnswerSync
         ? "Mission Control is checking that answer..."
-      : isMissionTransitionReady
-        ? (questionContent.nextMissionHint || "Rocket part secured. Press Next mission.")
-        : questionContent.lockedHint;
+        : isMissionTransitionReady
+          ? (questionContent.nextMissionHint || "Rocket part secured. Press Next mission.")
+          : questionContent.lockedHint;
     dom.nextHint.classList.remove("is-hidden");
   }
 
@@ -1443,16 +1428,81 @@ function renderQuestion() {
       : questionContent.buttons.next
     : validatedAnswer === null
       ? questionContent.buttons.check
-    : allQuestionsAnswered()
-      ? questionContent.buttons.launch
-      : isMissionTransitionReady
-        ? (questionContent.buttons.nextMission || "Next mission")
-        : questionContent.buttons.next;
+      : allQuestionsAnswered()
+        ? questionContent.buttons.launch
+        : isMissionTransitionReady
+          ? (questionContent.buttons.nextMission || "Next mission")
+          : questionContent.buttons.next;
   dom.nextButton.disabled =
     isAutoAdvancing ||
     isAwaitingAnswerSync ||
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
     (isSubmitted && currentIndex === totalQuestions() - 1);
+}
+
+function renderQuestion() {
+  const shouldResetStageScroll = hasStarted && lastRenderedQuestionIndex !== currentIndex;
+  renderStartBadges();
+  renderSectionStats();
+
+  if (!hasStarted) {
+    renderStartScreen();
+    return;
+  }
+
+  dom.questionPanel.classList.remove("is-start-screen");
+  dom.tipCard?.classList.add("is-hidden");
+  dom.nameEntry.classList.add("is-hidden");
+  const question = questionAt(currentIndex);
+  const mission = missionStoryForSection(question.section);
+  dom.playerNote.textContent = mission
+    ? formatTemplate(questionContent.playerNote, {
+        name: playerName,
+        missionNumber: mission.number,
+      })
+    : formatTemplate(startContent.playerReadyNote, { name: playerName });
+  dom.playerNote.classList.remove("is-hidden");
+  renderMissionStory(question.section);
+  setSectionBadgeContent(question.section);
+
+  if (isStoryOnlySession && !isSubmitted) {
+    renderStoryOnlyQuestion(question, mission, shouldResetStageScroll);
+    return;
+  }
+
+  const selectedAnswer = selectedAnswers[currentIndex];
+  const validatedAnswer = validatedAnswers[currentIndex];
+  const answeredCorrectly = validatedAnswer !== null && validatedAnswer === question.answer;
+  const isAutoAdvancing = answeredCorrectly && !isSubmitted && isAutoAdvancePendingForCurrentQuestion();
+  const isAwaitingAnswerSync = pendingAnswerQuestionIndex === currentIndex;
+  const isMissionTransitionReady = !isSubmitted && validatedAnswer !== null && !allQuestionsAnswered() && shouldAdvanceToNextMission();
+  const isLocked = validatedAnswer !== null || isSubmitted;
+
+  dom.questionCounter.textContent = formatTemplate(questionContent.counter, {
+    current: question.id,
+    total: totalQuestions(),
+  });
+  dom.questionPrompt.textContent = question.prompt;
+
+  if (question.stimulus) {
+    dom.questionStimulus.textContent = question.stimulus;
+    dom.questionStimulus.classList.remove("is-hidden");
+  } else {
+    dom.questionStimulus.textContent = "";
+    dom.questionStimulus.classList.add("is-hidden");
+  }
+
+  renderOptions(question, selectedAnswer, validatedAnswer, isLocked);
+  renderFeedback(question, validatedAnswer);
+  renderHintAndButton({
+    selectedAnswer,
+    validatedAnswer,
+    isSubmitted,
+    isAutoAdvancing,
+    isAwaitingAnswerSync,
+    isMissionTransitionReady,
+  });
+
   if (shouldResetStageScroll) {
     dom.questionStage.scrollTop = 0;
   }
