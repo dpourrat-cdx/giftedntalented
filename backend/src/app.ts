@@ -4,6 +4,7 @@ import pinoHttpImport from "pino-http";
 import type { Request } from "express";
 import { corsMiddleware } from "./config/cors.js";
 import { logger } from "./config/logger.js";
+import { attemptsRouter } from "./routes/attempts.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundMiddleware } from "./middleware/not-found.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
@@ -34,6 +35,7 @@ export function buildApp() {
 
   app.use("/api/v1", healthRouter);
   app.use("/api/v1", scoresRouter);
+  app.use("/api/v1", attemptsRouter);
   app.use("/api/v1", devicesRouter);
   app.use("/api/v1", adminRouter);
 

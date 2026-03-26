@@ -1,0 +1,375 @@
+import { AttemptService } from "./attempt.service.js";
+import { AppError } from "../utils/errors.js";
+
+const mockRpc = vi.fn();
+const mockSingle = vi.fn();
+const mockInsertSingle = vi.fn();
+const mockUpdateEq = vi.fn();
+
+vi.mock("../lib/supabase.js", () => ({
+  supabase: {
+    rpc: (...args: unknown[]) => mockRpc(...args),
+    from: vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          single: () => mockSingle(),
+        }),
+      }),
+      insert: () => ({
+        select: () => ({
+          single: () => mockInsertSingle(),
+        }),
+      }),
+      update: () => ({
+        eq: (...args: unknown[]) => mockUpdateEq(...args),
+      }),
+    })),
+  },
+}));
+
+vi.mock("../lib/question-bank.js", () => ({
+  getLoadedQuestionBank: vi.fn(),
+}));
+
+import { getLoadedQuestionBank } from "../lib/question-bank.js";
+
+// 2 sections × 2 questions per section = 4 total expected for web clients.
+// q5 is an extra Math question used to test wrong section distribution.
+const MOCK_BANK = {
+  sections: ["Math", "Verbal"],
+  questionsPerTestSection: 2,
+  questionIndex: new Map([
+    ["q1", { bankId: "q1", section: "Math", prompt: "Q1", options: ["A", "B", "C", "D"], answer: 0, explanation: "" }],
+    ["q2", { bankId: "q2", section: "Math", prompt: "Q2", options: ["A", "B", "C", "D"], answer: 1, explanation: "" }],
+    ["q5", { bankId: "q5", section: "Math", prompt: "Q5", options: ["A", "B", "C", "D"], answer: 0, explanation: "" }],
+    ["q3", { bankId: "q3", section: "Verbal", prompt: "Q3", options: ["A", "B", "C", "D"], answer: 2, explanation: "" }],
+    ["q4", { bankId: "q4", section: "Verbal", prompt: "Q4", options: ["A", "B", "C", "D"], answer: 3, explanation: "" }],
+  ]),
+};
+
+// Valid 4-question set: 2 Math + 2 Verbal with options matching the bank.
+// correctAnswers: q1→0, q2→1, q3→2, q4→3 (indexOf correctOption in provided options)
+const VALID_QUESTIONS = [
+  { questionId: 1, bankId: "q1", options: ["A", "B", "C", "D"] },
+  { questionId: 2, bankId: "q2", options: ["A", "B", "C", "D"] },
+  { questionId: 3, bankId: "q3", options: ["A", "B", "C", "D"] },
+  { questionId: 4, bankId: "q4", options: ["A", "B", "C", "D"] },
+];
+
+// 3 Math + 1 Verbal — passes the count check (total=4) but fails section distribution.
+const WRONG_DISTRIBUTION_QUESTIONS = [
+  { questionId: 1, bankId: "q1", options: ["A", "B", "C", "D"] },
+  { questionId: 2, bankId: "q2", options: ["A", "B", "C", "D"] },
+  { questionId: 3, bankId: "q5", options: ["A", "B", "C", "D"] },
+  { questionId: 4, bankId: "q3", options: ["A", "B", "C", "D"] },
+];
+
+// The question_key row as stored in the DB after startAttempt.
+const STORED_QUESTION_KEY = [
+  { questionId: 1, bankId: "q1", correctAnswer: 0, section: "Math" },
+  { questionId: 2, bankId: "q2", correctAnswer: 1, section: "Math" },
+  { questionId: 3, bankId: "q3", correctAnswer: 2, section: "Verbal" },
+  { questionId: 4, bankId: "q4", correctAnswer: 3, section: "Verbal" },
+];
+
+const ATTEMPT_ID = "11111111-1111-1111-1111-111111111111";
+
+function makeAttemptRow(overrides: Record<string, unknown> = {}) {
+  return {
+    data: {
+      id: ATTEMPT_ID,
+      player_name: "Alice",
+      client_type: "web",
+      mode: "quiz",
+      total_questions: 4,
+      question_key: STORED_QUESTION_KEY,
+      answers: [null, null, null, null],
+      started_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      completed_at: null,
+      last_elapsed_seconds: null,
+      ...overrides,
+    },
+    error: null,
+  };
+}
+
+function mockSavedScore() {
+  mockRpc.mockResolvedValue({
+    data: {
+      player_name: "Alice",
+      score: 1,
+      percentage: 25,
+      total_questions: 4,
+      elapsed_seconds: null,
+      completed_at: null,
+    },
+    error: null,
+  });
+}
+
+describe("AttemptService", () => {
+  let service: AttemptService;
+
+  beforeEach(() => {
+    service = new AttemptService();
+    vi.mocked(getLoadedQuestionBank).mockResolvedValue(MOCK_BANK as never);
+    mockUpdateEq.mockResolvedValue({ error: null });
+  });
+
+  describe("startAttempt", () => {
+    it("returns storyOnly without DB call for story mode", async () => {
+      const result = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "story",
+        questions: [],
+      });
+
+      expect(result).toEqual({ storyOnly: true, attemptId: null, totalQuestions: 0 });
+      expect(mockInsertSingle).not.toHaveBeenCalled();
+    });
+
+    it("inserts attempt row and returns attemptId for valid quiz input", async () => {
+      mockInsertSingle.mockResolvedValue({
+        data: { id: ATTEMPT_ID, total_questions: 4 },
+        error: null,
+      });
+
+      const result = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+        questions: VALID_QUESTIONS,
+      });
+
+      expect(result.storyOnly).toBe(false);
+      expect(result.attemptId).toBe(ATTEMPT_ID);
+      expect(result.totalQuestions).toBe(4);
+    });
+
+    it("throws 400 when question count does not match expected total (web)", async () => {
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: VALID_QUESTIONS.slice(0, 2),
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_SHAPE_INVALID" });
+    });
+
+    it("throws 400 for duplicate bankId", async () => {
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: [
+            { questionId: 1, bankId: "q1", options: ["A", "B", "C", "D"] },
+            { questionId: 2, bankId: "q1", options: ["A", "B", "C", "D"] }, // duplicate
+            { questionId: 3, bankId: "q3", options: ["A", "B", "C", "D"] },
+            { questionId: 4, bankId: "q4", options: ["A", "B", "C", "D"] },
+          ],
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_SHAPE_INVALID" });
+    });
+
+    it("throws 400 for unknown bankId", async () => {
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: [
+            { questionId: 1, bankId: "unknown", options: ["A", "B", "C", "D"] },
+            ...VALID_QUESTIONS.slice(1),
+          ],
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_SHAPE_INVALID" });
+    });
+
+    it("throws 400 when options do not match the canonical question bank", async () => {
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: [
+            { questionId: 1, bankId: "q1", options: ["X", "Y", "Z", "W"] }, // wrong options
+            ...VALID_QUESTIONS.slice(1),
+          ],
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_SHAPE_INVALID" });
+    });
+
+    it("throws 400 when section distribution does not match expected shape (web)", async () => {
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: WRONG_DISTRIBUTION_QUESTIONS,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_SHAPE_INVALID" });
+    });
+
+    it("throws 502 on DB insert error", async () => {
+      mockInsertSingle.mockResolvedValue({ data: null, error: { message: "db error" } });
+
+      await expect(
+        service.startAttempt({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+          questions: VALID_QUESTIONS,
+        }),
+      ).rejects.toMatchObject({ statusCode: 502, code: "ATTEMPT_CREATE_FAILED" });
+    });
+  });
+
+  describe("submitAnswer", () => {
+    it("accepts a new correct answer, writes to DB, and saves score", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow());
+      mockSavedScore();
+
+      const result = await service.submitAnswer(ATTEMPT_ID, {
+        questionId: 1,
+        bankId: "q1",
+        selectedAnswer: 0, // correct
+        elapsedSeconds: 30,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.progress.correctCount).toBe(1);
+      expect(result.progress.answeredCount).toBe(1);
+      expect(result.record).toBeDefined();
+      expect(mockUpdateEq).toHaveBeenCalledOnce();
+    });
+
+    it("records a wrong answer without saving score (correctCount = 0)", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow());
+
+      const result = await service.submitAnswer(ATTEMPT_ID, {
+        questionId: 1,
+        bankId: "q1",
+        selectedAnswer: 1, // wrong (correct is 0)
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(result.progress.correctCount).toBe(0);
+      expect(result.record).toBeNull();
+      expect(mockRpc).not.toHaveBeenCalled();
+    });
+
+    it("is idempotent when the same answer is resubmitted", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, null, null, null] }));
+      mockSavedScore();
+
+      const result = await service.submitAnswer(ATTEMPT_ID, {
+        questionId: 1,
+        bankId: "q1",
+        selectedAnswer: 0, // same as stored
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(mockUpdateEq).not.toHaveBeenCalled(); // no re-write
+    });
+
+    it("throws 409 when attempt is already completed", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ completed_at: "2026-01-01T00:00:00Z" }));
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
+      ).rejects.toMatchObject({ statusCode: 409, code: "ATTEMPT_ALREADY_COMPLETED" });
+    });
+
+    it("throws 409 when answer is locked to a different value", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, null, null, null] }));
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 1 }),
+      ).rejects.toMatchObject({ statusCode: 409, code: "ATTEMPT_ANSWER_LOCKED" });
+    });
+
+    it("throws 400 when questionId is not in this attempt", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow());
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 99, bankId: "q1", selectedAnswer: 0 }),
+      ).rejects.toMatchObject({ statusCode: 400, code: "ATTEMPT_ANSWER_INVALID" });
+    });
+
+    it("throws 404 when attempt does not exist", async () => {
+      mockSingle.mockResolvedValue({ data: null, error: { code: "PGRST116", message: "not found" } });
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
+      ).rejects.toMatchObject({ statusCode: 404, code: "ATTEMPT_NOT_FOUND" });
+    });
+
+    it("throws 502 on DB write error", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow());
+      mockUpdateEq.mockResolvedValue({ error: { message: "write error" } });
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
+      ).rejects.toMatchObject({ statusCode: 502, code: "ATTEMPT_WRITE_FAILED" });
+    });
+  });
+
+  describe("finalizeAttempt", () => {
+    it("marks attempt complete and saves final score", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, 1, 2, 3] })); // all correct
+      mockRpc.mockResolvedValue({
+        data: {
+          player_name: "Alice",
+          score: 4,
+          percentage: 100,
+          total_questions: 4,
+          elapsed_seconds: 60,
+          completed_at: "2026-01-01T00:00:00Z",
+        },
+        error: null,
+      });
+
+      const result = await service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 60 });
+
+      expect(result.finalized).toBe(true);
+      expect(result.progress.correctCount).toBe(4);
+      expect(result.progress.percentage).toBe(100);
+      expect(mockUpdateEq).toHaveBeenCalledOnce(); // sets completed_at
+    });
+
+    it("skips the DB update when already finalized but still saves score", async () => {
+      mockSingle.mockResolvedValue(
+        makeAttemptRow({ answers: [0, null, null, null], completed_at: "2026-01-01T00:00:00Z" }),
+      );
+      mockSavedScore();
+
+      const result = await service.finalizeAttempt(ATTEMPT_ID, {});
+
+      expect(result.finalized).toBe(true);
+      expect(mockUpdateEq).not.toHaveBeenCalled();
+    });
+
+    it("throws 404 when attempt does not exist", async () => {
+      mockSingle.mockResolvedValue({ data: null, error: { code: "PGRST116", message: "not found" } });
+
+      await expect(service.finalizeAttempt(ATTEMPT_ID, {})).rejects.toMatchObject({
+        statusCode: 404,
+        code: "ATTEMPT_NOT_FOUND",
+      });
+    });
+
+    it("throws 502 on DB finalize error", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, null, null, null] }));
+      mockUpdateEq.mockResolvedValue({ error: { message: "db error" } });
+
+      await expect(service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 30 })).rejects.toMatchObject({
+        statusCode: 502,
+        code: "ATTEMPT_FINALIZE_FAILED",
+      });
+    });
+  });
+});
