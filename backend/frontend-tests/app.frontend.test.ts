@@ -214,6 +214,61 @@ async function loadNormalizeAttemptQuestion(question = attemptQuestion) {
   ) => Record<string, unknown> | null;
 }
 
+async function loadAppHelpers(question = attemptQuestion) {
+  await loadIndexHtml();
+  await loadFrontendScript("content.js");
+
+  window.GiftedQuestionBank = buildQuestionBankStub(question);
+  window.GiftedGamification = {
+    createGamificationController() {
+      return buildGamificationStub();
+    },
+  };
+  window.GiftedScoreboard = {
+    createScoreboardController() {
+      return {
+        init() {},
+        setActivePlayerName() {},
+        resetActiveAttempt() {},
+        beginAttempt: vi.fn().mockResolvedValue({ questions: [{ ...question, options: [...question.options] }] }),
+        recordValidatedAnswer: vi.fn().mockResolvedValue(null),
+        finalizeAttempt: vi.fn().mockResolvedValue(null),
+      };
+    },
+  };
+
+  await loadFrontendScript("app.js");
+
+  return {
+    resolveNextHintText: window.eval("resolveNextHintText") as (
+      state: Record<string, unknown>,
+      allAnswered: boolean,
+    ) => string,
+    resolveNextButtonText: window.eval("resolveNextButtonText") as (
+      state: Record<string, unknown>,
+      allAnswered: boolean,
+    ) => string,
+    shouldDisableNextButton: window.eval("shouldDisableNextButton") as (
+      state: Record<string, unknown>,
+    ) => boolean,
+    getStoryOnlyOverlayDismissalAction: window.eval("getStoryOnlyOverlayDismissalAction") as (
+      dismissedEvent: Record<string, unknown> | null,
+    ) => string | null,
+    getSectionOverlayDismissalAction: window.eval("getSectionOverlayDismissalAction") as (
+      dismissedEvent: Record<string, unknown> | null,
+    ) => string | null,
+    resolveAuthoritativeCorrectAnswer: window.eval("resolveAuthoritativeCorrectAnswer") as (
+      result: Record<string, unknown> | null,
+      fallbackAnswer: number,
+    ) => number,
+    resolveAnswerEvaluationIsCorrect: window.eval("resolveAnswerEvaluationIsCorrect") as (
+      result: Record<string, unknown> | null,
+      selectedAnswer: number,
+      authoritativeCorrectAnswer: number,
+    ) => boolean,
+  };
+}
+
 describe("app.js targeted coverage", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -600,6 +655,66 @@ describe("app.js targeted coverage", () => {
       const nextHint = document.getElementById("nextHint") as HTMLElement;
       expect(nextHint.classList.contains("is-hidden")).toBe(true);
     });
+
+    it("resolves the selected-answer and mission-transition hint and button states", async () => {
+      const { resolveNextHintText, resolveNextButtonText, shouldDisableNextButton } = await loadAppHelpers();
+
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: null,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Press Check Answer to power the next rocket step.");
+      expect(
+        resolveNextButtonText(
+          {
+            validatedAnswer: null,
+            isSubmitted: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Check Answer");
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: true,
+          },
+          false,
+        ),
+      ).toContain("Rocket part secured");
+      expect(
+        resolveNextButtonText(
+          {
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isMissionTransitionReady: true,
+          },
+          false,
+        ),
+      ).toBe("Next mission");
+      expect(
+        shouldDisableNextButton({
+          selectedAnswer: null,
+          validatedAnswer: null,
+          isSubmitted: false,
+          isAutoAdvancing: false,
+          isAwaitingAnswerSync: false,
+        }),
+      ).toBe(true);
+    });
   });
 
   describe("normalizeAttemptQuestion", () => {
@@ -679,6 +794,40 @@ describe("app.js targeted coverage", () => {
         answer: 1,
       });
       expect(normalized?.options).toEqual(["Alpha", "22", "Gamma", "Delta"]);
+    });
+  });
+
+  describe("overlay and answer helpers", () => {
+    it("maps overlay dismissal variants to the expected follow-up action", async () => {
+      const {
+        getStoryOnlyOverlayDismissalAction,
+        getSectionOverlayDismissalAction,
+      } = await loadAppHelpers();
+
+      expect(getStoryOnlyOverlayDismissalAction({ variant: "intro", sectionKey: "Verbal" })).toBe("showMissionUpdate");
+      expect(getStoryOnlyOverlayDismissalAction({ variant: "midpoint", sectionKey: "Verbal" })).toBe("showMissionCompletion");
+      expect(getStoryOnlyOverlayDismissalAction({ variant: "section", sectionKey: "Verbal" })).toBe("completeSection");
+      expect(getStoryOnlyOverlayDismissalAction({ variant: "other" })).toBeNull();
+
+      expect(getSectionOverlayDismissalAction({ variant: "section", advanceOnDismiss: false })).toBe("suppressNextButton");
+      expect(getSectionOverlayDismissalAction({ variant: "section", advanceOnDismiss: true })).toBe("advanceToNextMission");
+      expect(getSectionOverlayDismissalAction({ variant: "intro" })).toBeNull();
+    });
+
+    it("prefers the scoreboard answer when it is valid and falls back cleanly otherwise", async () => {
+      const {
+        resolveAuthoritativeCorrectAnswer,
+        resolveAnswerEvaluationIsCorrect,
+      } = await loadAppHelpers();
+
+      expect(resolveAuthoritativeCorrectAnswer({ correctAnswer: 3 }, 1)).toBe(3);
+      expect(resolveAuthoritativeCorrectAnswer({ correctAnswer: 9 }, 1)).toBe(1);
+      expect(resolveAuthoritativeCorrectAnswer(null, 2)).toBe(2);
+
+      expect(resolveAnswerEvaluationIsCorrect({ isCorrect: true }, 0, 2)).toBe(true);
+      expect(resolveAnswerEvaluationIsCorrect({ isCorrect: false }, 2, 2)).toBe(false);
+      expect(resolveAnswerEvaluationIsCorrect(null, 2, 2)).toBe(true);
+      expect(resolveAnswerEvaluationIsCorrect(null, 1, 2)).toBe(false);
     });
   });
 });

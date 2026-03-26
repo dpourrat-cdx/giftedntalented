@@ -56,6 +56,7 @@ SonarCloud currently reports 9 critical cognitive-complexity violations (S3776).
 - [ ] Refactor `generateGridQuestions()` in `question-bank.js:938` — complexity 19.
 - [ ] Refactor `handleOverlayStateChange()` in `app.js:1714` — complexity 16.
 - [ ] Refactor `handleAnswerEvaluation()` in `app.js:1790` — complexity 16.
+  Progress: this slice extracts hint/button resolution, overlay dismissal routing, and answer-evaluation fallback helpers in `app.js`, with targeted frontend tests covering the extracted branches.
 - [ ] Refactor `buildSpatialQuestions()` in `question-bank.js:1008` — complexity 16.
 
 Additional code quality items:

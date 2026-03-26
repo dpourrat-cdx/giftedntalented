@@ -1423,62 +1423,85 @@ function renderOptions(question, selectedAnswer, validatedAnswer, isLocked) {
   });
 }
 
-function renderHintAndButton(state) {
+function resolveNextHintText(state, allAnswered) {
   const {
     selectedAnswer,
     validatedAnswer,
-    isSubmitted,
     isAutoAdvancing,
     isAwaitingAnswerSync,
     isMissionTransitionReady,
   } = state;
 
-  if (isSubmitted) {
-    dom.nextHint.classList.add("is-hidden");
-  } else if (validatedAnswer === null) {
-    dom.nextHint.textContent =
-      selectedAnswer === null
-        ? questionContent.selectHint
-        : questionContent.validateHint;
-    dom.nextHint.classList.remove("is-hidden");
-  } else if (allQuestionsAnswered()) {
-    dom.nextHint.textContent = formatTemplate(questionContent.allAnsweredHint, {
-      count: totalQuestions(),
-    });
-    dom.nextHint.classList.remove("is-hidden");
-  } else if (isAutoAdvancing) {
-    dom.nextHint.textContent = questionContent.autoAdvanceHint;
-    dom.nextHint.classList.remove("is-hidden");
-  } else if (isAwaitingAnswerSync) {
-    dom.nextHint.textContent = "Mission Control is checking that answer...";
-    dom.nextHint.classList.remove("is-hidden");
-  } else if (isMissionTransitionReady) {
-    dom.nextHint.textContent = questionContent.nextMissionHint || "Rocket part secured. Press Next mission.";
-    dom.nextHint.classList.remove("is-hidden");
-  } else {
-    dom.nextHint.textContent = questionContent.lockedHint;
-    dom.nextHint.classList.remove("is-hidden");
+  if (validatedAnswer === null) {
+    return selectedAnswer === null ? questionContent.selectHint : questionContent.validateHint;
   }
 
-  if (isSubmitted) {
-    dom.nextButton.textContent =
-      currentIndex === totalQuestions() - 1
-        ? questionContent.buttons.finished
-        : questionContent.buttons.next;
-  } else if (validatedAnswer === null) {
-    dom.nextButton.textContent = questionContent.buttons.check;
-  } else if (allQuestionsAnswered()) {
-    dom.nextButton.textContent = questionContent.buttons.launch;
-  } else if (isMissionTransitionReady) {
-    dom.nextButton.textContent = questionContent.buttons.nextMission || "Next mission";
-  } else {
-    dom.nextButton.textContent = questionContent.buttons.next;
+  if (allAnswered) {
+    return formatTemplate(questionContent.allAnsweredHint, {
+      count: totalQuestions(),
+    });
   }
-  dom.nextButton.disabled =
+
+  if (isAutoAdvancing) {
+    return questionContent.autoAdvanceHint;
+  }
+
+  if (isAwaitingAnswerSync) {
+    return "Mission Control is checking that answer...";
+  }
+
+  if (isMissionTransitionReady) {
+    return questionContent.nextMissionHint || "Rocket part secured. Press Next mission.";
+  }
+
+  return questionContent.lockedHint;
+}
+
+function resolveNextButtonText(state, allAnswered) {
+  const { validatedAnswer, isSubmitted, isMissionTransitionReady } = state;
+
+  if (isSubmitted) {
+    return currentIndex === totalQuestions() - 1 ? questionContent.buttons.finished : questionContent.buttons.next;
+  }
+
+  if (validatedAnswer === null) {
+    return questionContent.buttons.check;
+  }
+
+  if (allAnswered) {
+    return questionContent.buttons.launch;
+  }
+
+  if (isMissionTransitionReady) {
+    return questionContent.buttons.nextMission || "Next mission";
+  }
+
+  return questionContent.buttons.next;
+}
+
+function shouldDisableNextButton(state) {
+  const { selectedAnswer, validatedAnswer, isSubmitted, isAutoAdvancing, isAwaitingAnswerSync } = state;
+
+  return (
     isAutoAdvancing ||
     isAwaitingAnswerSync ||
     (!isSubmitted && validatedAnswer === null && selectedAnswer === null) ||
-    (isSubmitted && currentIndex === totalQuestions() - 1);
+    (isSubmitted && currentIndex === totalQuestions() - 1)
+  );
+}
+
+function renderHintAndButton(state) {
+  const allAnswered = allQuestionsAnswered();
+
+  if (state.isSubmitted) {
+    dom.nextHint.classList.add("is-hidden");
+  } else {
+    dom.nextHint.textContent = resolveNextHintText(state, allAnswered);
+    dom.nextHint.classList.remove("is-hidden");
+  }
+
+  dom.nextButton.textContent = resolveNextButtonText(state, allAnswered);
+  dom.nextButton.disabled = shouldDisableNextButton(state);
 }
 
 function renderQuestion() {
@@ -1828,46 +1851,68 @@ function submitTest() {
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function getStoryOnlyOverlayDismissalAction(dismissedEvent) {
+  if (dismissedEvent?.variant === "intro") {
+    return "showMissionUpdate";
+  }
+
+  if (dismissedEvent?.variant === "midpoint") {
+    return "showMissionCompletion";
+  }
+
+  if (dismissedEvent?.variant === "section") {
+    return "completeSection";
+  }
+
+  return null;
+}
+
+function getSectionOverlayDismissalAction(dismissedEvent) {
+  if (dismissedEvent?.variant !== "section") {
+    return null;
+  }
+
+  return dismissedEvent.advanceOnDismiss === false ? "suppressNextButton" : "advanceToNextMission";
+}
+
 function handleOverlayStateChange(overlayState) {
   const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
   const dismissedEvent = overlayState?.dismissedEvent || null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
 
   if (!hasBlockingOverlay && isStoryOnlySession && !isSubmitted) {
-    if (dismissedEvent?.variant === "intro") {
+    const storyOnlyDismissalAction = getStoryOnlyOverlayDismissalAction(dismissedEvent);
+
+    if (storyOnlyDismissalAction === "showMissionUpdate") {
       gamificationController?.showMissionUpdate(dismissedEvent.sectionKey);
       return;
     }
 
-    if (dismissedEvent?.variant === "midpoint") {
+    if (storyOnlyDismissalAction === "showMissionCompletion") {
       gamificationController?.showMissionCompletion(dismissedEvent.sectionKey);
       return;
     }
 
-    if (dismissedEvent?.variant === "section") {
+    if (storyOnlyDismissalAction === "completeSection") {
       completeSectionInStoryOnly(dismissedEvent.sectionKey);
       advanceToNextMissionStep({ preferNextMission: true });
       return;
     }
   }
 
-  if (
-    !hasBlockingOverlay &&
-    dismissedEvent?.variant === "section" &&
-    dismissedEvent.advanceOnDismiss !== false
-  ) {
-    advanceToNextMissionStep({ preferNextMission: true });
-    return;
-  }
+  if (!hasBlockingOverlay) {
+    const sectionDismissalAction = getSectionOverlayDismissalAction(dismissedEvent);
 
-  if (
-    !hasBlockingOverlay &&
-    dismissedEvent?.variant === "section" &&
-    dismissedEvent.advanceOnDismiss === false
-  ) {
-    suppressNextButtonUntil = Date.now() + 300;
-    renderQuestion();
-    return;
+    if (sectionDismissalAction === "advanceToNextMission") {
+      advanceToNextMissionStep({ preferNextMission: true });
+      return;
+    }
+
+    if (sectionDismissalAction === "suppressNextButton") {
+      suppressNextButtonUntil = Date.now() + 300;
+      renderQuestion();
+      return;
+    }
   }
 
   if (
@@ -1878,6 +1923,48 @@ function handleOverlayStateChange(overlayState) {
   ) {
     scheduleAutoAdvance(currentIndex);
     renderQuestion();
+  }
+}
+
+function resolveAuthoritativeCorrectAnswer(result, fallbackAnswer) {
+  if (Number.isInteger(result?.correctAnswer) && result.correctAnswer >= 0 && result.correctAnswer <= 3) {
+    return result.correctAnswer;
+  }
+
+  return fallbackAnswer;
+}
+
+function resolveAnswerEvaluationIsCorrect(result, selectedAnswer, authoritativeCorrectAnswer) {
+  if (typeof result?.isCorrect === "boolean") {
+    return result.isCorrect;
+  }
+
+  return selectedAnswer === authoritativeCorrectAnswer;
+}
+
+function syncAnswerEvaluation(questionIndex, question, selectedAnswer, result) {
+  if (!questionAt(questionIndex)) {
+    return;
+  }
+
+  const authoritativeCorrectAnswer = resolveAuthoritativeCorrectAnswer(result, question.answer);
+  sessionQuestions[questionIndex].answer = authoritativeCorrectAnswer;
+  const isCorrect = resolveAnswerEvaluationIsCorrect(result, selectedAnswer, authoritativeCorrectAnswer);
+
+  if (gamificationController) {
+    gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
+      questionId: question.id,
+      section: question.section,
+      isCorrect,
+    });
+  }
+
+  if (isCorrect) {
+    if (gamificationController && gamificationController.hasBlockingOverlay()) {
+      deferredAdvanceQuestionIndex = questionIndex;
+    } else {
+      scheduleAutoAdvance(questionIndex);
+    }
   }
 }
 
@@ -1905,32 +1992,7 @@ dom.nextButton.addEventListener("click", () => {
     updateProgress();
     renderQuestion();
     const handleAnswerEvaluation = (result) => {
-      if (questionAt(questionIndex)) {
-        const authoritativeCorrectAnswer =
-          Number.isInteger(result?.correctAnswer) && result.correctAnswer >= 0 && result.correctAnswer <= 3
-            ? result.correctAnswer
-            : question.answer;
-        sessionQuestions[questionIndex].answer = authoritativeCorrectAnswer;
-        const isCorrect = typeof result?.isCorrect === "boolean"
-          ? result.isCorrect
-          : selectedAnswer === authoritativeCorrectAnswer;
-
-        if (gamificationController) {
-          gamificationController.onAnswerEvaluated(buildGamificationSnapshot(), {
-            questionId: question.id,
-            section: question.section,
-            isCorrect,
-          });
-        }
-
-        if (isCorrect) {
-          if (gamificationController && gamificationController.hasBlockingOverlay()) {
-            deferredAdvanceQuestionIndex = questionIndex;
-          } else {
-            scheduleAutoAdvance(questionIndex);
-          }
-        }
-      }
+      syncAnswerEvaluation(questionIndex, question, selectedAnswer, result);
 
       if (pendingAnswerQuestionIndex === questionIndex) {
         pendingAnswerQuestionIndex = -1;
