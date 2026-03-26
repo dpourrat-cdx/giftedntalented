@@ -10,6 +10,10 @@
     localSaveSuccess: "Explorer record saved on this device.",
     deviceOnlyScore: "Showing a score saved only on this device.",
     deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
+    privacyNote:
+      "Your explorer record may stay on this device as a backup so the scoreboard can still show something if the network is unavailable. Clear this device cache removes only the local backup. It does not delete the record stored online.",
+    clearDeviceCache: "Clear this device cache",
+    deviceCacheCleared: "This device cache has been cleared. Your online record stays in place.",
     deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
     allResetSuccess: "Every saved explorer record has been cleared.",
     resetPrompt: "Enter the admin PIN to clear saved explorer records.",
@@ -395,6 +399,24 @@
     clearCachedScores() {
       this.cachedScoreMap = {};
       writeCachedScoreMap({});
+    }
+
+    async clearDeviceCache() {
+      this.clearCachedScores();
+      this.lastSavedFingerprint = "";
+      this.resetActiveAttempt();
+
+      if (this.activePlayerName) {
+        await this.refreshTopScoreForPlayer(this.activePlayerName, {
+          showLoading: true,
+          preserveStatus: true,
+        });
+      } else {
+        this.renderAwaitingNameState();
+      }
+
+      this.setStatus(scoreboardContent.deviceCacheCleared, "success");
+      return true;
     }
 
     buildAttemptFingerprint(playerName, questions) {

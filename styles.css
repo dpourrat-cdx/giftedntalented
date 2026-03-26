@@ -235,6 +235,16 @@ h1 {
   line-height: 1.45;
 }
 
+.parent-area-privacy {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(42, 157, 143, 0.1);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
 .story-only-toggle-row {
   margin-top: 14px;
   display: flex;
@@ -262,6 +272,13 @@ h1 {
   color: var(--ink-soft);
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.scoreboard-button-row {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .story-only-toggle-switch {

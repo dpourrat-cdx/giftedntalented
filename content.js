@@ -432,6 +432,10 @@
       loading: "Checking this explorer's saved record.",
       empty: "No saved record yet for this explorer.",
       localSaveSuccess: "Explorer record saved on this device.",
+      privacyNote:
+        "Your saved explorer record may also stay on this device as a backup so the scoreboard can still show something if the network is unavailable. Clear this device cache removes only the local backup. It does not delete the record stored online.",
+      clearDeviceCache: "Clear this device cache",
+      deviceCacheCleared: "This device cache has been cleared. Your online record stays in place.",
       deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
       deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
       allResetSuccess: "Every saved explorer record has been cleared.",

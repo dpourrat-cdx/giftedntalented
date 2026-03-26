@@ -60,9 +60,11 @@ const dom = {
   parentAreaToggle: document.getElementById("parentAreaToggle"),
   parentAreaKicker: document.getElementById("parentAreaKicker"),
   parentAreaCopy: document.getElementById("parentAreaCopy"),
+  parentAreaPrivacy: document.getElementById("parentAreaPrivacy"),
   storyOnlyToggle: document.getElementById("storyOnlyToggle"),
   storyOnlyToggleLabel: document.getElementById("storyOnlyToggleLabel"),
   storyOnlyToggleHelp: document.getElementById("storyOnlyToggleHelp"),
+  clearDeviceCacheButton: document.getElementById("clearDeviceCacheButton"),
   resetScoresButton: document.getElementById("resetScoresButton"),
   timerLabel: document.getElementById("timerLabel"),
   timerDisplay: document.getElementById("timerDisplay"),
@@ -430,8 +432,10 @@ function applyStaticCopy() {
   dom.parentAreaToggle.textContent = parentAreaContent.toggle;
   dom.parentAreaKicker.textContent = parentAreaContent.kicker;
   dom.parentAreaCopy.textContent = parentAreaContent.copy;
+  dom.parentAreaPrivacy.textContent = scoreboardContent.privacyNote;
   dom.storyOnlyToggleLabel.textContent = parentAreaContent.storyOnlyLabel;
   dom.storyOnlyToggleHelp.textContent = parentAreaContent.storyOnlyHelp;
+  dom.clearDeviceCacheButton.textContent = scoreboardContent.clearDeviceCache;
   dom.restartButton.textContent = parentAreaContent.restart;
   dom.resetScoresButton.textContent = parentAreaContent.reset;
 
@@ -1487,6 +1491,11 @@ dom.nextButton.addEventListener("click", () => {
 
 dom.restartButton.addEventListener("click", restartTest);
 dom.retryButton.addEventListener("click", restartTest);
+dom.clearDeviceCacheButton.addEventListener("click", () => {
+  if (scoreboardController) {
+    void scoreboardController.clearDeviceCache();
+  }
+});
 dom.storyOnlyToggle.addEventListener("change", () => {
   storyOnlyModeEnabled = dom.storyOnlyToggle.checked;
   renderQuestion();
