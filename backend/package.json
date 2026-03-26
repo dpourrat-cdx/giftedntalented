@@ -30,7 +30,7 @@
     "helmet": "^8.1.0",
     "pino": "^10.0.0",
     "pino-http": "^11.0.0",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.2",
     "zod": "^4.1.5"
   },
   "devDependencies": {
