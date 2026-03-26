@@ -55,6 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: backend
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +69,12 @@ jobs:
           name: coverage-report
           path: backend/coverage
 
+      - name: Skip SonarCloud when token is unavailable
+        if: env.SONAR_TOKEN == ''
+        run: |
+          echo "SONAR_TOKEN is unavailable for this run."
+          echo "Skipping SonarCloud scan so Dependabot PRs do not fail on missing secrets."
+
       - name: SonarCloud Scan
+        if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
