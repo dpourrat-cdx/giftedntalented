@@ -75,60 +75,13 @@ describe("Score routes", () => {
   });
 
   describe("POST /api/v1/players/:playerName/record", () => {
-    const validBody = {
-      score: 50,
-      percentage: 78,
-      totalQuestions: 64,
-      elapsedSeconds: 1200,
-      clientType: "web",
-    };
-
-    it("returns 201 for quiz mode save", async () => {
-      mockRpc.mockResolvedValue({
-        data: {
-          player_name: "Alice",
-          score: 50,
-          percentage: 78,
-          total_questions: 64,
-          elapsed_seconds: 1200,
-          completed_at: "2026-01-01T00:00:00Z",
-        },
-        error: null,
-      });
-
+    it("returns 410 — endpoint is disabled", async () => {
       const res = await request(app)
         .post("/api/v1/players/Alice/record")
-        .send(validBody);
+        .send({ score: 50, percentage: 78, totalQuestions: 64, clientType: "web" });
 
-      expect(res.status).toBe(201);
-      expect(res.body.saved).toBe(true);
-    });
-
-    it("returns 200 for story mode (no save)", async () => {
-      const res = await request(app)
-        .post("/api/v1/players/Alice/record")
-        .send({ ...validBody, mode: "story" });
-
-      expect(res.status).toBe(200);
-      expect(res.body.saved).toBe(false);
-      expect(res.body.storyOnly).toBe(true);
-    });
-
-    it("returns 400 when score > totalQuestions", async () => {
-      const res = await request(app)
-        .post("/api/v1/players/Alice/record")
-        .send({ ...validBody, score: 65 });
-
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe("VALIDATION_ERROR");
-    });
-
-    it("returns 400 when required fields missing", async () => {
-      const res = await request(app)
-        .post("/api/v1/players/Alice/record")
-        .send({ score: 50 });
-
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(410);
+      expect(res.body.error).toBe("LEGACY_SCORE_ENDPOINT_DISABLED");
     });
   });
 });

@@ -7,5 +7,8 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     setupFiles: ["src/test/setup.ts"],
     mockReset: true,
+    typecheck: {
+      tsconfig: "./tsconfig.test.json",
+    },
   },
 });
