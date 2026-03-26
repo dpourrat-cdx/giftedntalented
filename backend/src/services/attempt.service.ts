@@ -153,7 +153,8 @@ function hasSameOptions(providedOptions: string[], expectedOptions: string[]) {
     return false;
   }
 
-  const compareText = (left: string, right: string) => left.localeCompare(right);
+  const compareText = (left: string, right: string) =>
+    left.localeCompare(right, "en", { sensitivity: "variant" });
   const normalizedProvided = [...providedOptions].sort(compareText);
   const normalizedExpected = [...expectedOptions].sort(compareText);
   return normalizedProvided.every((value, index) => value === normalizedExpected[index]);
