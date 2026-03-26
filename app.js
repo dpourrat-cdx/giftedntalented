@@ -201,60 +201,15 @@ function normalizeAttemptQuestion(question, index) {
   const candidate = question;
   const bankId = typeof candidate.bankId === "string" ? candidate.bankId : "";
   const canonicalQuestion = canonicalQuestionByBankId(bankId);
-  const options = Array.isArray(candidate.options)
-    ? candidate.options.map((option) => String(option))
-    : Array.isArray(canonicalQuestion?.options)
-      ? canonicalQuestion.options.map((option) => String(option))
-      : null;
-  const canonicalCorrectOption =
-    Array.isArray(canonicalQuestion?.options) &&
-    Number.isInteger(canonicalQuestion?.answer) &&
-    canonicalQuestion.answer >= 0 &&
-    canonicalQuestion.answer < canonicalQuestion.options.length
-      ? String(canonicalQuestion.options[canonicalQuestion.answer])
-      : null;
-  const derivedAnswerIndex =
-    canonicalCorrectOption && Array.isArray(options)
-      ? options.findIndex((option) => option === canonicalCorrectOption)
-      : -1;
-  const answer =
-    Number.isInteger(candidate.answer) && candidate.answer >= 0 && candidate.answer <= 3
-      ? candidate.answer
-      : Number.isInteger(candidate.correctAnswer) && candidate.correctAnswer >= 0 && candidate.correctAnswer <= 3
-        ? candidate.correctAnswer
-        : derivedAnswerIndex >= 0 && derivedAnswerIndex <= 3
-          ? derivedAnswerIndex
-        : null;
-  const id =
-    Number.isInteger(candidate.id) && candidate.id > 0
-      ? candidate.id
-      : Number.isInteger(candidate.questionId) && candidate.questionId > 0
-        ? candidate.questionId
-        : index + 1;
-  const section =
-    typeof candidate.section === "string" && candidate.section
-      ? candidate.section
-      : typeof canonicalQuestion?.section === "string"
-        ? canonicalQuestion.section
-        : "";
-  const prompt =
-    typeof candidate.prompt === "string" && candidate.prompt
-      ? candidate.prompt
-      : typeof canonicalQuestion?.prompt === "string"
-        ? canonicalQuestion.prompt
-        : "";
-  const explanation =
-    typeof candidate.explanation === "string" && candidate.explanation
-      ? candidate.explanation
-      : typeof canonicalQuestion?.explanation === "string"
-        ? canonicalQuestion.explanation
-        : "";
-  const stimulus =
-    typeof candidate.stimulus === "string"
-      ? candidate.stimulus
-      : typeof canonicalQuestion?.stimulus === "string"
-        ? canonicalQuestion.stimulus
-        : "";
+  const options = resolveAttemptOptions(candidate, canonicalQuestion);
+  const canonicalCorrectOption = resolveCanonicalCorrectOption(canonicalQuestion);
+  const derivedAnswerIndex = deriveAttemptAnswerIndex(options, canonicalCorrectOption);
+  const answer = resolveAttemptAnswer(candidate, derivedAnswerIndex);
+  const id = resolveAttemptQuestionId(candidate, index);
+  const section = resolveAttemptTextField(candidate.section, canonicalQuestion?.section);
+  const prompt = resolveAttemptTextField(candidate.prompt, canonicalQuestion?.prompt);
+  const explanation = resolveAttemptTextField(candidate.explanation, canonicalQuestion?.explanation);
+  const stimulus = resolveAttemptStimulus(candidate.stimulus, canonicalQuestion?.stimulus);
 
   if (!id || !bankId || !section || !prompt || !options || options.length !== 4 || answer === null) {
     return null;
@@ -271,6 +226,86 @@ function normalizeAttemptQuestion(question, index) {
     explanation,
     stimulus,
   };
+}
+
+function resolveAttemptOptions(candidate, canonicalQuestion) {
+  if (Array.isArray(candidate.options)) {
+    return candidate.options.map(String);
+  }
+
+  if (Array.isArray(canonicalQuestion?.options)) {
+    return canonicalQuestion.options.map(String);
+  }
+
+  return null;
+}
+
+function resolveCanonicalCorrectOption(canonicalQuestion) {
+  if (!Array.isArray(canonicalQuestion?.options)) {
+    return null;
+  }
+
+  if (!Number.isInteger(canonicalQuestion.answer)) {
+    return null;
+  }
+
+  if (canonicalQuestion.answer < 0 || canonicalQuestion.answer >= canonicalQuestion.options.length) {
+    return null;
+  }
+
+  return String(canonicalQuestion.options[canonicalQuestion.answer]);
+}
+
+function deriveAttemptAnswerIndex(options, canonicalCorrectOption) {
+  if (!canonicalCorrectOption || !Array.isArray(options)) {
+    return -1;
+  }
+
+  return options.indexOf(canonicalCorrectOption);
+}
+
+function resolveAttemptAnswer(candidate, derivedAnswerIndex) {
+  if (Number.isInteger(candidate.answer) && candidate.answer >= 0 && candidate.answer <= 3) {
+    return candidate.answer;
+  }
+
+  if (
+    Number.isInteger(candidate.correctAnswer) &&
+    candidate.correctAnswer >= 0 &&
+    candidate.correctAnswer <= 3
+  ) {
+    return candidate.correctAnswer;
+  }
+
+  return derivedAnswerIndex >= 0 && derivedAnswerIndex <= 3 ? derivedAnswerIndex : null;
+}
+
+function resolveAttemptQuestionId(candidate, index) {
+  if (Number.isInteger(candidate.id) && candidate.id > 0) {
+    return candidate.id;
+  }
+
+  if (Number.isInteger(candidate.questionId) && candidate.questionId > 0) {
+    return candidate.questionId;
+  }
+
+  return index + 1;
+}
+
+function resolveAttemptTextField(candidateValue, canonicalValue) {
+  if (typeof candidateValue === "string" && candidateValue) {
+    return candidateValue;
+  }
+
+  return typeof canonicalValue === "string" ? canonicalValue : "";
+}
+
+function resolveAttemptStimulus(candidateStimulus, canonicalStimulus) {
+  if (typeof candidateStimulus === "string") {
+    return candidateStimulus;
+  }
+
+  return typeof canonicalStimulus === "string" ? canonicalStimulus : "";
 }
 
 function normalizeAttemptQuestions(questions) {

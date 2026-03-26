@@ -39,6 +39,7 @@ SonarCloud currently reports 12 critical cognitive-complexity violations (S3776)
 - [ ] Refactor `renderQuestion()` in `app.js:1243` — complexity 56, worst function in the codebase. Split into question-render, option-render, feedback-render, and state-sync helpers.
   Progress: PR 32 extracts `renderStartScreen`, `renderStoryOnlyQuestion`, `renderOptions` (DOM construction, removes last user-data innerHTML), and `renderHintAndButton`. 12 new frontend tests, 156 → 168 passing.
 - [ ] Refactor `normalizeAttemptQuestion()` in `app.js:196` — complexity 39.
+  Progress: PR 34 extracts option resolution, canonical-answer lookup, answer fallback, id fallback, and text-field normalization into focused helpers. Adds direct frontend coverage for canonical fallback and shuffled-option answer derivation.
 - [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
   Progress: PR 33 extracts the activity-order, speed-order, and attribute-chain question families into focused helpers and adds frontend tests that lock down one generated prompt from each family.
 - [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
