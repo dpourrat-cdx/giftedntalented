@@ -2,114 +2,95 @@
 
 ## Goal
 
-This backlog captures the next high-value work for the Captain Nova app after the March 25, 2026 score-attempt rollout, backend merge into `master`, live deploy verification, and branch cleanup.
-
-The biggest theme now is finishing the move from "browser-trusted score writes" to a cleaner, documented, and more defensible frontend -> Render backend -> Supabase architecture.
+This backlog captures the next high-value work for the Captain Nova app after the March 26, 2026 rollout of backend-owned, randomized web score attempts and the related live verification.
 
 ## Current State Snapshot
 
-- Frontend score submission now goes through backend-owned score attempts instead of posting raw score payloads directly.
-- The legacy `POST /players/:playerName/record` endpoint is live but intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
-- Backend tests and TypeScript checks are in place and passing locally.
-- The live backend health endpoint, attempt flow, and deployed frontend assets were verified after the March 25, 2026 merge.
-- The backend now uses a backend-owned question snapshot instead of executing the frontend question bundle at runtime.
-- Attempt expiry logic and fallback handling for missing `expires_at` schema/cache errors are live.
-- A one-command live backend smoke runner and deploy checklist now exist in `backend/` and `spec/`.
+- [x] Frontend score submission now goes through backend-owned score attempts instead of posting raw score payloads directly.
+- [x] The legacy `POST /players/:playerName/record` endpoint is live but intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
+- [x] The backend now uses a backend-owned question snapshot (`question-bank.data.json`) instead of executing the frontend question bundle at runtime.
+- [x] For web quiz attempts, the backend now owns question selection and answer-order randomization for each new attempt.
+- [x] The web app now waits for the backend-issued attempt payload before a quiz becomes interactive, avoiding local/backend answer drift.
+- [x] Replay-safe finalize behavior and structured score-save audit metadata are live.
+- [x] Public player-record lookup hardening and parent device-cache controls are live.
+- [x] A one-command live backend smoke runner and deploy checklist exist in `backend/` and `spec/`.
+- [x] Backend tests and TypeScript checks are currently passing locally (`149` tests plus `npm run check` as of March 26, 2026).
+- [ ] There is still no CI workflow in the repo to run checks automatically on pushes and PRs.
 
-## Priority 0: Security And Secret Hygiene Follow-Through
+## Priority 0: Release Safety And Delivery Guardrails
 
-- Decide whether to scrub old secrets from git history using a history-rewrite tool, or treat them as permanently rotated legacy values.
-- Add a short secret-rotation runbook so future key changes are fast and repeatable.
-- Review the live Render service and Supabase project for least-privilege settings and remove anything no longer needed from the old direct-frontend approach.
-- Review backend logs and env vars to ensure no secrets are accidentally echoed in startup or error output.
+- [ ] Add `.github/workflows/ci.yml` that runs `npm run check`, `npm test`, and `npm run build` for `backend/` on every push and pull request.
+- [ ] Add `.github/dependabot.yml` so backend dependency updates are surfaced continuously instead of manually.
+- [ ] Add `npm audit --audit-level=high` to CI or to a scheduled workflow.
+- [ ] Enable and verify branch protection on `master` so merges require passing checks and review.
+- [ ] Add a lightweight post-deploy automation or checklist step that runs `npm run smoke:live` after backend releases.
 
-## Priority 1: Score Integrity Hardening
+## Priority 1: Security Hardening
 
-- Decide the long-term trust model now that attempt-based sync is live:
-  - backend-issued signed attempt tokens, or
-  - fully backend-owned question delivery and answer validation
-- Decide whether question selection itself should move to the backend so refreshes cannot inspect or predict the full answer set in the browser.
-- Tighten replay controls beyond the current expiry window.
-- Add an audit trail for score writes showing:
-  - normalized player name
-  - old best vs new best
-  - whether the new attempt replaced the old one
-  - request source / client type
-  - attempt id
-- Add rate-limit metrics or alerting for suspicious bursts on public attempt-write endpoints.
-- Review public player-name lookup endpoints for enumeration risk and decide whether response shaping or throttling should change.
+- [ ] Replace direct admin-secret string comparison in `backend/src/middleware/admin-auth.ts` with `crypto.timingSafeEqual()`.
+- [ ] Require admin auth middleware on `POST /api/v1/admin/scores/reset` in addition to the reset PIN flow.
+- [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
+- [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
+- [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
+- [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
 
-## Priority 2: Privacy And Parent Safety
+## Priority 2: Documentation And Repo Hygiene
 
-- Add a parent-facing privacy note that explains:
-  - what is stored in Supabase
-  - what may still be cached on the current device
-  - when the app is showing device-only fallback data
-- Add a way to delete one child's record without clearing everyone.
-- Add a parent-facing `Clear this device cache` action for stale local fallback data.
-- Review whether explorer names should remain plain-text identifiers or move to a parent-managed profile model.
-- Define retention expectations for score history, reset logs, and device caches.
-- Decide whether the reset flow should move from a browser prompt to a small parent-only form with clearer error handling and fewer accidental submissions.
+- [ ] Rewrite `spec/backend-api-spec.md` so it fully documents the attempt-based flow:
+  - `POST /attempts`
+  - `POST /attempts/:attemptId/answers`
+  - `POST /attempts/:attemptId/finalize`
+  - legacy `POST /players/:playerName/record` disabled behavior
+- [ ] Add or refresh an architecture note showing GitHub Pages frontend, Render backend, Supabase, and the live verification path.
+- [ ] Add `CONTRIBUTING.md` with branch naming, test expectations, merge flow, and multi-agent working conventions.
+- [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
 
-## Priority 3: Architecture And Repo Cleanup
+## Priority 3: Code Quality And Maintainability
 
-- Add a short architecture note or diagram showing:
-  - GitHub Pages frontend
-  - Render backend
-  - Supabase database
-  - optional future Android client
-  - frontend asset cache-busting expectations
-  - backend deploy expectations
-  - required post-deploy smoke checks
-- Add a short release checklist for unified `master` deploys so frontend and backend changes stay coordinated.
-- Decide whether the backend should eventually move to its own repository for operational isolation, or stay co-located with the frontend for simpler releases.
+- [ ] Split `backend/src/services/attempt.service.ts` into smaller units such as question selection, attempt state, and score persistence helpers.
+- [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
+- [ ] Review whether schema-cache fallback handling can be simplified or centralized now that the live schema is aligned.
+- [ ] Remove dead score-write code paths that are no longer reachable after the `410` legacy endpoint change.
+- [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
+- [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 
-## Priority 4: Defensive Testing And Ops
+## Priority 4: Privacy And Parent Safety
 
-- Add an automated smoke test suite for:
-  - frontend page load
-  - explorer record lookup
-  - score attempt start / answer / finalize flow
-  - reset flow
-  - Chrome/Edge consistency
-  - mobile modal visibility
-  - Story Only mode progression
-- Add a build/release step that bumps frontend asset versions automatically before pushing to GitHub Pages.
-- Add dependency review and `npm audit` follow-up for the backend package set.
-- Add automated verification that Render is still targeting `master` and `backend/` after any service edits.
-- Keep the live backend smoke runner aligned with the production API whenever score or schema behavior changes.
-- Keep the backend deployment checklist updated as new release checks are added.
+- [ ] Add a way to delete one child's record without clearing all saved records.
+- [ ] Clarify retention expectations for online score history, reset logs, and local fallback cache data.
+- [ ] Decide whether explorer names should stay as plain-text identifiers or move to a parent-managed profile model later.
+- [ ] Decide whether the parent reset flow should move from a browser prompt to a small dedicated form with clearer confirmation and error handling.
 
-## Priority 5: Frontend And API Safety Review
+## Priority 5: Testing And Operations
 
-- Review all remaining `innerHTML` render paths and replace them with safer DOM construction where practical.
-- Add a stricter Content Security Policy plan for the frontend hosting model.
-- Review CORS and headers again after Android support is introduced.
-- Add backend request logging rules that are useful for incident review without over-logging child data.
-- Add alerting for repeated reset failures, high error rates, and unusual public write activity.
-- Review the current admin key model for push-send endpoints and decide whether a stronger admin auth model is needed later.
+- [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
+- [ ] Add browser-level verification for desktop and mobile layout/interaction paths.
+- [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned with production behavior whenever schema or score flow changes.
+- [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
+- [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
 ## Priority 6: Product And Content Improvements
 
-- Add a parent-friendly storyline selector so future story packs can be chosen without editing code.
-- Move storyline packs out of the main JS bundle into dedicated content files or JSON for easier writing and review.
-- Add a story-content validation helper that checks mission text length, ending length, artwork references, and missing story beats before deploy.
-- Give Story Only mode its own finale/report path instead of reusing the score-banded results screen.
-- Add a parent export or printable summary for mission results and missed-question review.
-- Add a lightbox or slideshow mode for the end-of-story gallery.
-- Add the remaining mission-complete artworks so every mission has its own custom final reward scene.
+- [ ] Add a parent-friendly storyline selector so future story packs can be chosen without editing code.
+- [ ] Move storyline packs out of the main JS bundle into dedicated content files or JSON.
+- [ ] Add a story-content validation helper for mission text, endings, and artwork references.
+- [ ] Give Story Only mode its own finale/report path instead of reusing the score-banded result screen.
+- [ ] Add a parent export or printable summary for mission results and missed-question review.
+- [ ] Add the remaining mission-complete artworks and gallery improvements.
 
 ## Next Recommended Delivery Slice
 
-1. Reduce public player-name enumeration risk with throttling or response-shaping.
-2. Tackle parent privacy UX and single-record deletion.
-3. Decide whether question selection should move fully backend-side.
-4. Add richer attempt/score audit reporting and suspicious-activity monitoring.
+1. Add CI for backend check, test, and build.
+2. Enable or verify branch protection on `master`.
+3. Land timing-safe admin auth plus admin middleware on score reset.
+4. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
+5. Start breaking up `attempt.service.ts` so future score-flow work is easier to land safely.
 
 ## Done Definition For This Backlog
 
 - Current score flow is documented accurately and legacy paths are clearly marked.
-- Live deploy verification is scriptable and repeatable.
-- Remaining score-integrity gaps are explicitly chosen, not accidental.
+- Automated checks run before merges instead of relying only on manual local runs.
+- Live deploy verification remains scriptable and repeatable.
+- Remaining security and integrity gaps are explicitly chosen, not accidental.
 - Parent-facing privacy and fallback behavior is understandable.
 - Frontend, backend, and database releases have a documented and repeatable process.
