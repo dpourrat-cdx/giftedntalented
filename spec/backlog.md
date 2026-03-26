@@ -35,6 +35,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
 - [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
 - [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
+  First slice in progress: remove raw story-panel HTML pass-through for artwork and mission footer content.
 
 ## Priority 2: Documentation And Repo Hygiene
 
