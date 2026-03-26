@@ -55,7 +55,9 @@ Additional code quality items:
 - [ ] Replace optional-chaining opportunities (9 Sonar MAJOR S6582) across `app.js`, `scoreboard.js`, and `gamification.js`.
 - [ ] Fix CSS text-contrast failures (2 Sonar MAJOR, accessibility) in `styles.css:917` and `gamification.css:373`.
 - [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
+  Progress: PR 28 bundles the low-risk Sonar quick wins, including the type-package move plus the paired frontend/CSS cleanup items.
 - [ ] Remove dead score-write code paths left behind after the `410` legacy endpoint change.
+  Progress: PR 28 removes the leftover legacy `savePlayerRecord` path from `backend/src/services/score.service.ts` and its tests.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
