@@ -115,6 +115,7 @@ let autoAdvanceTimeoutId = null;
 let autoAdvanceQuestionIndex = -1;
 let isTimerPaused = false;
 let deferredAdvanceQuestionIndex = -1;
+let suppressNextButtonUntil = 0;
 let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
 let questionBankLookup = null;
@@ -1598,6 +1599,16 @@ function handleOverlayStateChange(overlayState) {
 
   if (
     !hasBlockingOverlay &&
+    dismissedEvent?.variant === "section" &&
+    dismissedEvent.advanceOnDismiss === false
+  ) {
+    suppressNextButtonUntil = Date.now() + 300;
+    renderQuestion();
+    return;
+  }
+
+  if (
+    !hasBlockingOverlay &&
     deferredAdvanceQuestionIndex !== -1 &&
     deferredAdvanceQuestionIndex === currentIndex &&
     validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
@@ -1608,6 +1619,10 @@ function handleOverlayStateChange(overlayState) {
 }
 
 dom.nextButton.addEventListener("click", () => {
+  if (Date.now() < suppressNextButtonUntil) {
+    return;
+  }
+
   if (isStoryOnlySession) {
     return;
   }

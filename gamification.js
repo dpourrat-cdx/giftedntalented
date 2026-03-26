@@ -508,6 +508,8 @@
       if (!dismissButton) {
         const expandArtworkButton = event.target.closest("[data-expand-artwork]");
         if (expandArtworkButton) {
+          event.preventDefault();
+          event.stopPropagation();
           this.isArtworkExpanded = true;
           this.renderCurrent();
           return;
@@ -515,12 +517,16 @@
 
         const collapseArtworkButton = event.target.closest("[data-collapse-artwork]");
         if (collapseArtworkButton) {
+          event.preventDefault();
+          event.stopPropagation();
           this.isArtworkExpanded = false;
           this.renderCurrent();
         }
         return;
       }
 
+      event.preventDefault();
+      event.stopPropagation();
       this.dismiss();
     }
 
