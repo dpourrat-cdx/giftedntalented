@@ -40,6 +40,7 @@ SonarCloud currently reports 12 critical cognitive-complexity violations (S3776)
   Progress: PR 32 extracts `renderStartScreen`, `renderStoryOnlyQuestion`, `renderOptions` (DOM construction, removes last user-data innerHTML), and `renderHintAndButton`. 12 new frontend tests, 156 → 168 passing.
 - [ ] Refactor `normalizeAttemptQuestion()` in `app.js:196` — complexity 39.
 - [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
+  Progress: PR 33 extracts the activity-order, speed-order, and attribute-chain question families into focused helpers and adds frontend tests that lock down one generated prompt from each family.
 - [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
 - [ ] Split `saveAuthoritativeScore()` in `backend/src/services/attempt.service.ts:560` — complexity 25. Aligns with the broader `attempt.service.ts` split into question-selection, attempt-state, and score-persistence helpers.
   Progress: PR 31 extracts `fetchOldBest`, `persistScoreLegacyFallback`, and `persistScorePrimary`; `saveAuthoritativeScore` becomes a thin orchestrator. 14 new unit tests, 147 → 161 passing.

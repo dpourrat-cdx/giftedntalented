@@ -2219,79 +2219,100 @@
   }
 
   function buildLogicChallengeQuestions(section) {
-    const questions = [];
     const activities = ["reading", "science", "music", "art", "recess", "lunch", "math", "library", "spelling", "soccer"];
     const names = ["Mia", "Ben", "Ava", "Leo", "Nora", "Sam", "Ella", "Jay", "Ivy", "Owen"];
     const nonsense = ["zib", "mip", "tov", "lax", "pim", "bex", "dor", "vup", "nax", "rel"];
     const attributes = ["striped", "shiny", "bumpy", "green", "round", "soft", "wooden", "bright", "spotted", "smooth"];
+    const questions = [];
 
     for (let index = 0; index < 12; index += 1) {
-      const first = activities[index % activities.length];
-      const second = activities[(index + 1) % activities.length];
-      const third = activities[(index + 2) % activities.length];
-      const fourth = activities[(index + 3) % activities.length];
-      const ask = index % 4 === 0 ? "first" : index % 4 === 1 ? "second" : index % 4 === 2 ? "third" : "last";
-      const correct = ask === "first" ? first : ask === "second" ? second : ask === "third" ? third : fourth;
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `${second} happened after ${first}. ${third} happened after ${second}. ${fourth} happened after ${third}. What happened ${ask}?`,
-          correct,
-          [first, second, third, fourth].filter((value) => value !== correct).slice(0, 3),
-          `The order is ${first}, then ${second}, then ${third}, then ${fourth}.`,
-          "",
-          8700 + index,
-        ),
-      );
+      questions.push(buildActivityOrderQuestion(section, activities, index));
     }
 
     for (let index = 0; index < 10; index += 1) {
-      const first = names[index % names.length];
-      const second = names[(index + 1) % names.length];
-      const third = names[(index + 2) % names.length];
-      const fourth = names[(index + 3) % names.length];
-      const ask = index % 4 === 0 ? "fastest" : index % 4 === 1 ? "slowest" : index % 4 === 2 ? "second" : "third";
-      const correct = ask === "fastest" ? first : ask === "slowest" ? fourth : ask === "second" ? second : third;
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `${first} is faster than ${second}. ${second} is faster than ${third}. ${third} is faster than ${fourth}. Who is ${ask}?`,
-          correct,
-          [first, second, third, fourth].filter((value) => value !== correct).slice(0, 3),
-          `The speed order is ${first}, ${second}, ${third}, ${fourth}.`,
-          "",
-          8800 + index,
-        ),
-      );
+      questions.push(buildSpeedOrderQuestion(section, names, index));
     }
 
     for (let index = 0; index < 12; index += 1) {
-      const madeUpWord = nonsense[index % nonsense.length];
-      const name = names[(index + 4) % names.length];
-      const attributeOne = attributes[index % attributes.length];
-      const attributeTwo = attributes[(index + 2) % attributes.length];
-      const attributeThree = attributes[(index + 4) % attributes.length];
-
       questions.push(
-        makeChoiceQuestion(
-          section,
-          `All ${madeUpWord}s are ${attributeOne}. All ${attributeOne} things are ${attributeTwo}. All ${attributeTwo} things are ${attributeThree}. ${name} has a ${madeUpWord}. What must be true?`,
-          `${name} has something ${attributeThree}.`,
-          [
-            `${name} has something red.`,
-            `Everything ${attributeThree} is a ${madeUpWord}.`,
-            `${name} does not have a ${madeUpWord}.`,
-          ],
-          `Because every ${madeUpWord} is ${attributeOne}, every ${attributeOne} thing is ${attributeTwo}, and every ${attributeTwo} thing is ${attributeThree}, ${name}'s ${madeUpWord} must be ${attributeThree}.`,
-          "",
-          8900 + index,
-        ),
+        buildAttributeChainQuestion(section, {
+          names,
+          nonsense,
+          attributes,
+          index,
+        }),
       );
     }
 
     return questions;
+  }
+
+  function buildActivityOrderQuestion(section, activities, index) {
+    const timeline = activities.slice(index % activities.length).concat(activities.slice(0, index % activities.length)).slice(0, 4);
+    const orderLabels = ["first", "second", "third", "last"];
+    const answerIndex = index % orderLabels.length;
+    const ask = orderLabels[answerIndex];
+    const correct = timeline[answerIndex];
+    const [first, second, third, fourth] = timeline;
+
+    return makeChoiceQuestion(
+      section,
+      `${second} happened after ${first}. ${third} happened after ${second}. ${fourth} happened after ${third}. What happened ${ask}?`,
+      correct,
+      timeline.filter((value) => value !== correct).slice(0, 3),
+      `The order is ${first}, then ${second}, then ${third}, then ${fourth}.`,
+      "",
+      8700 + index,
+    );
+  }
+
+  function buildSpeedOrderQuestion(section, names, index) {
+    const ranking = names.slice(index % names.length).concat(names.slice(0, index % names.length)).slice(0, 4);
+    const rankLabels = ["fastest", "slowest", "second", "third"];
+    const answerIndexByLabel = {
+      fastest: 0,
+      slowest: 3,
+      second: 1,
+      third: 2,
+    };
+    const ask = rankLabels[index % rankLabels.length];
+    const correct = ranking[answerIndexByLabel[ask]];
+    const [first, second, third, fourth] = ranking;
+
+    return makeChoiceQuestion(
+      section,
+      `${first} is faster than ${second}. ${second} is faster than ${third}. ${third} is faster than ${fourth}. Who is ${ask}?`,
+      correct,
+      ranking.filter((value) => value !== correct).slice(0, 3),
+      `The speed order is ${first}, ${second}, ${third}, ${fourth}.`,
+      "",
+      8800 + index,
+    );
+  }
+
+  function buildAttributeChainQuestion(section, { names, nonsense, attributes, index }) {
+    const madeUpWord = nonsense[index % nonsense.length];
+    const name = names[(index + 4) % names.length];
+    const attributeChain = [
+      attributes[index % attributes.length],
+      attributes[(index + 2) % attributes.length],
+      attributes[(index + 4) % attributes.length],
+    ];
+    const [attributeOne, attributeTwo, attributeThree] = attributeChain;
+
+    return makeChoiceQuestion(
+      section,
+      `All ${madeUpWord}s are ${attributeOne}. All ${attributeOne} things are ${attributeTwo}. All ${attributeTwo} things are ${attributeThree}. ${name} has a ${madeUpWord}. What must be true?`,
+      `${name} has something ${attributeThree}.`,
+      [
+        `${name} has something red.`,
+        `Everything ${attributeThree} is a ${madeUpWord}.`,
+        `${name} does not have a ${madeUpWord}.`,
+      ],
+      `Because every ${madeUpWord} is ${attributeOne}, every ${attributeOne} thing is ${attributeTwo}, and every ${attributeTwo} thing is ${attributeThree}, ${name}'s ${madeUpWord} must be ${attributeThree}.`,
+      "",
+      8900 + index,
+    );
   }
 
   function buildQuestionPool() {
