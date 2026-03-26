@@ -630,16 +630,7 @@
     }
 
     reset() {
-      if (this.timeoutId) {
-        window.clearTimeout(this.timeoutId);
-        this.timeoutId = null;
-      }
-
-      this.queue = [];
-      this.current = null;
-      this.isArtworkExpanded = false;
-      this.root.innerHTML = "";
-      this.notifyStateChange();
+      this.clearAll();
     }
   }
 

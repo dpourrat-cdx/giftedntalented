@@ -1335,6 +1335,9 @@ function renderQuestion() {
   dom.optionsList.innerHTML = "";
 
   question.options.forEach((option, optionIndex) => {
+    const item = document.createElement("li");
+    item.className = "options-list-item";
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "option-button";
@@ -1378,7 +1381,8 @@ function renderQuestion() {
       });
     }
 
-    dom.optionsList.appendChild(button);
+    item.appendChild(button);
+    dom.optionsList.appendChild(item);
   });
 
   renderFeedback(question, validatedAnswer);

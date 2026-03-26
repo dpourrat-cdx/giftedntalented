@@ -308,10 +308,10 @@ This backlog captures the next high-value work for the Captain Nova app after th
 | 8 | Fix duplicate string literal in SQL schema (issue 9) | Permission correctness; trivial change | S |
 | 9 | Refactor `app.js:1243` (CC=56) and `app.js:196` (CC=39) (issues 2–3) | Highest-complexity functions in the codebase; prerequisite for safe feature work | L |
 | 10 | Refactor `question-bank.js` functions (issue 4) | Second-highest complexity cluster; blocks safe question-bank changes | L |
-| 11 | Fix duplicate function in `gamification.js` (issue 13) | Maintenance trap; quick fix | S |
+| 11 | Fix duplicate function in `gamification.js` (issue 13) | Landed in PR 16: `CelebrationOverlay.reset()` now delegates to `clearAll()` to remove the duplicate implementation. | S |
 | 12 | Resolve nested ternaries as a sweep (issue 10) | 30+ instances; mechanical refactor, best done file-by-file | M |
-| 13 | Fix contrast ratio violations (issue 15) | Accessibility; affects all users | S per instance |
-| 14 | Fix accessibility issues in `index.html` (issue 16) | Semantic HTML; affects screen reader users | S |
+| 13 | Fix contrast ratio violations (issue 15) | Landed in PR 16: the flagged badge and reward color pairs were darkened to meet the contrast target without changing the visual system. | S per instance |
+| 14 | Fix accessibility issues in `index.html` (issue 16) | Landed in PR 16: the question prompt now has a non-empty initial heading and the answer list uses a semantic `<ul>`. | S |
 | 15 | Add frontend test coverage (coverage gap) | Moves overall coverage toward 80%; requires sustained effort | L |
 
 ---

@@ -370,7 +370,7 @@
 
 .question-feedback-toast.is-gentle .question-feedback-effect {
   background: rgba(244, 185, 66, 0.2);
-  color: #9d6a0b;
+  color: #7a4c00;
 }
 
 .question-feedback-toast strong {
@@ -491,7 +491,7 @@
   padding: 10px 14px;
   border-radius: 999px;
   background: rgba(244, 185, 66, 0.16);
-  color: #8c5c00;
+  color: #704400;
   font-weight: 800;
 }
 
@@ -650,12 +650,12 @@
 }
 
 .celebration-reward-visual.reward-flames {
-  color: #b25422;
+  color: #833714;
   background: linear-gradient(135deg, #ffe0cc, #ffb085);
 }
 
 .celebration-reward-visual.reward-launch {
-  color: #a65a1b;
+  color: #7c4008;
   background: linear-gradient(135deg, #fff3bd, #ffd76f);
 }
 

@@ -892,12 +892,12 @@ h1 {
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #f6d97a, #e2a836);
-  color: #8a5b00;
+  background: linear-gradient(135deg, #efc85f, #bf7b14);
+  color: #5f3600;
 }
 
 .section-button-status-icon.is-check {
-  background: linear-gradient(135deg, #4dc7a5, #1f8c76);
+  background: linear-gradient(135deg, #218a70, #145847);
   color: #f8fffd;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
@@ -1043,12 +1043,12 @@ h1 {
 }
 
 .reward-flames {
-  color: #b25422;
+  color: #833714;
   background: linear-gradient(135deg, #ffe0cc, #ffb085);
 }
 
 .reward-launch {
-  color: #a65a1b;
+  color: #7c4008;
   background: linear-gradient(135deg, #fff3bd, #ffd76f);
 }
 
@@ -1112,6 +1112,9 @@ h1 {
   display: grid;
   gap: 12px;
   margin-top: 20px;
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .option-button {
