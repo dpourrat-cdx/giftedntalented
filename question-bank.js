@@ -386,8 +386,9 @@
     return position;
   }
 
-  function buildGridQuestion(section, grid, gridText, labels, size, pattern, row, col, moveLookup, seedBase, candidateIndex) {
-    const position = traceGridPattern({ row, col }, pattern, moveLookup, size);
+  function buildGridQuestion(context, startPosition, pattern, candidateIndex) {
+    const { section, grid, gridText, labels, size, moveLookup, seedBase } = context;
+    const position = traceGridPattern(startPosition, pattern, moveLookup, size);
     if (!position) {
       return null;
     }
@@ -397,7 +398,7 @@
 
     return makeChoiceQuestion(
       section,
-      `Use the grid. Start at ${gridLabel(grid, row, col)}. Move ${pattern.join(", then ")}. Where do you end?`,
+      `Use the grid. Start at ${gridLabel(grid, startPosition.row, startPosition.col)}. Move ${pattern.join(", then ")}. Where do you end?`,
       correct,
       wrongOptions.slice(0, 3),
       `Following the moves step by step lands on ${correct}.`,
@@ -406,21 +407,9 @@
     );
   }
 
-  function appendGridQuestionsForStart(section, grid, gridText, labels, size, patterns, moveLookup, seedBase, row, col, questions) {
+  function appendGridQuestionsForStart(context, patterns, startPosition, questions) {
     for (const pattern of patterns) {
-      const question = buildGridQuestion(
-        section,
-        grid,
-        gridText,
-        labels,
-        size,
-        pattern,
-        row,
-        col,
-        moveLookup,
-        seedBase,
-        questions.length,
-      );
+      const question = buildGridQuestion(context, startPosition, pattern, questions.length);
 
       if (question) {
         questions.push(question);
@@ -1061,12 +1050,12 @@
     const grid = buildGrid(size);
     const gridText = formatRows(grid.map((row) => row.join("   ")));
     const labels = allGridLabels(grid);
-    const moveLookup = {
+    const context = { section, grid, gridText, labels, size, seedBase, moveLookup: {
       up: { row: -1, col: 0 },
       down: { row: 1, col: 0 },
       left: { row: 0, col: -1 },
       right: { row: 0, col: 1 },
-    };
+    } };
     const patterns = [
       ["up", "right"],
       ["up", "left"],
@@ -1089,11 +1078,19 @@
 
     for (let row = 0; row < size; row += 1) {
       for (let col = 0; col < size; col += 1) {
-        appendGridQuestionsForStart(section, grid, gridText, labels, size, patterns, moveLookup, seedBase, row, col, candidates);
+        appendGridQuestionsForStart(context, patterns, { row, col }, candidates);
       }
     }
 
     return seededShuffle(candidates, seedBase).slice(0, count);
+  }
+
+  function turnInstructionFor(index, step) {
+    if (step % 2 === 0) {
+      return index % 3 === 0 ? "right" : "left";
+    }
+
+    return index % 4 === 0 ? "right" : "opposite";
   }
 
   function buildSpatialTurnQuestions(section, directions, displayDirections) {
@@ -1106,7 +1103,7 @@
       let current = start;
 
       for (let step = 0; step < turnCount; step += 1) {
-        const turn = step % 2 === 0 ? (index % 3 === 0 ? "right" : "left") : (index % 4 === 0 ? "right" : "opposite");
+        const turn = turnInstructionFor(index, step);
         turns.push(turn);
         current = rotateDirection(current, turn);
       }
