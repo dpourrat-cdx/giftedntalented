@@ -46,6 +46,8 @@ Before starting any task, **read `spec/backlog.md`** to see what is in progress 
 The reviewing agent must:
 - Confirm all CI checks pass before approving.
 - Leave a short summary comment on what was verified.
+- In PR comments, explicitly call in the other agent by name: Codex should ask Claude to review `codex/*` PRs, and Claude should ask Codex to review `claude/*` PRs.
+- Use that review to challenge assumptions, regressions, missing tests, and Sonar findings rather than just rubber-stamping the branch.
 - Never approve a PR that touches the same files as another open PR without explicit human sign-off.
 
 **Merge authority:**
@@ -97,6 +99,12 @@ To merge anything into `master` you must:
 3. Wait for the `SonarCloud` quality gate to pass (0 new hotspots, ≥80% new-code coverage).
 4. Get an approval (from the other agent or the human owner).
 5. Use the GitHub merge button — no direct pushes.
+
+---
+
+A PR must not be approved, marked ready, or merged if it introduces new Sonar issues unless:
+- the issues are fixed in the same PR, or
+- the remaining issues are explicitly documented in `spec/backlog.md` in that same PR as intentional follow-up work.
 
 ---
 
@@ -170,4 +178,5 @@ Weekly PRs for `backend/` npm updates open every Monday. `@types/*` packages are
 - A test file must not import the real Supabase or Firebase clients — mock them at the top of the file.
 - Tests must pass with `npm test` before any PR is opened.
 - `SonarCloud` new-code coverage must stay green before merge. Temporary coverage exclusions should be rare, documented in the PR, and paired with a backlog follow-up to remove them.
+- New Sonar issues on a PR should be treated as blockers by default. If a small issue is intentionally deferred, the PR must update `spec/backlog.md` and mention that deferral in the review thread before the PR can be considered ready.
 - The test count (currently `149`) is not a hard ceiling — add as many tests as the code needs.
