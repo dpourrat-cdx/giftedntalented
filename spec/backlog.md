@@ -35,7 +35,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Require admin auth middleware on `POST /api/v1/admin/scores/reset` in addition to the reset PIN flow.
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
-- [ ] Add SonarCloud static analysis to CI for ongoing code quality and security scanning.
+- [x] Add SonarCloud static analysis to CI for ongoing code quality and security scanning.
   Landed: SonarCloud is live on every PR and push to master via `sonarqube-scan-action`. Coverage report (lcov) is fed from vitest. Quality gate enforces new-code coverage, security hotspots, and ratings.
 - [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
   Baseline CSP landed: scripts are locked to self, current Google Fonts and Render API origins are explicitly allowed, and `'unsafe-inline'` remains temporary for styles until remaining inline style generation is removed.

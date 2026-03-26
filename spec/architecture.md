@@ -30,13 +30,25 @@ For the per-agent checklist (what each agent must complete before a task is done
 
 `.github/workflows/ci.yml` runs on every push and PR targeting `master`:
 
+Two jobs run on every push and PR targeting `master`:
+
+**`Backend` job** (required to merge):
+
 | Step | Command | On failure |
 |---|---|---|
-| Install | `npm ci` | Hard stop |
+| Install | `npm ci --ignore-scripts` | Hard stop |
 | Type check | `npm run check` | Hard stop |
-| Test | `npm test` | Hard stop |
+| Test + coverage | `npm run test:coverage` | Hard stop |
 | Build | `npm run build` | Hard stop |
 | Audit | `npm audit --audit-level=high` | `continue-on-error` — visible, non-blocking |
+
+**`SonarCloud` job** (runs after `Backend`, requires `SONAR_TOKEN` secret):
+
+Downloads the lcov coverage artifact from the `Backend` job and runs `SonarSource/sonarqube-scan-action`. Configuration lives in `sonar-project.properties` at the repo root.
+
+Quality gate enforces on new code: 0 unreviewed security hotspots, ≥80% coverage (config files excluded), A ratings for reliability/security/maintainability.
+
+Project dashboard: https://sonarcloud.io/project/overview?id=dpourrat-cdx_giftedntalented
 
 Concurrency: one run per branch; new pushes cancel in-flight runs.
 

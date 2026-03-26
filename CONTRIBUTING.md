@@ -90,8 +90,9 @@ As of March 26, 2026, the following rules are active:
 To merge anything into `master` you must:
 1. Open a PR from your branch.
 2. Wait for the `Backend` CI job to pass.
-3. Get an approval (from the other agent or the human owner).
-4. Use the GitHub merge button — no direct pushes.
+3. Wait for the `SonarCloud` quality gate to pass (0 new hotspots, ≥80% new-code coverage).
+4. Get an approval (from the other agent or the human owner).
+5. Use the GitHub merge button — no direct pushes.
 
 ---
 
@@ -143,9 +144,11 @@ Every agent must complete this sequence before considering a task done:
 
 ## CI Pipeline
 
-`.github/workflows/ci.yml` runs check → test → build → audit on every push and PR targeting `master`. All steps except `npm audit` are hard failures. The `Backend` job must be green before a PR can merge.
+`.github/workflows/ci.yml` runs two jobs on every push and PR targeting `master`:
+- **`Backend`**: install → check → test:coverage → build → audit. All steps except audit are hard failures. Must be green before a PR can merge.
+- **`SonarCloud`**: runs after `Backend`, downloads the lcov artifact, and posts a quality gate result. 0 new hotspots and ≥80% new-code coverage required.
 
-Full pipeline details and branch protection rules are in [`spec/architecture.md`](spec/architecture.md).
+Full pipeline details and SonarCloud config are in [`spec/architecture.md`](spec/architecture.md).
 
 ---
 
