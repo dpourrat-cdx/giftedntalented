@@ -71,6 +71,7 @@ Additional code quality items:
 - [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
 - [ ] Add browser-level verification for desktop and mobile layout/interaction paths.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
+- [ ] Keep the Render backend build aligned with the backend dependency model. PR 29 switches `render.yaml` to `npm install --include=dev && npm run build` so TypeScript compilation still sees `@types/*` after PR 28 moved them to `devDependencies`.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
