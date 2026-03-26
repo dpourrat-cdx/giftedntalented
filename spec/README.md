@@ -9,13 +9,15 @@ Spec-driven development helps us make changes with clearer scope, fewer surprise
 ## Current Feature Specs
 
 - `backend-api-spec.md` - live Render backend architecture, API responsibilities, current security model, and branch/deployment notes
+- `backend-deploy-checklist.md` - lightweight Render deploy checklist and live smoke-command reference
+- `unified-architecture-and-release-flow.md` - current GitHub Pages, Render, and Supabase release flow plus live smoke-check expectations
 - `captain-nova-ux-refresh.md` - story-first UX architecture for the Captain Nova mission flow, including mission modals, progress feedback, and payoff-first results
 - `captain-nova-current-product-spec.md` - current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, backend-backed score saving, and parent controls
-- `next-implementation-todo.md` - prioritized backlog after the March 18 backend deployment and frontend API integration, with deeper security hardening still first
+- `next-implementation-todo.md` - prioritized backlog after the March 25 score-attempt rollout, with the remaining trust, docs, and ops work still first
 
 ## Current Status
 
-These specs were refreshed through the March 18, 2026 backend integration pass. The shipped system now includes:
+These specs were refreshed through the March 25, 2026 score-attempt rollout. The shipped system now includes:
 
 - cinematic story content with a swappable storyline-pack structure
 - blocking mission introduction, update, completion, and final-launch modals
@@ -28,6 +30,7 @@ These specs were refreshed through the March 18, 2026 backend integration pass. 
 - a results recap gallery built from the active storyline artwork
 - a live Render backend for score read/save/reset
 - backend-to-Supabase score persistence with one best row per child name
+- backend-owned score attempts with route-level validation and finalize flow
 - device-only score fallback messaging instead of silent local-first score display
 - server-side reset PIN verification instead of browser-held reset logic
 - backend source now merged into `master`
@@ -41,6 +44,8 @@ The live system now ships from one main branch:
   - GitHub Pages frontend
   - backend source under `backend/`
   - Render deployment source with `backend/` as the service root
+
+For the current release flow and smoke checks, see [unified-architecture-and-release-flow.md](unified-architecture-and-release-flow.md).
 
 This means frontend, backend, and specs now live in one unified repo history.
 

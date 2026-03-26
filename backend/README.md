@@ -7,6 +7,7 @@ This is a standalone Node.js + Express backend for the Captain Nova app.
 It supports:
 
 - player best-score storage in Supabase
+- score attempts with backend validation and finalize flow
 - secure reset handling with the PIN verified server-side
 - Android-ready FCM device registration
 - admin-triggered push notifications
@@ -52,7 +53,10 @@ npm run start
 
 - `GET /api/v1/health`
 - `GET /api/v1/players/:playerName/record`
-- `POST /api/v1/players/:playerName/record`
+- `POST /api/v1/players/:playerName/record` `410` legacy-disabled
+- `POST /api/v1/attempts`
+- `POST /api/v1/attempts/:attemptId/answers`
+- `POST /api/v1/attempts/:attemptId/finalize`
 - `POST /api/v1/devices/register`
 - `POST /api/v1/devices/unregister`
 - `POST /api/v1/admin/scores/reset`

@@ -1,3 +1,8 @@
+-- LEGACY SCOREBOARD SETUP
+-- This file is preserved for historical reference only.
+-- The live schema source of truth is backend/supabase/backend_schema.sql.
+-- Do not use this file for new deployments.
+
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.test_scores (
