@@ -112,60 +112,6 @@ describe("ScoreService", () => {
     });
   });
 
-  describe("savePlayerRecord", () => {
-    const validInput = {
-      playerName: "Alice",
-      score: 50,
-      percentage: 78,
-      totalQuestions: 64,
-      elapsedSeconds: 1200,
-      clientType: "web" as const,
-      mode: "quiz" as const,
-    };
-
-    it("returns storyOnly for story mode without DB call", async () => {
-      const result = await service.savePlayerRecord({ ...validInput, mode: "story" });
-      expect(result).toEqual({ saved: false, storyOnly: true });
-      expect(mockRpc).not.toHaveBeenCalled();
-    });
-
-    it("saves and returns record for quiz mode", async () => {
-      mockRpc.mockResolvedValue({
-        data: {
-          player_name: "Alice",
-          score: 50,
-          percentage: 78,
-          total_questions: 64,
-          elapsed_seconds: 1200,
-          completed_at: "2026-01-01T00:00:00Z",
-        },
-        error: null,
-      });
-
-      const result = await service.savePlayerRecord(validInput);
-
-      expect(result.saved).toBe(true);
-      expect(result.storyOnly).toBe(false);
-      expect(result.record).toEqual({
-        playerName: "Alice",
-        score: 50,
-        percentage: 78,
-        totalQuestions: 64,
-        elapsedSeconds: 1200,
-        completedAt: "2026-01-01T00:00:00Z",
-      });
-    });
-
-    it("throws 502 on supabase error", async () => {
-      mockRpc.mockResolvedValue({ data: null, error: { message: "write error" } });
-
-      await expect(service.savePlayerRecord(validInput)).rejects.toMatchObject({
-        statusCode: 502,
-        code: "SUPABASE_WRITE_FAILED",
-      });
-    });
-  });
-
   describe("resetScores", () => {
     it("completes happy path: verify PIN, count, delete", async () => {
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);

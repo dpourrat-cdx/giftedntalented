@@ -1167,6 +1167,7 @@ function buildSectionButton(section, isActive, sectionIndex) {
   const completionBadgeIcon = isPerfect
     ? missionCompletionStarBadgeSvg()
     : missionCompletionCheckBadgeSvg();
+  const completionSuffix = isCompleted ? ` ${completionLabel}` : "";
   const button = document.createElement("button");
   button.type = "button";
   button.className = "section-button";
@@ -1174,7 +1175,7 @@ function buildSectionButton(section, isActive, sectionIndex) {
   button.setAttribute(
     "aria-label",
     mission
-      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.${isCompleted ? ` ${completionLabel}` : ""}`
+      ? `Mission ${mission.number}. ${mission.title}. Unlock ${mission.rocketPart}.${completionSuffix}`
       : `${section}. Mission reward: ${reward.label}.`,
   );
 
@@ -1189,25 +1190,50 @@ function buildSectionButton(section, isActive, sectionIndex) {
     }
   }
 
-  button.innerHTML = `
-    ${
-      isCompleted
-        ? `<span class="section-button-status ${completionBadgeClass}" aria-hidden="true">
-            <span class="section-button-status-icon ${completionBadgeClass}">${completionBadgeIcon}</span>
-            <span class="section-button-status-text">Done</span>
-          </span>`
-        : ""
-    }
-    <span class="section-button-main">
-      <span class="mission-reward-icon reward-${reward.key}" aria-hidden="true">
-        ${missionRewardSvg(reward.key)}
-      </span>
-      <span class="section-button-copy">
-        ${mission ? `<span class="section-button-overline">Mission ${mission.number}</span>` : ""}
-        <strong>${mission ? mission.title : section}</strong>
-      </span>
-    </span>
-  `;
+  const main = document.createElement("span");
+  main.className = "section-button-main";
+
+  const rewardIcon = document.createElement("span");
+  rewardIcon.className = `mission-reward-icon reward-${reward.key}`;
+  rewardIcon.setAttribute("aria-hidden", "true");
+  rewardIcon.innerHTML = missionRewardSvg(reward.key);
+  main.appendChild(rewardIcon);
+
+  const copy = document.createElement("span");
+  copy.className = "section-button-copy";
+
+  if (mission) {
+    const overline = document.createElement("span");
+    overline.className = "section-button-overline";
+    overline.textContent = `Mission ${mission.number}`;
+    copy.appendChild(overline);
+  }
+
+  const title = document.createElement("strong");
+  title.textContent = mission ? mission.title : section;
+  copy.appendChild(title);
+  main.appendChild(copy);
+
+  button.appendChild(main);
+
+  if (isCompleted) {
+    const status = document.createElement("span");
+    status.className = `section-button-status ${completionBadgeClass}`;
+    status.setAttribute("aria-hidden", "true");
+
+    const statusIcon = document.createElement("span");
+    statusIcon.className = `section-button-status-icon ${completionBadgeClass}`;
+    statusIcon.innerHTML = completionBadgeIcon;
+
+    const statusText = document.createElement("span");
+    statusText.className = "section-button-status-text";
+    statusText.textContent = "Done";
+
+    status.appendChild(statusIcon);
+    status.appendChild(statusText);
+    button.insertBefore(status, button.firstChild);
+  }
+
   button.addEventListener("click", () => goToSection(section));
   return button;
 }

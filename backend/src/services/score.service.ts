@@ -1,17 +1,7 @@
 import bcrypt from "bcryptjs";
 import { supabase } from "../lib/supabase.js";
 import { AppError } from "../utils/errors.js";
-import { normalizeElapsedSeconds, normalizePlayerName } from "../utils/normalize.js";
-
-type ScoreInput = {
-  playerName: string;
-  score: number;
-  percentage: number;
-  totalQuestions: number;
-  elapsedSeconds?: number | null;
-  clientType: "web" | "android";
-  mode: "quiz" | "story";
-};
+import { normalizePlayerName } from "../utils/normalize.js";
 
 function mapScoreRow(row: Record<string, unknown>) {
   return {
@@ -41,35 +31,6 @@ export class ScoreService {
 
     return mapScoreRow(data[0]);
   }
-
-  async savePlayerRecord(input: ScoreInput) {
-    if (input.mode === "story") {
-      return {
-        saved: false,
-        storyOnly: true,
-      };
-    }
-
-    const normalizedName = normalizePlayerName(input.playerName);
-    const { data, error } = await supabase.rpc("save_player_score", {
-      target_player_name: normalizedName,
-      score: input.score,
-      percentage: input.percentage,
-      total_questions: input.totalQuestions,
-      elapsed_seconds: normalizeElapsedSeconds(input.elapsedSeconds),
-    });
-
-    if (error) {
-      throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", error);
-    }
-
-    return {
-      saved: true,
-      storyOnly: false,
-      record: mapScoreRow(data),
-    };
-  }
-
   async resetScores(resetPin: string) {
     const { data, error } = await supabase
       .from("app_admin_settings")

@@ -18,15 +18,6 @@
     attemptSyncWarning: "This mission can continue, but the shared explorer record could not update right now.",
   };
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
   function normalizePlayerName(name) {
     return String(name || "")
       .trim()
@@ -621,18 +612,23 @@
       }
 
       this.elements.name.textContent = topScore.playerName;
-      const metaBits = [
-        `<span>${escapeHtml(`${topScore.score}/${topScore.totalQuestions}`)}</span>`,
-        `<span>${escapeHtml(`${topScore.percentage}%`)}</span>`,
+      this.elements.score.textContent = "";
+
+      const scoreBits = [
+        `${topScore.score}/${topScore.totalQuestions}`,
+        `${topScore.percentage}%`,
       ];
 
       if (topScore.elapsedSeconds !== null) {
-        metaBits.push(`<span>${escapeHtml(formatElapsedTime(topScore.elapsedSeconds))}</span>`);
+        scoreBits.push(formatElapsedTime(topScore.elapsedSeconds));
       }
 
-      this.elements.score.innerHTML = `
-        ${metaBits.join("")}
-      `;
+      scoreBits.forEach((value) => {
+        const span = document.createElement("span");
+        span.textContent = value;
+        this.elements.score.appendChild(span);
+      });
+
       this.cachePlayerScore(topScore);
     }
 
