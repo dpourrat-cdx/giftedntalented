@@ -38,17 +38,22 @@ Before starting any task, **read `spec/backlog.md`** to see what is in progress 
 
 ### PR Review Ownership
 
-| Who opens the PR | Who reviews it |
-|---|---|
-| Codex | Claude |
-| Claude | Codex (or human owner) |
+| Who opens the PR | Who reviews it | Who merges it |
+|---|---|---|
+| Codex (`codex/*`) | Claude | **Human owner only** |
+| Claude (`claude/*`) | Codex (or human owner) | Claude (after review passes) |
 
 The reviewing agent must:
 - Confirm all CI checks pass before approving.
 - Leave a short summary comment on what was verified.
 - Never approve a PR that touches the same files as another open PR without explicit human sign-off.
 
-Human owner has final merge authority on any PR that touches security-sensitive paths (`middleware/`, `validators/`, `supabase/`, schema SQL files).
+**Merge authority:**
+- Claude must **never merge a Codex PR**. After reviewing, Claude leaves a comment and waits for the human owner to merge.
+- Claude may merge its own `claude/*` PRs once CI is green and a review has passed.
+- Human owner has final merge authority on any PR that touches security-sensitive paths (`middleware/`, `validators/`, `supabase/`, schema SQL files).
+
+> **Why:** Codex PRs represent work the human owner has directed. Claude reviewing is a quality gate, not an approval to ship. The human owner decides when Codex work lands.
 
 ### Files That Must Not Be Touched Simultaneously
 
