@@ -2,31 +2,42 @@
 
 ## Goal
 
-This backlog captures the next high-value work for the Captain Nova app after the March 18 backend deployment, frontend API migration, backend merge into `master`, and Render branch cleanup.
+This backlog captures the next high-value work for the Captain Nova app after the March 25, 2026 score-attempt rollout, backend merge into `master`, live deploy verification, and branch cleanup.
 
-The biggest theme now is tightening trust and cleaning up the architecture around the new frontend -> Render backend -> Supabase flow.
+The biggest theme now is finishing the move from "browser-trusted score writes" to a cleaner, documented, and more defensible frontend -> Render backend -> Supabase architecture.
 
-## Priority 0: Secret Hygiene And Security Cleanup
+## Current State Snapshot
+
+- Frontend score submission now goes through backend-owned score attempts instead of posting raw score payloads directly.
+- The legacy `POST /players/:playerName/record` endpoint is live but intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
+- Backend tests and TypeScript checks are in place and passing locally.
+- The live backend health endpoint and deployed frontend assets were verified after the March 25, 2026 merge.
+- The backend schema includes `score_attempts` locally, but the live Supabase migration still needs to be confirmed before the attempt flow is considered fully deployed.
+- A one-command live backend smoke runner and deploy checklist now exist in `backend/` and `spec/`.
+
+## Priority 0: Security And Secret Hygiene Follow-Through
 
 - Decide whether to scrub old secrets from git history using a history-rewrite tool, or treat them as permanently rotated legacy values.
-- Add a small secret-rotation runbook so future key changes are fast and repeatable.
+- Add a short secret-rotation runbook so future key changes are fast and repeatable.
 - Review the live Render service and Supabase project for least-privilege settings and remove anything no longer needed from the old direct-frontend approach.
 - Review backend logs and env vars to ensure no secrets are accidentally echoed in startup or error output.
 
-## Priority 1: Score Integrity And Abuse Resistance
+## Priority 1: Score Integrity Hardening
 
-- Stop trusting browser-submitted `score`, `percentage`, and `elapsedSeconds` as authoritative.
-- Decide on the next trust model:
+- Decide the long-term trust model now that attempt-based sync is live:
   - backend-issued signed attempt tokens, or
-  - fully server-owned question delivery and answer validation
-- Consider moving question selection to the backend so repeated refreshes cannot inspect or predict the full answer set in the browser.
-- Consider moving answer checking to the backend if tamper resistance becomes a product requirement.
+  - fully backend-owned question delivery and answer validation
+- Remove the remaining trust gap where the backend still derives authoritative question shape from frontend-shipped content.
+- Decide whether question selection should move to the backend so refreshes cannot inspect or predict the full answer set in the browser.
+- Add attempt expiry / replay rules so stale attempts cannot be reused indefinitely.
 - Add an audit trail for score writes showing:
   - normalized player name
   - old best vs new best
   - whether the new attempt replaced the old one
   - request source / client type
-- Add rate-limit metrics or alerting for suspicious bursts on public score-write endpoints.
+  - attempt id
+- Add rate-limit metrics or alerting for suspicious bursts on public attempt-write endpoints.
+- Review public player-name lookup endpoints for enumeration risk and decide whether response shaping or throttling should change.
 
 ## Priority 2: Privacy And Parent Safety
 
@@ -40,9 +51,9 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 - Define retention expectations for score history, reset logs, and device caches.
 - Decide whether the reset flow should move from a browser prompt to a small parent-only form with clearer error handling and fewer accidental submissions.
 
-## Priority 3: Repo And Architecture Cleanup
+## Priority 3: Architecture And Repo Cleanup
 
-- Archive or clearly mark `supabase/scoreboard_setup.sql` on `master` as legacy now that the live score flow uses the backend schema under `backend/supabase/backend_schema.sql`.
+- Archive or clearly mark [supabase/scoreboard_setup.sql](../supabase/scoreboard_setup.sql) as legacy now that the live score flow uses [backend/supabase/backend_schema.sql](../backend/supabase/backend_schema.sql).
 - Add a short architecture note or diagram showing:
   - GitHub Pages frontend
   - Render backend
@@ -51,30 +62,26 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
   - frontend asset cache-busting expectations
   - backend deploy expectations
   - required post-deploy smoke checks
-- Decide whether the backend should eventually move to its own repository for operational isolation, or stay co-located with the frontend for simpler releases.
 - Add a short release checklist for unified `master` deploys so frontend and backend changes stay coordinated.
+- Decide whether the backend should eventually move to its own repository for operational isolation, or stay co-located with the frontend for simpler releases.
 
 ## Priority 4: Defensive Testing And Ops
 
 - Add an automated smoke test suite for:
   - frontend page load
   - explorer record lookup
-  - score save through the backend
+  - score attempt start / answer / finalize flow
   - reset flow
   - Chrome/Edge consistency
   - mobile modal visibility
   - Story Only mode progression
-- Add a backend deployment checklist that includes:
-  - Render env var validation
-  - health endpoint verification
-  - Supabase schema migration verification
-  - post-deploy score save/read/reset smoke tests
-- Add one lightweight API smoke script that can validate the live backend in one command.
 - Add a build/release step that bumps frontend asset versions automatically before pushing to GitHub Pages.
 - Add dependency review and `npm audit` follow-up for the backend package set.
 - Add automated verification that Render is still targeting `master` and `backend/` after any service edits.
+- Keep the live backend smoke runner aligned with the production API whenever score or schema behavior changes.
+- Keep the backend deployment checklist updated as new release checks are added.
 
-## Priority 5: Cyber Security Review
+## Priority 5: Frontend And API Safety Review
 
 - Review all remaining `innerHTML` render paths and replace them with safer DOM construction where practical.
 - Add a stricter Content Security Policy plan for the frontend hosting model.
@@ -82,7 +89,6 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 - Add backend request logging rules that are useful for incident review without over-logging child data.
 - Add alerting for repeated reset failures, high error rates, and unusual public write activity.
 - Review the current admin key model for push-send endpoints and decide whether a stronger admin auth model is needed later.
-- Review the backend API surface for abuse paths such as player-name enumeration and repeated record probing.
 
 ## Priority 6: Product And Content Improvements
 
@@ -94,19 +100,17 @@ The biggest theme now is tightening trust and cleaning up the architecture aroun
 - Add a lightbox or slideshow mode for the end-of-story gallery.
 - Add the remaining mission-complete artworks so every mission has its own custom final reward scene.
 
-## Suggested Delivery Order
+## Next Recommended Delivery Slice
 
-1. Finish secret-hygiene follow-through and decide on git-history cleanup.
-2. Improve score integrity and abuse resistance.
-3. Clean up legacy SQL/docs and document the unified release flow.
-4. Add automated smoke tests and deployment checklists.
-5. Improve parent privacy UX and safety controls.
-6. Continue story/content/product enhancements.
+1. Clean up docs and legacy SQL labeling so the current architecture is obvious to future contributors.
+2. Add live smoke tooling and deployment checklists so release verification is repeatable.
+3. Choose the next score-hardening direction and write it down before another score-flow rewrite.
+4. Tackle parent privacy UX and single-record deletion after the operational basics are documented.
 
 ## Done Definition For This Backlog
 
-- No security-critical values remain trusted just because they are in the browser or old public history.
-- Score flow is harder to tamper with and easier to monitor.
+- Current score flow is documented accurately and legacy paths are clearly marked.
+- Live deploy verification is scriptable and repeatable.
+- Remaining score-integrity gaps are explicitly chosen, not accidental.
 - Parent-facing privacy and fallback behavior is understandable.
 - Frontend, backend, and database releases have a documented and repeatable process.
-- Future feature work builds on a cleaner and safer foundation.

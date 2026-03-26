@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
+    "smoke:live": "tsx scripts/smoke-live-backend.ts",
     "start": "node dist/server.js",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
