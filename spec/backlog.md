@@ -16,6 +16,7 @@ This file is the live backlog only. Completed work should not stay here unless i
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
   - `spec/backend-api-spec.md`
+- `CONTRIBUTING.md` is the source of truth for cross-agent review expectations: PR comments should explicitly call in Claude/Codex for review, and new Sonar issues must be fixed or logged here before a PR is considered ready.
 
 ## Priority 1: Security Hardening
 
