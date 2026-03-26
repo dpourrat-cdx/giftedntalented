@@ -18,6 +18,11 @@ Use this when the Render backend or the `master` branch changes.
   - submit answer
   - finalize attempt
   - confirm no score is saved for the wrong-answer smoke run
+- Verify the replay-safe smoke path works end to end:
+  - repeat the same answer submission on an active attempt
+  - repeat finalize on the same attempt
+  - accept either an explicit replay rejection or an idempotent no-op, but not a second divergent score write
+  - confirm the final saved record remains stable
 - If the smoke script fails with `PGRST205`, the `score_attempts` schema migration is not present in Supabase yet.
 - If any check fails, stop and investigate before publishing the change.
 

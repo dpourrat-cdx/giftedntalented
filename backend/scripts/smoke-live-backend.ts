@@ -47,9 +47,28 @@ function expectStatus(step: string, response: JsonResponse, expectedStatus: numb
   );
 }
 
+function expectReplaySafeStatus(step: string, response: JsonResponse, expectedStatuses: number[]) {
+  assert(
+    expectedStatuses.includes(response.status),
+    `${step} failed: expected HTTP ${expectedStatuses.join(" or ")}, received ${response.status}. Body: ${JSON.stringify(response.body)}`,
+  );
+}
+
 function expectObject(step: string, body: unknown): Record<string, unknown> {
   assert(body && typeof body === "object" && !Array.isArray(body), `${step} failed: response body was not an object`);
   return body as Record<string, unknown>;
+}
+
+function expectRecordSnapshot(step: string, body: Record<string, unknown> | null) {
+  assert(body && typeof body === "object", `${step} failed: record payload was missing`);
+  return {
+    playerName: String(body.playerName || ""),
+    score: Number(body.score),
+    percentage: Number(body.percentage),
+    totalQuestions: Number(body.totalQuestions),
+    elapsedSeconds: body.elapsedSeconds === null || body.elapsedSeconds === undefined ? null : Number(body.elapsedSeconds),
+    completedAt: String(body.completedAt || ""),
+  };
 }
 
 function buildWebQuestions(questionBank: Awaited<ReturnType<typeof getLoadedQuestionBank>>) {
@@ -169,6 +188,118 @@ async function main() {
   const recordLookup = await requestJson(`/players/${encodeURIComponent(playerName)}/record`);
   expectStatus("post-finalize record lookup", recordLookup, 404);
   console.log("Record lookup check passed.");
+
+  const replayPlayerName = `${playerName} replay`;
+  const replayStart = await requestJson("/attempts", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName: replayPlayerName,
+      clientType: "web",
+      mode: "quiz",
+      questions: webQuestions.map(({ answer, section, ...question }) => question),
+    }),
+  });
+  expectStatus("replay attempt start", replayStart, 201);
+  const replayStartBody = expectObject("replay attempt start", replayStart.body);
+  const replayAttemptId = String(replayStartBody.attemptId || "");
+  assert(replayAttemptId, "replay attempt start failed: attemptId was missing");
+
+  const correctAnswer = webQuestions[0];
+  const correctSubmitBody = {
+    questionId: correctAnswer.questionId,
+    bankId: correctAnswer.bankId,
+    selectedAnswer: correctAnswer.answer,
+    elapsedSeconds: 18,
+  };
+
+  const firstReplayAnswer = await requestJson(`/attempts/${encodeURIComponent(replayAttemptId)}/answers`, {
+    method: "POST",
+    body: JSON.stringify(correctSubmitBody),
+  });
+  expectStatus("replay answer submission", firstReplayAnswer, 201);
+  const firstReplayAnswerBody = expectObject("replay answer submission", firstReplayAnswer.body);
+  assert(firstReplayAnswerBody.accepted === true, "replay answer submission failed: answer was not accepted");
+  const firstReplayProgress = expectObject("replay answer submission progress", firstReplayAnswerBody.progress);
+  assert(firstReplayProgress.answeredCount === 1, "replay answer submission failed: answered count was not 1");
+  assert(firstReplayProgress.correctCount === 1, "replay answer submission failed: correct answer should have been counted correct");
+  const firstReplayRecord = expectRecordSnapshot("replay answer submission record", firstReplayAnswerBody.record as Record<string, unknown> | null);
+
+  const secondReplayAnswer = await requestJson(`/attempts/${encodeURIComponent(replayAttemptId)}/answers`, {
+    method: "POST",
+    body: JSON.stringify(correctSubmitBody),
+  });
+  expectReplaySafeStatus("replayed answer submission", secondReplayAnswer, [201, 409]);
+  if (secondReplayAnswer.status === 201) {
+    const secondReplayAnswerBody = expectObject("replayed answer submission", secondReplayAnswer.body);
+    assert(secondReplayAnswerBody.accepted === true, "replayed answer submission failed: answer was not accepted");
+    const secondReplayProgress = expectObject("replayed answer submission progress", secondReplayAnswerBody.progress);
+    assert(
+      secondReplayProgress.answeredCount === firstReplayProgress.answeredCount &&
+        secondReplayProgress.correctCount === firstReplayProgress.correctCount &&
+        secondReplayProgress.totalQuestions === firstReplayProgress.totalQuestions,
+      "replayed answer submission failed: progress changed on retry",
+    );
+    const secondReplayRecord = expectRecordSnapshot(
+      "replayed answer submission record",
+      secondReplayAnswerBody.record as Record<string, unknown> | null,
+    );
+    assert(
+      JSON.stringify(secondReplayRecord) === JSON.stringify(firstReplayRecord),
+      "replayed answer submission failed: returned score record changed on retry",
+    );
+  } else {
+    const secondReplayBody = expectObject("replayed answer submission", secondReplayAnswer.body);
+    assert(
+      secondReplayBody.error === "ATTEMPT_ANSWER_LOCKED" || secondReplayBody.error === "ATTEMPT_ALREADY_COMPLETED",
+      "replayed answer submission failed: unexpected replay error",
+    );
+  }
+
+  const firstReplayFinalize = await requestJson(`/attempts/${encodeURIComponent(replayAttemptId)}/finalize`, {
+    method: "POST",
+    body: JSON.stringify({
+      elapsedSeconds: 22,
+    }),
+  });
+  expectStatus("replay attempt finalize", firstReplayFinalize, 200);
+  const firstReplayFinalizeBody = expectObject("replay attempt finalize", firstReplayFinalize.body);
+  assert(firstReplayFinalizeBody.finalized === true, "replay attempt finalize failed: finalized was not true");
+  const firstReplayFinalizeRecord = expectRecordSnapshot(
+    "replay attempt finalize record",
+    firstReplayFinalizeBody.record as Record<string, unknown> | null,
+  );
+
+  const secondReplayFinalize = await requestJson(`/attempts/${encodeURIComponent(replayAttemptId)}/finalize`, {
+    method: "POST",
+    body: JSON.stringify({
+      elapsedSeconds: 22,
+    }),
+  });
+  expectReplaySafeStatus("replayed attempt finalize", secondReplayFinalize, [200, 409]);
+  if (secondReplayFinalize.status === 200) {
+    const secondReplayFinalizeBody = expectObject("replayed attempt finalize", secondReplayFinalize.body);
+    assert(secondReplayFinalizeBody.finalized === true, "replayed attempt finalize failed: finalized was not true");
+    const secondReplayFinalizeRecord = expectRecordSnapshot(
+      "replayed attempt finalize record",
+      secondReplayFinalizeBody.record as Record<string, unknown> | null,
+    );
+    assert(
+      JSON.stringify(secondReplayFinalizeRecord) === JSON.stringify(firstReplayFinalizeRecord),
+      "replayed attempt finalize failed: returned score record changed on retry",
+    );
+  } else {
+    const secondReplayBody = expectObject("replayed attempt finalize", secondReplayFinalize.body);
+    assert(
+      secondReplayBody.error === "ATTEMPT_ALREADY_COMPLETED",
+      "replayed attempt finalize failed: unexpected replay error",
+    );
+  }
+
+  const replayRecordLookup = await requestJson(`/players/${encodeURIComponent(replayPlayerName)}/record`);
+  expectStatus("replay post-finalize record lookup", replayRecordLookup, 200);
+  const replayRecordLookupBody = expectObject("replay post-finalize record lookup", replayRecordLookup.body);
+  assert(replayRecordLookupBody.playerName === replayPlayerName, "replay post-finalize record lookup failed: wrong player returned");
+  console.log("Replay-safe answer/finalize checks passed.");
 
   console.log("Live backend smoke checks passed.");
 }
