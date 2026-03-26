@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import { getLoadedQuestionBank } from "../lib/question-bank.js";
 import { logger } from "../config/logger.js";
 import { supabase } from "../lib/supabase.js";
@@ -6,6 +6,7 @@ import { AppError } from "../utils/errors.js";
 import { normalizeElapsedSeconds, normalizePlayerName } from "../utils/normalize.js";
 
 const ATTEMPT_TTL_HOURS = 2;
+let randomIndexPicker = (max: number) => randomInt(max);
 
 type StartAttemptInput = {
   playerName: string;
@@ -152,8 +153,9 @@ function hasSameOptions(providedOptions: string[], expectedOptions: string[]) {
     return false;
   }
 
-  const normalizedProvided = [...providedOptions].sort();
-  const normalizedExpected = [...expectedOptions].sort();
+  const compareText = (left: string, right: string) => left.localeCompare(right);
+  const normalizedProvided = [...providedOptions].sort(compareText);
+  const normalizedExpected = [...expectedOptions].sort(compareText);
   return normalizedProvided.every((value, index) => value === normalizedExpected[index]);
 }
 
@@ -259,11 +261,17 @@ function shuffleItems<T>(items: T[]) {
   const shuffled = [...items];
 
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const swapIndex = randomIndexPicker(index + 1);
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
 
   return shuffled;
+}
+
+export function setAttemptRandomIndexPickerForTests(
+  picker: ((max: number) => number) | null,
+) {
+  randomIndexPicker = picker ?? ((max: number) => randomInt(max));
 }
 
 function buildAnswerSlotPlan(count: number) {

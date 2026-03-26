@@ -15,6 +15,25 @@
   const QUESTION_HISTORY_STORAGE_KEY = "gifted-question-history-v1";
   const RECENT_HISTORY_LIMIT = QUESTIONS_PER_TEST_SECTION * 4;
 
+  function secureRandomIndex(length) {
+    if (length <= 0) {
+      return 0;
+    }
+
+    const cryptoApi = globalThis.crypto;
+    if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
+      throw new Error("Secure randomness is unavailable in this browser.");
+    }
+
+    const limit = Math.floor(0x100000000 / length) * length;
+    const values = new Uint32Array(1);
+    do {
+      cryptoApi.getRandomValues(values);
+    } while (values[0] >= limit);
+
+    return values[0] % length;
+  }
+
   function seededShuffle(items, seed) {
     const list = [...items];
     let value = seed * 7919 + 104729;
@@ -104,7 +123,7 @@
   function sampleWithoutReplacement(items, count) {
     const copy = [...items];
     for (let index = copy.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
+      const swapIndex = secureRandomIndex(index + 1);
       [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
     }
     return copy.slice(0, count);
