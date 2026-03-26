@@ -70,6 +70,7 @@ describe("Attempts routes", () => {
         storyOnly: false,
         attemptId: ATTEMPT_ID,
         totalQuestions: 1,
+        questions: [{ questionId: 1, bankId: "q1", section: "Math", prompt: "Q1", options: ["A", "B", "C", "D"] }],
       });
 
       const response = await request(app).post("/api/v1/attempts").send({
@@ -81,6 +82,7 @@ describe("Attempts routes", () => {
 
       expect(response.status).toBe(201);
       expect(response.body.attemptId).toBe(ATTEMPT_ID);
+      expect(response.body.questions).toHaveLength(1);
       expect(response.body.requestId).toBeDefined();
       expect(mockAttemptService.startAttempt).toHaveBeenCalledOnce();
       expect(mockAttemptService.startAttempt).toHaveBeenCalledWith(
@@ -117,12 +119,38 @@ describe("Attempts routes", () => {
         playerName: "Alice",
         clientType: "web",
         mode: "quiz",
-        questions: [],
+        questions: [{ questionId: 1 }],
       });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe("VALIDATION_ERROR");
       expect(mockAttemptService.startAttempt).not.toHaveBeenCalled();
+    });
+
+    it("allows the quiz payload to be omitted for backend-owned selection", async () => {
+      mockAttemptService.startAttempt.mockResolvedValue({
+        storyOnly: false,
+        attemptId: ATTEMPT_ID,
+        totalQuestions: 4,
+        questions: [],
+      });
+
+      const response = await request(app).post("/api/v1/attempts").send({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.questions).toEqual([]);
+      expect(mockAttemptService.startAttempt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          playerName: "Alice",
+          clientType: "web",
+          mode: "quiz",
+        }),
+      );
+      expect(mockAttemptService.startAttempt.mock.calls[0][0]).not.toHaveProperty("questions");
     });
   });
 

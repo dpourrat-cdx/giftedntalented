@@ -11,7 +11,7 @@ type StartAttemptInput = {
   playerName: string;
   clientType: "web" | "android";
   mode: "quiz" | "story";
-  questions: {
+  questions?: {
     questionId: number;
     bankId: string;
     options: string[];
@@ -34,6 +34,19 @@ type AttemptQuestionKey = {
   bankId: string;
   correctAnswer: number;
   section: string;
+};
+
+type AttemptQuestionResponse = {
+  questionId: number;
+  bankId: string;
+  section: string;
+  prompt: string;
+  options: string[];
+  stimulus?: string;
+};
+
+type SelectedAttemptQuestion = AttemptQuestionResponse & {
+  correctAnswer: number;
 };
 
 type ScoreSaveComparableRow = {
@@ -89,6 +102,9 @@ type AttemptSavePayload = {
   audit?: AttemptSaveResult["audit"] | null;
 };
 
+type LoadedQuestionBank = Awaited<ReturnType<typeof getLoadedQuestionBank>>;
+type CanonicalQuestion = LoadedQuestionBank["questionIndex"] extends Map<string, infer Question> ? Question : never;
+
 function addHoursIso(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 }
@@ -110,6 +126,25 @@ function mapScoreRow(row: Record<string, unknown>) {
 
 function uniqueStrings(values: string[]) {
   return [...new Set(values)];
+}
+
+function isQuestionBankQuestion(value: unknown): value is CanonicalQuestion {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.bankId === "string" &&
+    typeof candidate.section === "string" &&
+    typeof candidate.prompt === "string" &&
+    Array.isArray(candidate.options) &&
+    candidate.options.length === 4 &&
+    typeof candidate.answer === "number" &&
+    Number.isInteger(candidate.answer) &&
+    candidate.answer >= 0 &&
+    candidate.answer <= 3
+  );
 }
 
 function hasSameOptions(providedOptions: string[], expectedOptions: string[]) {
@@ -207,6 +242,137 @@ function buildSelectionFingerprint(questionKey: AttemptQuestionKey[]) {
       ),
     )
     .digest("hex");
+}
+
+function buildAttemptQuestions(selection: SelectedAttemptQuestion[]): AttemptQuestionResponse[] {
+  return selection.map((question) => ({
+    questionId: question.questionId,
+    bankId: question.bankId,
+    section: question.section,
+    prompt: question.prompt,
+    options: [...question.options],
+    ...(question.stimulus ? { stimulus: question.stimulus } : {}),
+  }));
+}
+
+function hashQuestionOrder(seed: string, question: CanonicalQuestion) {
+  return createHash("sha256")
+    .update(`${seed}:${question.section}:${question.bankId}`)
+    .digest("hex");
+}
+
+function selectBackendQuestions(questionBank: LoadedQuestionBank, seed: string) {
+  const selection: SelectedAttemptQuestion[] = [];
+  const questionsBySection = [...questionBank.questionIndex.values()].reduce((accumulator, question) => {
+    if (!isQuestionBankQuestion(question)) {
+      return accumulator;
+    }
+
+    const sectionQuestions = accumulator.get(question.section) ?? [];
+    sectionQuestions.push(question);
+    accumulator.set(question.section, sectionQuestions);
+    return accumulator;
+  }, new Map<string, CanonicalQuestion[]>());
+
+  questionBank.sections.forEach((section) => {
+    const selectedSectionQuestions = (questionsBySection.get(section) ?? [])
+      .slice()
+      .sort((left, right) => {
+        const leftHash = hashQuestionOrder(seed, left);
+        const rightHash = hashQuestionOrder(seed, right);
+        if (leftHash !== rightHash) {
+          return leftHash.localeCompare(rightHash);
+        }
+
+        return left.bankId.localeCompare(right.bankId);
+      })
+      .slice(0, questionBank.questionsPerTestSection);
+
+    selectedSectionQuestions.forEach((question) => {
+      selection.push({
+        questionId: selection.length + 1,
+        bankId: question.bankId,
+        section: question.section,
+        prompt: question.prompt,
+        stimulus: question.stimulus,
+        options: [...question.options],
+        correctAnswer: question.answer,
+      });
+    });
+  });
+
+  return selection;
+}
+
+function buildLegacyAttemptQuestions(
+  questionBank: LoadedQuestionBank,
+  questions: NonNullable<StartAttemptInput["questions"]>,
+) {
+  const normalizedQuestions = [...questions].sort((left, right) => left.questionId - right.questionId);
+  const questionIds = new Set<number>();
+  const bankIds = new Set<string>();
+  const sectionCounts = new Map<string, number>();
+  const questionKey: AttemptQuestionKey[] = [];
+  const selectedQuestions: SelectedAttemptQuestion[] = [];
+  const expectedTotalQuestions = questionBank.sections.length * questionBank.questionsPerTestSection;
+
+  if (normalizedQuestions.length !== expectedTotalQuestions) {
+    throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt did not include the expected number of questions.");
+  }
+
+  normalizedQuestions.forEach((question, index) => {
+    if (question.questionId !== index + 1 || questionIds.has(question.questionId)) {
+      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt question order is invalid.");
+    }
+
+    if (bankIds.has(question.bankId)) {
+      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt included duplicate bank questions.");
+    }
+
+    const canonicalQuestion = questionBank.questionIndex.get(question.bankId);
+    if (!canonicalQuestion) {
+      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt included an unknown bank question.");
+    }
+
+    if (uniqueStrings(question.options).length !== 4 || !hasSameOptions(question.options, canonicalQuestion.options)) {
+      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt options did not match the canonical question bank.");
+    }
+
+    const correctOption = canonicalQuestion.options[canonicalQuestion.answer];
+    const correctAnswer = question.options.indexOf(correctOption);
+    if (correctAnswer === -1) {
+      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt options could not be verified.");
+    }
+
+    questionIds.add(question.questionId);
+    bankIds.add(question.bankId);
+    sectionCounts.set(canonicalQuestion.section, (sectionCounts.get(canonicalQuestion.section) ?? 0) + 1);
+    questionKey.push({
+      questionId: question.questionId,
+      bankId: question.bankId,
+      correctAnswer,
+      section: canonicalQuestion.section,
+    });
+    selectedQuestions.push({
+      questionId: question.questionId,
+      bankId: question.bankId,
+      section: canonicalQuestion.section,
+      prompt: canonicalQuestion.prompt,
+      stimulus: canonicalQuestion.stimulus,
+      options: [...question.options],
+      correctAnswer,
+    });
+  });
+
+  const hasExpectedSectionShape = questionBank.sections.every((section) => {
+    return (sectionCounts.get(section) ?? 0) === questionBank.questionsPerTestSection;
+  });
+
+  if (!hasExpectedSectionShape) {
+    throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt did not include the expected mission distribution.");
+  }
+
+  return { questionKey, selectedQuestions };
 }
 
 function buildPreviewRecord(playerName: string, progress: ReturnType<typeof computeAttemptProgress>, elapsedSeconds: number | null) {
@@ -540,66 +706,26 @@ export class AttemptService {
         storyOnly: true,
         attemptId: null,
         totalQuestions: 0,
+        questions: [],
       };
     }
 
     const questionBank = await getLoadedQuestionBank();
     const normalizedName = normalizePlayerName(input.playerName);
-    const questions = [...input.questions].sort((left, right) => left.questionId - right.questionId);
-    const questionIds = new Set<number>();
-    const bankIds = new Set<string>();
-    const sectionCounts = new Map<string, number>();
-    const expectedTotalQuestions = questionBank.sections.length * questionBank.questionsPerTestSection;
-
-    if (input.clientType === "web" && questions.length !== expectedTotalQuestions) {
-      throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt did not include the expected number of questions.");
-    }
-
-    const questionKey = questions.map((question, index) => {
-      if (question.questionId !== index + 1 || questionIds.has(question.questionId)) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt question order is invalid.");
-      }
-
-      if (bankIds.has(question.bankId)) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt included duplicate bank questions.");
-      }
-
-      const canonicalQuestion = questionBank.questionIndex.get(question.bankId);
-      if (!canonicalQuestion) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt included an unknown bank question.");
-      }
-
-      if (uniqueStrings(question.options).length !== 4 || !hasSameOptions(question.options, canonicalQuestion.options)) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt options did not match the canonical question bank.");
-      }
-
-      const correctOption = canonicalQuestion.options[canonicalQuestion.answer];
-      const correctAnswer = question.options.indexOf(correctOption);
-      if (correctAnswer === -1) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt options could not be verified.");
-      }
-
-      questionIds.add(question.questionId);
-      bankIds.add(question.bankId);
-      sectionCounts.set(canonicalQuestion.section, (sectionCounts.get(canonicalQuestion.section) ?? 0) + 1);
-
-      return {
-        questionId: question.questionId,
-        bankId: question.bankId,
-        correctAnswer,
-        section: canonicalQuestion.section,
-      };
-    });
-
-    if (input.clientType === "web") {
-      const hasExpectedSectionShape = questionBank.sections.every((section) => {
-        return (sectionCounts.get(section) ?? 0) === questionBank.questionsPerTestSection;
-      });
-
-      if (!hasExpectedSectionShape) {
-        throw new AppError(400, "ATTEMPT_SHAPE_INVALID", "The attempt did not include the expected mission distribution.");
-      }
-    }
+    const hasClientQuestions = Array.isArray(input.questions) && input.questions.length > 0;
+    const generatedSelection = hasClientQuestions ? null : selectBackendQuestions(questionBank, normalizedName);
+    const selectionData = hasClientQuestions
+      ? buildLegacyAttemptQuestions(questionBank, input.questions ?? [])
+      : {
+          selectedQuestions: generatedSelection ?? [],
+          questionKey: (generatedSelection ?? []).map(({ correctAnswer, ...question }) => ({
+            questionId: question.questionId,
+            bankId: question.bankId,
+            correctAnswer,
+            section: question.section,
+          })),
+        };
+    const { questionKey, selectedQuestions } = selectionData;
 
     const emptyAnswers = questionKey.map(() => null);
     const expiresAt = addHoursIso(ATTEMPT_TTL_HOURS);
@@ -670,6 +796,7 @@ export class AttemptService {
       storyOnly: false,
       attemptId: data.id,
       totalQuestions: data.total_questions,
+      questions: buildAttemptQuestions(selectedQuestions),
     };
   }
 

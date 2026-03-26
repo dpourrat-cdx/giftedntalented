@@ -20,8 +20,8 @@ export const startAttemptBodySchema = z.object({
         options: z.array(z.string().min(1)).length(4),
       }),
     )
-    .min(1)
-    .max(128),
+    .max(128)
+    .optional(),
 });
 
 export const submitAnswerBodySchema = z.object({

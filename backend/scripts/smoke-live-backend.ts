@@ -71,38 +71,6 @@ function expectRecordSnapshot(step: string, body: Record<string, unknown> | null
   };
 }
 
-function buildWebQuestions(questionBank: Awaited<ReturnType<typeof getLoadedQuestionBank>>) {
-  const questions: Array<{
-    questionId: number;
-    bankId: string;
-    options: string[];
-    answer: number;
-    section: string;
-  }> = [];
-
-  let questionId = 1;
-
-  for (const section of questionBank.sections) {
-    const sectionQuestions = [...questionBank.questionIndex.values()]
-      .filter((question) => question.section === section)
-      .sort((left, right) => left.bankId.localeCompare(right.bankId))
-      .slice(0, questionBank.questionsPerTestSection);
-
-    sectionQuestions.forEach((question) => {
-      questions.push({
-        questionId,
-        bankId: question.bankId,
-        options: [...question.options],
-        answer: question.answer,
-        section: question.section,
-      });
-      questionId += 1;
-    });
-  }
-
-  return questions;
-}
-
 async function main() {
   console.log(`Running live backend smoke checks against ${baseUrl.origin}${baseUrl.pathname}`);
   console.log(`Using player name ${playerName}`);
@@ -135,16 +103,12 @@ async function main() {
   console.log("Legacy endpoint check passed.");
 
   const questionBank = await getLoadedQuestionBank();
-  const webQuestions = buildWebQuestions(questionBank);
-  assert(webQuestions.length > 0, "question bank failed: no web questions were available");
-
   const start = await requestJson("/attempts", {
     method: "POST",
     body: JSON.stringify({
       playerName,
       clientType: "web",
       mode: "quiz",
-      questions: webQuestions.map(({ answer, section, ...question }) => question),
     }),
   });
   expectStatus("attempt start", start, 201);
@@ -152,16 +116,26 @@ async function main() {
   const attemptId = String(startBody.attemptId || "");
   assert(attemptId, "attempt start failed: attemptId was missing");
   assert(startBody.storyOnly === false, "attempt start failed: expected storyOnly to be false");
-  assert(startBody.totalQuestions === webQuestions.length, "attempt start failed: total question count was wrong");
-
-  const firstQuestion = webQuestions[0];
-  const wrongAnswer = (firstQuestion.answer + 1) % firstQuestion.options.length;
+  const startQuestions = Array.isArray(startBody.questions) ? startBody.questions : [];
+  const expectedQuestionCount = questionBank.sections.length * questionBank.questionsPerTestSection;
+  assert(Number(startBody.totalQuestions) === expectedQuestionCount, "attempt start failed: totalQuestions was wrong");
+  assert(startQuestions.length === expectedQuestionCount, "attempt start failed: total question count was wrong");
+  const firstQuestion = expectObject("attempt start question", startQuestions[0]);
+  assert(typeof firstQuestion.bankId === "string", "attempt start failed: first question bankId was missing");
+  assert(typeof firstQuestion.questionId === "number", "attempt start failed: first question questionId was missing");
+  const canonicalFirstQuestion = questionBank.questionIndex.get(String(firstQuestion.bankId)) as
+    | { answer: number }
+    | undefined;
+  assert(Boolean(canonicalFirstQuestion), "attempt start failed: first question was not found in canonical bank");
+  const firstQuestionOptions = Array.isArray(firstQuestion.options) ? firstQuestion.options : [];
+  assert(firstQuestionOptions.length === 4, "attempt start failed: first question options were wrong");
+  const wrongAnswer = ((canonicalFirstQuestion?.answer ?? 0) + 1) % firstQuestionOptions.length;
 
   const answer = await requestJson(`/attempts/${encodeURIComponent(attemptId)}/answers`, {
     method: "POST",
     body: JSON.stringify({
-      questionId: firstQuestion.questionId,
-      bankId: firstQuestion.bankId,
+      questionId: Number(firstQuestion.questionId),
+      bankId: String(firstQuestion.bankId),
       selectedAnswer: wrongAnswer,
       elapsedSeconds: 12,
     }),
@@ -196,19 +170,25 @@ async function main() {
       playerName: replayPlayerName,
       clientType: "web",
       mode: "quiz",
-      questions: webQuestions.map(({ answer, section, ...question }) => question),
     }),
   });
   expectStatus("replay attempt start", replayStart, 201);
   const replayStartBody = expectObject("replay attempt start", replayStart.body);
   const replayAttemptId = String(replayStartBody.attemptId || "");
   assert(replayAttemptId, "replay attempt start failed: attemptId was missing");
+  const replayQuestions = Array.isArray(replayStartBody.questions) ? replayStartBody.questions : [];
+  assert(Number(replayStartBody.totalQuestions) === expectedQuestionCount, "replay attempt start failed: totalQuestions was wrong");
+  assert(replayQuestions.length === expectedQuestionCount, "replay attempt start failed: total question count was wrong");
 
-  const correctAnswer = webQuestions[0];
+  const correctAnswer = expectObject("replay question", replayQuestions[0]);
+  const canonicalReplayQuestion = questionBank.questionIndex.get(String(correctAnswer.bankId)) as
+    | { answer: number }
+    | undefined;
+  assert(Boolean(canonicalReplayQuestion), "replay attempt start failed: first replay question was not found in canonical bank");
   const correctSubmitBody = {
-    questionId: correctAnswer.questionId,
-    bankId: correctAnswer.bankId,
-    selectedAnswer: correctAnswer.answer,
+    questionId: Number(correctAnswer.questionId),
+    bankId: String(correctAnswer.bankId),
+    selectedAnswer: Number(canonicalReplayQuestion?.answer ?? 0),
     elapsedSeconds: 18,
   };
 

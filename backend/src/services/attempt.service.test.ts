@@ -170,10 +170,9 @@ describe("AttemptService", () => {
         playerName: "Alice",
         clientType: "web",
         mode: "story",
-        questions: [],
       });
 
-      expect(result).toEqual({ storyOnly: true, attemptId: null, totalQuestions: 0 });
+      expect(result).toEqual({ storyOnly: true, attemptId: null, totalQuestions: 0, questions: [] });
       expect(mockInsertSingle).not.toHaveBeenCalled();
     });
 
@@ -193,7 +192,26 @@ describe("AttemptService", () => {
       expect(result.storyOnly).toBe(false);
       expect(result.attemptId).toBe(ATTEMPT_ID);
       expect(result.totalQuestions).toBe(4);
+      expect(result.questions).toHaveLength(4);
       expect(mockEventInsert).toHaveBeenCalledOnce();
+    });
+
+    it("generates backend-owned questions when the client omits the quiz payload", async () => {
+      mockInsertSingle.mockResolvedValue({
+        data: { id: ATTEMPT_ID, total_questions: 4, expires_at: "2099-01-01T00:00:00Z" },
+        error: null,
+      });
+
+      const result = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+      });
+
+      expect(result.storyOnly).toBe(false);
+      expect(result.questions).toHaveLength(4);
+      expect(result.questions.map((question) => question.prompt).sort()).toEqual(["Q1", "Q2", "Q3", "Q4"]);
+      expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
     });
 
     it("throws 400 when question count does not match expected total (web)", async () => {
