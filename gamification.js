@@ -27,7 +27,7 @@
   };
 
   function prefersReducedMotion() {
-    return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
   }
 
   function clamp(value, min, max) {
@@ -630,16 +630,7 @@
     }
 
     reset() {
-      if (this.timeoutId) {
-        window.clearTimeout(this.timeoutId);
-        this.timeoutId = null;
-      }
-
-      this.queue = [];
-      this.current = null;
-      this.isArtworkExpanded = false;
-      this.root.innerHTML = "";
-      this.notifyStateChange();
+      this.clearAll();
     }
   }
 
@@ -938,5 +929,10 @@
   window.GiftedGamification = Object.freeze({
     themes: GAME_THEMES,
     createGamificationController,
+    ...(window.__GiftedExposeTestUtils
+      ? {
+          __testPrefersReducedMotion: prefersReducedMotion,
+        }
+      : {}),
   });
 })();

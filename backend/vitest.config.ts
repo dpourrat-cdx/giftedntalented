@@ -1,10 +1,15 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  server: {
+    fs: {
+      allow: [".."],
+    },
+  },
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "frontend-tests/**/*.test.ts"],
     setupFiles: ["src/test/setup.ts"],
     mockReset: true,
     typecheck: {
@@ -14,7 +19,8 @@ export default defineConfig({
       provider: "v8",
       reporter: ["lcov", "text"],
       reportsDirectory: "coverage",
-      exclude: ["**/*.test.ts", "**/test/**", "**/scripts/**"],
+      include: ["src/**/*.ts", "../app.js", "../gamification.js"],
+      exclude: ["**/*.test.ts", "**/test/**", "**/scripts/**", "**/frontend-tests/**"],
     },
   },
 });
