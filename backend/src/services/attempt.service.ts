@@ -166,7 +166,11 @@ function isExpired(expiresAt: string | null | undefined) {
 }
 
 function isMissingExpiresAtSchema(error: SupabaseErrorLike | null | undefined) {
-  return error?.code === "PGRST204" && typeof error.message === "string" && error.message.includes("'expires_at'");
+  return (
+    (error?.code === "PGRST204" || error?.code === "42703") &&
+    typeof error.message === "string" &&
+    error.message.includes("expires_at")
+  );
 }
 
 export class AttemptService {

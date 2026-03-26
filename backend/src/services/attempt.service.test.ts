@@ -399,6 +399,34 @@ describe("AttemptService", () => {
       expect(result.accepted).toBe(true);
       expect(mockSingle).toHaveBeenCalledTimes(2);
     });
+
+    it("retries lookup without expires_at when Postgres reports the column is missing", async () => {
+      mockSingle
+        .mockResolvedValueOnce({
+          data: null,
+          error: {
+            code: "42703",
+            message: "column score_attempts.expires_at does not exist",
+          },
+        })
+        .mockResolvedValueOnce(
+          makeAttemptRow({
+            started_at: "2099-01-01T00:00:00Z",
+            updated_at: "2099-01-01T00:00:00Z",
+            expires_at: undefined,
+          }),
+        );
+      mockSavedScore();
+
+      const result = await service.submitAnswer(ATTEMPT_ID, {
+        questionId: 1,
+        bankId: "q1",
+        selectedAnswer: 0,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(mockSingle).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("finalizeAttempt", () => {
