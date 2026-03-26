@@ -161,7 +161,9 @@ Weekly PRs for `backend/` npm updates open every Monday. `@types/*` packages are
 ## Test Expectations
 
 - All new backend service code must have corresponding unit tests in `*.test.ts` alongside the source file.
+- Every PR must add or update meaningful automated coverage for the code it changes. If a change introduces new logic, the PR should include tests that exercise that logic directly instead of relying on manual verification alone.
 - Tests use **Vitest** with manual mocks for Supabase and Firebase clients.
 - A test file must not import the real Supabase or Firebase clients — mock them at the top of the file.
 - Tests must pass with `npm test` before any PR is opened.
+- `SonarCloud` new-code coverage must stay green before merge. Temporary coverage exclusions should be rare, documented in the PR, and paired with a backlog follow-up to remove them.
 - The test count (currently `149`) is not a hard ceiling — add as many tests as the code needs.
