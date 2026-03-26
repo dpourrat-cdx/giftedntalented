@@ -1587,7 +1587,11 @@ function handleOverlayStateChange(overlayState) {
     }
   }
 
-  if (!hasBlockingOverlay && dismissedEvent?.variant === "section") {
+  if (
+    !hasBlockingOverlay &&
+    dismissedEvent?.variant === "section" &&
+    dismissedEvent.advanceOnDismiss !== false
+  ) {
     advanceToNextMissionStep({ preferNextMission: true });
     return;
   }

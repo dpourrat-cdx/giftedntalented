@@ -700,7 +700,9 @@
 
       this.questionFeedback.show(answerEvent);
       this.maybeTriggerMidpoint(state);
-      this.maybeTriggerSectionCompletion(state);
+      this.maybeTriggerSectionCompletion(state, {
+        advanceOnDismiss: answerEvent?.isCorrect !== false,
+      });
       return state;
     }
 
@@ -775,10 +777,11 @@
       });
     }
 
-    enqueueMissionCompletion(state, section) {
+    enqueueMissionCompletion(state, section, options = {}) {
       const reward = this.theme.rewardStages[section.index];
       const mission = storyMissionForSection(section.key);
       const rewardLabel = mission?.rocketPart || reward.label;
+      const advanceOnDismiss = options.advanceOnDismiss !== false;
 
       this.celebrationOverlay.enqueue({
         variant: "section",
@@ -800,7 +803,10 @@
         boostCount: state.midpointBoosts,
         rewardKey: reward.key,
         showButton: true,
-        buttonLabel: content?.gamification?.sectionCompleteButton || "Next mission",
+        buttonLabel: advanceOnDismiss
+          ? (content?.gamification?.sectionCompleteButton || "Next mission")
+          : "Back to mission",
+        advanceOnDismiss,
         blocksMission: true,
       });
     }
@@ -864,7 +870,9 @@
       }
 
       this.sectionCompletionSeen.add(section.key);
-      this.enqueueMissionCompletion(state, section);
+      this.enqueueMissionCompletion(state, section, {
+        advanceOnDismiss: options.advanceOnDismiss,
+      });
     }
 
     maybeTriggerFinalCelebration(state) {
