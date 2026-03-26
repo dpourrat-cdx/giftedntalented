@@ -1503,10 +1503,12 @@ function renderResults() {
   if (missed.length === 0) {
     const card = document.createElement("div");
     card.className = "review-card";
-    card.innerHTML = `
-      <h4>${resultsContent.perfectTitle}</h4>
-      <p>${resultsContent.perfectBody}</p>
-    `;
+    const heading = document.createElement("h4");
+    heading.textContent = resultsContent.perfectTitle;
+    const body = document.createElement("p");
+    body.textContent = resultsContent.perfectBody;
+    card.appendChild(heading);
+    card.appendChild(body);
     dom.reviewList.appendChild(card);
     return;
   }
@@ -1514,19 +1516,45 @@ function renderResults() {
   missed.forEach(({ question, chosen }) => {
     const card = document.createElement("div");
     card.className = "review-card";
+
     const mission = missionStoryForSection(question.section);
     const chosenText =
       chosen === null ? questionContent.feedback.noAnswer : question.options[chosen];
-    card.innerHTML = `
-      <h4>${mission ? `Mission ${mission.number}: ${mission.title}` : question.section} - Step ${question.id}</h4>
-      <p>${question.prompt}</p>
-      ${question.stimulus ? `<pre class="question-stimulus">${question.stimulus}</pre>` : ""}
-      <div class="review-meta">
-        <span><strong>${questionContent.feedback.yourAnswer}</strong> ${chosenText}</span>
-        <span><strong>${questionContent.feedback.correctAnswer}</strong> ${question.options[question.answer]}</span>
-        <span><strong>${questionContent.feedback.why}</strong> ${question.explanation}</span>
-      </div>
-    `;
+
+    const heading = document.createElement("h4");
+    heading.textContent = mission
+      ? `Mission ${mission.number}: ${mission.title} - Step ${question.id}`
+      : `${question.section} - Step ${question.id}`;
+    card.appendChild(heading);
+
+    const prompt = document.createElement("p");
+    prompt.textContent = question.prompt;
+    card.appendChild(prompt);
+
+    if (question.stimulus) {
+      const stimulus = document.createElement("pre");
+      stimulus.className = "question-stimulus";
+      stimulus.textContent = question.stimulus;
+      card.appendChild(stimulus);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "review-meta";
+
+    const makeMetaSpan = (label, value) => {
+      const span = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = label;
+      span.appendChild(strong);
+      span.appendChild(document.createTextNode(" " + value));
+      return span;
+    };
+
+    meta.appendChild(makeMetaSpan(questionContent.feedback.yourAnswer, chosenText));
+    meta.appendChild(makeMetaSpan(questionContent.feedback.correctAnswer, question.options[question.answer]));
+    meta.appendChild(makeMetaSpan(questionContent.feedback.why, question.explanation));
+    card.appendChild(meta);
+
     dom.reviewList.appendChild(card);
   });
 }
