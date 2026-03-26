@@ -557,6 +557,171 @@ export class AttemptService {
     }
   }
 
+  private async fetchOldBest(playerName: string): Promise<ScoreSaveComparableRow | null> {
+    const response = await supabase.rpc("get_player_top_score", {
+      target_player_name: normalizePlayerName(playerName),
+    });
+
+    if (response.error) {
+      throw new AppError(502, "SUPABASE_READ_FAILED", "The score record could not be loaded.", response.error);
+    }
+
+    return response.data && response.data.length > 0 && isScoreSaveComparableRow(response.data[0])
+      ? response.data[0]
+      : null;
+  }
+
+  private async persistScoreLegacyFallback(
+    args: {
+      attemptId: string;
+      playerName: string;
+      clientType: "web" | "android";
+      selectionFingerprint: string;
+      totalQuestions: number;
+    },
+    computed: {
+      score: number;
+      percentage: number;
+      elapsedSeconds: number | null;
+      targetPlayerName: string;
+      savedAt: string;
+      oldBest: ScoreSaveComparableRow | null;
+    },
+  ): Promise<AttemptSaveResult> {
+    const { score, percentage, elapsedSeconds, targetPlayerName, savedAt, oldBest } = computed;
+
+    const legacySave = await supabase.rpc("save_player_score", {
+      target_player_name: targetPlayerName,
+      score,
+      percentage,
+      total_questions: args.totalQuestions,
+      elapsed_seconds: elapsedSeconds,
+    });
+
+    if (legacySave.error) {
+      throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error);
+    }
+
+    const fallbackRecord = legacySave.data && isScoreSaveComparableRow(legacySave.data) ? legacySave.data : null;
+    if (!fallbackRecord) {
+      throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error ?? null);
+    }
+
+    const fallbackAudit = buildScoreSaveAudit({
+      attemptId: args.attemptId,
+      playerName: targetPlayerName,
+      clientType: args.clientType,
+      selectionFingerprint: args.selectionFingerprint,
+      oldBest,
+      newBest: fallbackRecord,
+      replacedBest: doesSaveReplaceBest(oldBest, fallbackRecord),
+      savedAt,
+      score,
+      percentage,
+      totalQuestions: args.totalQuestions,
+      elapsedSeconds,
+    });
+
+    const fallbackPayload = {
+      record: fallbackRecord,
+      audit: fallbackAudit,
+    };
+
+    const { error: metadataError } = await supabase
+      .from("score_attempts")
+      .update({
+        selection_fingerprint: args.selectionFingerprint,
+        score_saved_at: savedAt,
+        score_saved_score: score,
+        score_saved_percentage: percentage,
+        score_saved_elapsed_seconds: elapsedSeconds,
+        score_saved_payload: fallbackPayload,
+      })
+      .eq("id", args.attemptId);
+
+    if (
+      metadataError &&
+      !isMissingColumnSchema(metadataError, [
+        "selection_fingerprint",
+        "score_saved_at",
+        "score_saved_score",
+        "score_saved_percentage",
+        "score_saved_elapsed_seconds",
+        "score_saved_payload",
+      ])
+    ) {
+      logger.warn(
+        {
+          error: metadataError,
+          attemptId: args.attemptId,
+        },
+        "Score attempt metadata could not be persisted.",
+      );
+    }
+
+    await this.recordAttemptEvent({
+      attemptId: args.attemptId,
+      eventType: "score_saved",
+      playerName: args.playerName,
+      clientType: args.clientType,
+      metadata: fallbackAudit,
+    });
+
+    return {
+      record: mapScoreRow(fallbackRecord),
+      audit: fallbackAudit,
+    };
+  }
+
+  private async persistScorePrimary(
+    args: {
+      attemptId: string;
+      playerName: string;
+      clientType: "web" | "android";
+      selectionFingerprint: string;
+      totalQuestions: number;
+    },
+    computed: {
+      score: number;
+      percentage: number;
+      elapsedSeconds: number | null;
+      targetPlayerName: string;
+      savedAt: string;
+      oldBest: ScoreSaveComparableRow | null;
+    },
+  ) {
+    const { score, percentage, elapsedSeconds, targetPlayerName, savedAt } = computed;
+
+    const { data, error } = await supabase.rpc("save_attempt_score_from_attempt", {
+      target_attempt_id: args.attemptId,
+      target_player_name: targetPlayerName,
+      score,
+      percentage,
+      total_questions: args.totalQuestions,
+      elapsed_seconds: elapsedSeconds,
+      target_selection_fingerprint: args.selectionFingerprint,
+      target_saved_at: savedAt,
+    });
+
+    if (error) {
+      if (isMissingFunctionSchema(error, "save_attempt_score_from_attempt")) {
+        return this.persistScoreLegacyFallback(args, computed);
+      }
+
+      throw new AppError(502, "ATTEMPT_SAVE_FAILED", "The score record could not be saved.", error);
+    }
+
+    if (!data || typeof data !== "object") {
+      return null;
+    }
+
+    const payload = data as AttemptSavePayload;
+
+    return isRecordLike(payload.record)
+      ? { record: mapScoreRow(payload.record), audit: isScoreSavePayload(payload) ? payload.audit ?? null : null }
+      : null;
+  }
+
   private async saveAuthoritativeScore(args: {
     attemptId: string;
     playerName: string;
@@ -573,128 +738,20 @@ export class AttemptService {
     const score = args.correctCount;
     const percentage = Math.round((args.correctCount / args.totalQuestions) * 100);
     const elapsedSeconds = normalizeElapsedSeconds(args.elapsedSeconds);
-    const oldBestResponse = await supabase.rpc("get_player_top_score", {
-      target_player_name: normalizePlayerName(args.playerName),
-    });
-
-    if (oldBestResponse.error) {
-      throw new AppError(502, "SUPABASE_READ_FAILED", "The score record could not be loaded.", oldBestResponse.error);
-    }
-
-    const oldBest = oldBestResponse.data && oldBestResponse.data.length > 0 && isScoreSaveComparableRow(oldBestResponse.data[0])
-      ? oldBestResponse.data[0]
-      : null;
     const savedAt = new Date().toISOString();
     const targetPlayerName = normalizePlayerName(args.playerName);
+    const oldBest = await this.fetchOldBest(args.playerName);
 
-    const { data, error } = await supabase.rpc("save_attempt_score_from_attempt", {
-      target_attempt_id: args.attemptId,
-      target_player_name: targetPlayerName,
-      score,
-      percentage,
-      total_questions: args.totalQuestions,
-      elapsed_seconds: elapsedSeconds,
-      target_selection_fingerprint: args.selectionFingerprint,
-      target_saved_at: savedAt,
-    });
-
-    if (error) {
-      if (isMissingFunctionSchema(error, "save_attempt_score_from_attempt")) {
-        const legacySave = await supabase.rpc("save_player_score", {
-          target_player_name: targetPlayerName,
-          score,
-          percentage,
-          total_questions: args.totalQuestions,
-          elapsed_seconds: elapsedSeconds,
-        });
-
-        if (legacySave.error) {
-          throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error);
-        }
-
-        const fallbackRecord = legacySave.data && isScoreSaveComparableRow(legacySave.data) ? legacySave.data : null;
-        if (!fallbackRecord) {
-          throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error ?? null);
-        }
-
-        const fallbackAudit = buildScoreSaveAudit({
-          attemptId: args.attemptId,
-          playerName: targetPlayerName,
-          clientType: args.clientType,
-          selectionFingerprint: args.selectionFingerprint,
-          oldBest,
-          newBest: fallbackRecord,
-          replacedBest: doesSaveReplaceBest(oldBest, fallbackRecord),
-          savedAt,
-          score,
-          percentage,
-          totalQuestions: args.totalQuestions,
-          elapsedSeconds,
-        });
-
-        const fallbackPayload = {
-          record: fallbackRecord,
-          audit: fallbackAudit,
-        };
-
-        const { error: metadataError } = await supabase
-          .from("score_attempts")
-          .update({
-            selection_fingerprint: args.selectionFingerprint,
-            score_saved_at: savedAt,
-            score_saved_score: score,
-            score_saved_percentage: percentage,
-            score_saved_elapsed_seconds: elapsedSeconds,
-            score_saved_payload: fallbackPayload,
-          })
-          .eq("id", args.attemptId);
-
-        if (
-          metadataError &&
-          !isMissingColumnSchema(metadataError, [
-            "selection_fingerprint",
-            "score_saved_at",
-            "score_saved_score",
-            "score_saved_percentage",
-            "score_saved_elapsed_seconds",
-            "score_saved_payload",
-          ])
-        ) {
-          logger.warn(
-            {
-              error: metadataError,
-              attemptId: args.attemptId,
-            },
-            "Score attempt metadata could not be persisted.",
-          );
-        }
-
-        await this.recordAttemptEvent({
-          attemptId: args.attemptId,
-          eventType: "score_saved",
-          playerName: args.playerName,
-          clientType: args.clientType,
-          metadata: fallbackAudit,
-        });
-
-        return {
-          record: mapScoreRow(fallbackRecord),
-          audit: fallbackAudit,
-        };
-      }
-
-      throw new AppError(502, "ATTEMPT_SAVE_FAILED", "The score record could not be saved.", error);
-    }
-
-    if (!data || typeof data !== "object") {
-      return null;
-    }
-
-    const payload = data as AttemptSavePayload;
-
-    return isRecordLike(payload.record)
-      ? { record: mapScoreRow(payload.record), audit: isScoreSavePayload(payload) ? payload.audit ?? null : null }
-      : null;
+    return this.persistScorePrimary(
+      {
+        attemptId: args.attemptId,
+        playerName: args.playerName,
+        clientType: args.clientType,
+        selectionFingerprint: args.selectionFingerprint,
+        totalQuestions: args.totalQuestions,
+      },
+      { score, percentage, elapsedSeconds, targetPlayerName, savedAt, oldBest },
+    );
   }
 
   private async getAttemptRow(attemptId: string) {
