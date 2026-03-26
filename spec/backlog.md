@@ -36,6 +36,7 @@ This file is the live backlog only. Completed work should not stay here unless i
   - disabled legacy record-write behavior
   Progress: PR 23 rewrites `spec/backend-api-spec.md` as the live contract for attempts, records, reset, device registration, and admin push behavior.
 - [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
+  Progress: PR 24 refreshes `backend/README.md` so it matches the live scripts, smoke runner, schema notes, and backend-owned attempt/question flow.
 - [ ] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
 
 ## Priority 3: Code Quality And Maintainability
@@ -77,7 +78,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Next Recommended Delivery Slice
 
 1. Decide the `POST /api/v1/admin/scores/reset` security model.
-2. Update `backend/README.md` to reflect the smoke runner, scripts, and backend-owned question flow.
-3. Continue frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
-4. Broaden source-attributed frontend coverage so future frontend PRs need fewer Sonar bridges.
-5. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
+2. Continue frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+3. Broaden source-attributed frontend coverage so future frontend PRs need fewer Sonar bridges.
+4. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
+5. Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
