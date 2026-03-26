@@ -230,11 +230,11 @@ function normalizeAttemptQuestion(question, index) {
 
 function resolveAttemptOptions(candidate, canonicalQuestion) {
   if (Array.isArray(candidate.options)) {
-    return candidate.options.map((option) => String(option));
+    return candidate.options.map(String);
   }
 
   if (Array.isArray(canonicalQuestion?.options)) {
-    return canonicalQuestion.options.map((option) => String(option));
+    return canonicalQuestion.options.map(String);
   }
 
   return null;
@@ -261,7 +261,7 @@ function deriveAttemptAnswerIndex(options, canonicalCorrectOption) {
     return -1;
   }
 
-  return options.findIndex((option) => option === canonicalCorrectOption);
+  return options.indexOf(canonicalCorrectOption);
 }
 
 function resolveAttemptAnswer(candidate, derivedAnswerIndex) {
