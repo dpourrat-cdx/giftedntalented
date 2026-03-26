@@ -1,4 +1,5 @@
 import { getLoadedQuestionBank } from "../src/lib/question-bank.js";
+import { supabase } from "../src/lib/supabase.js";
 
 type JsonResponse = {
   status: number;
@@ -7,6 +8,7 @@ type JsonResponse = {
 
 const baseUrl = new URL((process.env.BACKEND_BASE_URL || "https://giftedntalented.onrender.com/api/v1").replace(/\/?$/, "/"));
 const playerName = `Smoke ${Date.now().toString(36)}`;
+const replayPlayerName = `${playerName} replay`;
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -101,10 +103,40 @@ function resolveCorrectAnswerIndex(args: {
   return correctAnswerIndex;
 }
 
+async function cleanupSmokeRecords() {
+  const names = [playerName, replayPlayerName];
+
+  const { error: scoresError } = await supabase
+    .from("test_scores")
+    .delete()
+    .in("player_name", names);
+
+  if (scoresError) {
+    console.warn(`Cleanup warning: could not delete test_scores rows: ${scoresError.message}`);
+    console.warn(`Run manually: DELETE FROM test_scores WHERE player_name IN ('${names.join("', '")}');`);
+  }
+
+  // Deleting score_attempts cascades to score_attempt_events via ON DELETE CASCADE.
+  const { error: attemptsError } = await supabase
+    .from("score_attempts")
+    .delete()
+    .in("player_name", names);
+
+  if (attemptsError) {
+    console.warn(`Cleanup warning: could not delete score_attempts rows: ${attemptsError.message}`);
+    console.warn(`Run manually: DELETE FROM score_attempts WHERE player_name IN ('${names.join("', '")}');`);
+  }
+
+  if (!scoresError && !attemptsError) {
+    console.log("Smoke test records removed from database.");
+  }
+}
+
 async function main() {
   console.log(`Running live backend smoke checks against ${baseUrl.origin}${baseUrl.pathname}`);
   console.log(`Using player name ${playerName}`);
 
+  try {
   const health = await requestJson("/health");
   expectStatus("health", health, 200);
   const healthBody = expectObject("health", health.body);
@@ -191,7 +223,6 @@ async function main() {
   expectStatus("post-finalize record lookup", recordLookup, 404);
   console.log("Record lookup check passed.");
 
-  const replayPlayerName = `${playerName} replay`;
   const replayStart = await requestJson("/attempts", {
     method: "POST",
     body: JSON.stringify({
@@ -312,6 +343,9 @@ async function main() {
   console.log("Replay-safe answer/finalize checks passed.");
 
   console.log("Live backend smoke checks passed.");
+  } finally {
+    await cleanupSmokeRecords();
+  }
 }
 
 main().catch((error: unknown) => {
