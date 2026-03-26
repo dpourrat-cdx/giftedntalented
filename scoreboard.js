@@ -83,6 +83,19 @@
     return "The score board could not update online just now.";
   }
 
+  class ScoreboardRequestError extends Error {
+    constructor(status, details = {}) {
+      super(
+        typeof details.message === "string" && details.message.trim()
+          ? details.message.trim()
+          : "Unexpected score board error.",
+      );
+      this.name = "ScoreboardRequestError";
+      this.status = status;
+      Object.assign(this, details);
+    }
+  }
+
   function readCachedScoreMap() {
     try {
       LEGACY_CACHE_KEYS.forEach((legacyKey) => {
@@ -178,10 +191,7 @@
           };
         }
 
-        throw {
-          status: response.status,
-          ...details,
-        };
+        throw new ScoreboardRequestError(response.status, details);
       }
 
       if (response.status === 204) {
@@ -264,11 +274,12 @@
       this.activeAttemptUnavailableFingerprint = "";
       this.activeAttemptQuestions = [];
       this.activeAttemptPlayerName = "";
-      this.answerQueue = Promise.resolve();
+      this.answerQueue = null;
       this.boundReset = this.handleResetClick.bind(this);
     }
 
     init() {
+      this.answerQueue = Promise.resolve();
       this.renderAwaitingNameState();
       this.elements.resetButton.addEventListener("click", this.boundReset);
     }
@@ -416,6 +427,14 @@
       this.answerQueue = Promise.resolve();
     }
 
+    getAnswerQueue() {
+      if (!this.answerQueue) {
+        this.answerQueue = Promise.resolve();
+      }
+
+      return this.answerQueue;
+    }
+
     async beginAttempt({ playerName, clientType = "web", mode = "quiz", questions = [] }) {
       const normalizedName = normalizePlayerName(playerName);
       if (!normalizedName || mode === "story") {
@@ -498,7 +517,7 @@
         return null;
       }
 
-      this.answerQueue = this.answerQueue
+      this.answerQueue = this.getAnswerQueue()
         .catch(() => undefined)
         .then(async () => {
           const attemptId = await this.ensureActiveAttempt({
@@ -536,7 +555,7 @@
     }
 
     async finalizeAttempt({ elapsedSeconds }) {
-      await this.answerQueue.catch(() => undefined);
+      await this.getAnswerQueue().catch(() => undefined);
       const inFlightAttempt = this.activeAttemptPromise ? await this.activeAttemptPromise : null;
       const attemptId = this.activeAttemptId || inFlightAttempt?.attemptId || null;
       if (!attemptId) {

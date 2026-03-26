@@ -1,4 +1,4 @@
-import { AttemptService } from "./attempt.service.js";
+import { AttemptService, setAttemptRandomIndexPickerForTests } from "./attempt.service.js";
 import { AppError } from "../utils/errors.js";
 
 const mockRpc = vi.fn();
@@ -163,6 +163,7 @@ describe("AttemptService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setAttemptRandomIndexPickerForTests(null);
     service = new AttemptService();
     vi.mocked(getLoadedQuestionBank).mockResolvedValue(MOCK_BANK as never);
     mockUpdateEq.mockResolvedValue({ error: null });
@@ -227,15 +228,14 @@ describe("AttemptService", () => {
         error: null,
       });
 
-      const randomSpy = vi.spyOn(Math, "random");
-      randomSpy.mockReturnValue(0.999);
+      setAttemptRandomIndexPickerForTests((max: number) => max - 1);
       const first = await service.startAttempt({
         playerName: "Alice",
         clientType: "web",
         mode: "quiz",
       });
 
-      randomSpy.mockReturnValue(0);
+      setAttemptRandomIndexPickerForTests(() => 0);
       const second = await service.startAttempt({
         playerName: "Alice",
         clientType: "web",
@@ -243,7 +243,6 @@ describe("AttemptService", () => {
       });
 
       expect(first.questions.map((question) => question.bankId)).not.toEqual(second.questions.map((question) => question.bankId));
-      randomSpy.mockRestore();
     });
 
     it("stores randomized answer slots that match the returned options", async () => {
@@ -262,7 +261,7 @@ describe("AttemptService", () => {
         error: null,
       });
 
-      const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+      setAttemptRandomIndexPickerForTests(() => 0);
       const result = await service.startAttempt({
         playerName: "Alice",
         clientType: "web",
@@ -275,7 +274,6 @@ describe("AttemptService", () => {
       expect(result.questions[0]?.options[1]).toBe("1");
       expect(insertedAttempt?.question_key?.[1]?.correctAnswer).toBe(1);
       expect(result.questions[1]?.options[1]).toBe("green");
-      randomSpy.mockRestore();
     });
 
     it("throws 400 when question count does not match expected total (web)", async () => {

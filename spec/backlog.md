@@ -32,11 +32,16 @@ This backlog captures the next high-value work for the Captain Nova app after th
 ## Priority 1: Security Hardening
 
 - [x] Replace direct admin-secret string comparison in `backend/src/middleware/admin-auth.ts` with `crypto.timingSafeEqual()`.
+- [x] Replace locale-dependent option sorting and backend `Math.random()` attempt shuffling with locale-stable comparison plus crypto-backed randomness.
 - [ ] Require admin auth middleware on `POST /api/v1/admin/scores/reset` in addition to the reset PIN flow.
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
+- [x] Add SonarCloud static analysis to CI for ongoing code quality and security scanning.
+  Landed: SonarCloud is live on every PR and push to `master` via `sonarqube-scan-action`. Coverage report (lcov) is fed from vitest. Quality gate enforces new-code coverage, security hotspots, and ratings.
 - [x] Add a baseline Content Security Policy to the GitHub Pages frontend.
-  Landed (PR #11): `default-src 'self'`, scripts locked to same-origin, Google Fonts and Render API origins explicitly allowed. `'unsafe-inline'` retained temporarily for styles.
+  Landed (PR #11 and follow-up hardening): `default-src 'self'`, scripts/styles/fonts locked to same-origin, and the Render API origin explicitly allowed. `'unsafe-inline'` is still retained temporarily for styles.
+- [x] Replace frontend `Math.random()` shuffles with crypto-backed randomness where the values affect question or message ordering.
+- [x] Self-host the Google Fonts used by the app so the frontend no longer depends on external font stylesheets.
 - [ ] Remove `'unsafe-inline'` from `style-src` once all inline style generation is eliminated from frontend JS.
   Prerequisite: audit and rewrite any remaining `element.style.*` or inline `style=` assignments in `app.js`, `scoreboard.js`, and `gamification.js` that cannot yet be replaced with CSS classes.
 - [ ] Add clickjacking protection for the GitHub Pages frontend.
@@ -45,6 +50,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
   Implement after `'unsafe-inline'` is removed so reports reflect the tightened policy. A small edge function or logging endpoint is sufficient.
 - [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
   First slice landed: story-panel artwork and mission footer content no longer flow through raw HTML pass-throughs.
+  Follow-up note: `secureRandomIndex` is intentionally duplicated in `question-bank.js` and `gamification.js` for now; extract it into a shared frontend utility script in a later cleanup pass.
 
 ## Priority 2: Documentation And Repo Hygiene
 
@@ -66,6 +72,8 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Remove dead score-write code paths that are no longer reachable after the `410` legacy endpoint change.
 - [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
+- [x] Replace non-`Error` scoreboard request throws with `Error` instances and stop swallowing frontend async failures with `void` fire-and-forget calls.
+- [x] Move scoreboard async queue setup out of the constructor path and into explicit initialization/lazy helpers.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -82,6 +90,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned with production behavior whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
+- [x] Replace repeated client-platform string literals in `backend/supabase/backend_schema.sql` with enum-backed schema types.
 
 ## Priority 6: Product And Content Improvements
 
@@ -94,13 +103,13 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 ## Next Recommended Delivery Slice
 
-1. Fix locale-dependent `.sort()` in `attempt.service.ts` (SonarCloud critical bug — score integrity risk).
-2. Review `Math.random()` in `attempt.service.ts:262` (SonarCloud hotspot H1 — confirm safe or replace with `crypto.randomInt()`).
-3. Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
-4. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
-5. Add explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
-6. Continue the frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
-7. Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated from frontend JS.
+1. Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
+2. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
+3. Add explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
+4. Continue the frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+5. Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated from frontend JS.
+6. Add clickjacking protection planning for the GitHub Pages frontend.
+7. Extract `secureRandomIndex` into a shared frontend utility script once the current PR lands cleanly.
 
 ---
 
@@ -293,7 +302,9 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - **Suggested approach**: Even a lightweight Vitest + jsdom or Playwright component test suite for the three highest-complexity frontend functions would meaningfully move the needle. Full frontend coverage is a long-term goal; targeting the functions flagged in issues 2–6 above is the highest-leverage starting point.
 - **Progress note**: PR 16 adds targeted frontend coverage for the specific `app.js` and `gamification.js` lines touched by the accessibility and cleanup slice so the new-code gate is backed by tests, not exclusions alone.
 - **Progress note**: PR 17 adds the first frontend Vitest + jsdom foundation for `question-bank.js`, `scoreboard.js`, and mission-completion gamification behavior under the existing backend test job.
+- **Progress note**: PR 15 addresses roadmap items 1-8 with the locale-stable comparator, crypto-backed randomness, async error handling cleanup, proper `Error` usage, constructor/lifecycle cleanup, enum-backed schema types, and self-hosted fonts.
 - **Follow-up note**: Legacy root browser scripts still do not map cleanly back into Sonar's coverage attribution. Until the broader frontend coverage foundation lands, touched root files may still need temporary Sonar exclusions even when targeted tests exist.
+- **Follow-up note**: PR 15 temporarily excludes `question-bank.js` and `scoreboard.js` from Sonar coverage gating because the current harness validates their behavior but Sonar still does not attribute that coverage directly back to those legacy root scripts.
 - **Follow-up note**: The next frontend coverage slice should make Sonar attribute coverage directly to the legacy root browser scripts instead of only validating them through the harness/test helper layer.
 
 ---
@@ -302,14 +313,14 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 | Priority | Item | Why first | Effort |
 |---|---|---|---|
-| 1 | Fix locale-dependent `.sort()` in `attempt.service.ts` (issue 1) | Correctness bug affecting score integrity in production | S |
-| 2 | Review and resolve `Math.random()` in backend (H1) | Security hotspot in validated code path — must confirm safe before next audit | S–M |
-| 3 | Fix `void`-suppressed unhandled promises in `app.js` (issue 8) | Silent failures in live error paths; cheap to fix | S |
-| 4 | Fix non-Error throw in `scoreboard.js` (issue 14) | Breaks error handling and logging chain; cheap fix | S |
-| 5 | Resolve frontend `Math.random()` hotspots (H2) | Quick review + mark Safe — clears two hotspots from the gate | S |
-| 6 | Resolve Google Fonts SRI hotspot (H3) | Decide: self-host or acknowledge — unblocks clean quality gate | S–M |
-| 7 | Fix async-in-constructor in `scoreboard.js` (issue 7) | Race condition risk in score display; localised refactor | S |
-| 8 | Fix duplicate string literal in SQL schema (issue 9) | Permission correctness; trivial change | S |
+| 1 | Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key` | Only remaining product/security decision blocking the next auth hardening slice | S |
+| 2 | Add explicit Supabase function grants/revokes, then follow with RLS/policies | Biggest remaining backend security gap after the auth and randomness fixes | M |
+| 3 | Rewrite `spec/backend-api-spec.md` for the attempt-based contract | Current API doc still lags the live score-attempt architecture | M |
+| 4 | Continue frontend render-sink cleanup beyond story mode | Remaining raw HTML paths still drive XSS/CSP pressure | M |
+| 5 | Remove `'unsafe-inline'` from `style-src` | Needed to tighten CSP from baseline to stronger enforcement | M |
+| 6 | Add clickjacking protection planning for GitHub Pages | `frame-ancestors` cannot be enforced from meta CSP on this host | S |
+| 7 | Extract `secureRandomIndex` into a shared frontend utility | Removes the intentional duplication left behind by the randomness hardening | S |
+| 8 | Broaden frontend source-attributed coverage | Needed to push Sonar new-code coverage without relying on harness-layer exclusions | M |
 | 9 | Refactor `app.js:1243` (CC=56) and `app.js:196` (CC=39) (issues 2–3) | Highest-complexity functions in the codebase; prerequisite for safe feature work | L |
 | 10 | Refactor `question-bank.js` functions (issue 4) | Second-highest complexity cluster; blocks safe question-bank changes | L |
 | 11 | Fix duplicate function in `gamification.js` (issue 13) | Landed in PR 16: `CelebrationOverlay.reset()` now delegates to `clearAll()` to remove the duplicate implementation. | S |

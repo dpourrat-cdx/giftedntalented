@@ -1602,7 +1602,7 @@ function startTestFromBeginning() {
     dom.nextHint.textContent = "Preparing mission steps...";
     dom.nextHint.classList.remove("is-hidden");
     dom.nextButton.disabled = true;
-    void scoreboardController
+    scoreboardController
       .beginAttempt({
         playerName,
         clientType: "web",
@@ -1611,7 +1611,8 @@ function startTestFromBeginning() {
       .then((result) => {
         beginSessionWithQuestions(result?.questions ?? []);
       })
-      .catch(() => {
+      .catch((error) => {
+        reportAsyncMissionError("Attempt start failed.", error);
         beginSessionWithQuestions([]);
       });
 
@@ -1651,6 +1652,10 @@ function clearTransientGamificationUi() {
   }
 }
 
+function reportAsyncMissionError(context, error) {
+  console.error(`[CaptainNova] ${context}`, error);
+}
+
 function submitTest() {
   if (isSubmitted) {
     return;
@@ -1667,9 +1672,13 @@ function submitTest() {
     gamificationController.onTestCompleted(buildGamificationSnapshot());
   }
   if (scoreboardController && !isStoryOnlySession) {
-    void scoreboardController.finalizeAttempt({
-      elapsedSeconds: elapsedMissionSeconds(),
-    });
+    scoreboardController
+      .finalizeAttempt({
+        elapsedSeconds: elapsedMissionSeconds(),
+      })
+      .catch((error) => {
+        reportAsyncMissionError("Attempt finalization failed.", error);
+      });
   }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1785,16 +1794,25 @@ dom.nextButton.addEventListener("click", () => {
     };
 
     if (scoreboardController) {
-      void scoreboardController.recordValidatedAnswer({
-        playerName,
-        clientType: "web",
-        mode: isStoryOnlySession ? "story" : "quiz",
-        sessionQuestions: buildAttemptQuestionRegistration(),
-        questionId: question.id,
-        bankId: question.bankId,
-        selectedAnswer,
-        elapsedSeconds: elapsedMissionSeconds(),
-      }).then(handleAnswerEvaluation);
+      scoreboardController
+        .recordValidatedAnswer({
+          playerName,
+          clientType: "web",
+          mode: isStoryOnlySession ? "story" : "quiz",
+          sessionQuestions: buildAttemptQuestionRegistration(),
+          questionId: question.id,
+          bankId: question.bankId,
+          selectedAnswer,
+          elapsedSeconds: elapsedMissionSeconds(),
+        })
+        .then(handleAnswerEvaluation)
+        .catch((error) => {
+          if (pendingAnswerQuestionIndex === questionIndex) {
+            pendingAnswerQuestionIndex = -1;
+          }
+          reportAsyncMissionError("Attempt answer sync failed.", error);
+          handleAnswerEvaluation(null);
+        });
     } else {
       handleAnswerEvaluation(null);
     }

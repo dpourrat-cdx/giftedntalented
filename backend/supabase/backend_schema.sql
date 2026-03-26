@@ -1,5 +1,27 @@
 create extension if not exists pgcrypto with schema extensions;
 
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_type
+    where typnamespace = 'public'::regnamespace
+      and typname = 'client_platform'
+  ) then
+    create type public.client_platform as enum ('android', 'web');
+  end if;
+
+  if not exists (
+    select 1
+    from pg_type
+    where typnamespace = 'public'::regnamespace
+      and typname = 'attempt_mode'
+  ) then
+    create type public.attempt_mode as enum ('quiz', 'story');
+  end if;
+end
+$$;
+
 create table if not exists public.test_scores (
   id uuid primary key default extensions.gen_random_uuid(),
   player_name text not null check (char_length(trim(player_name)) between 1 and 40),
@@ -23,8 +45,8 @@ create table if not exists public.app_admin_settings (
 create table if not exists public.notification_devices (
   id uuid primary key default extensions.gen_random_uuid(),
   device_token text not null unique,
-  platform text not null check (platform in ('android', 'web')),
-  client_type text not null check (client_type in ('android', 'web')),
+  platform public.client_platform not null,
+  client_type public.client_platform not null,
   player_name text check (player_name is null or char_length(trim(player_name)) between 1 and 40),
   app_version text,
   is_active boolean not null default true,
@@ -36,8 +58,8 @@ create table if not exists public.notification_devices (
 create table if not exists public.score_attempts (
   id uuid primary key default extensions.gen_random_uuid(),
   player_name text not null check (char_length(trim(player_name)) between 1 and 40),
-  client_type text not null check (client_type in ('android', 'web')),
-  mode text not null check (mode in ('quiz', 'story')),
+  client_type public.client_platform not null,
+  mode public.attempt_mode not null,
   total_questions integer not null check (total_questions > 0),
   question_key jsonb not null check (jsonb_typeof(question_key) = 'array'),
   answers jsonb not null check (jsonb_typeof(answers) = 'array'),
@@ -62,13 +84,24 @@ create table if not exists public.score_attempt_events (
   attempt_id uuid not null references public.score_attempts (id) on delete cascade,
   event_type text not null check (event_type in ('attempt_started', 'answer_accepted', 'attempt_finalized', 'score_saved')),
   player_name text not null check (char_length(trim(player_name)) between 1 and 40),
-  client_type text not null check (client_type in ('android', 'web')),
+  client_type public.client_platform not null,
   metadata jsonb not null default '{}'::jsonb check (jsonb_typeof(metadata) = 'object'),
   created_at timestamptz not null default timezone('utc', now())
 );
 
 create index if not exists score_attempt_events_attempt_created_idx
 on public.score_attempt_events (attempt_id, created_at desc);
+
+alter table if exists public.notification_devices
+  alter column platform type public.client_platform using platform::public.client_platform,
+  alter column client_type type public.client_platform using client_type::public.client_platform;
+
+alter table if exists public.score_attempts
+  alter column client_type type public.client_platform using client_type::public.client_platform,
+  alter column mode type public.attempt_mode using mode::public.attempt_mode;
+
+alter table if exists public.score_attempt_events
+  alter column client_type type public.client_platform using client_type::public.client_platform;
 
 create or replace function public.save_attempt_score_from_attempt(
   target_attempt_id uuid,

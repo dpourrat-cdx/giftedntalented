@@ -53,6 +53,25 @@
     return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
+  function secureRandomIndex(length) {
+    if (length <= 0) {
+      return 0;
+    }
+
+    const cryptoApi = globalThis.crypto;
+    if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
+      throw new Error("Secure randomness is unavailable in this browser.");
+    }
+
+    const limit = Math.floor(0x100000000 / length) * length;
+    const values = new Uint32Array(1);
+    do {
+      cryptoApi.getRandomValues(values);
+    } while (values[0] >= limit);
+
+    return values[0] % length;
+  }
+
   function buildCelebrationArtworkThumbnail(event) {
     if (!event?.artwork?.src) {
       return "";
@@ -327,7 +346,7 @@
         return pool[0];
       }
 
-      let index = Math.floor(Math.random() * pool.length);
+      let index = secureRandomIndex(pool.length);
       if (index === this.lastIndexByPool[poolName]) {
         index = (index + 1) % pool.length;
       }
