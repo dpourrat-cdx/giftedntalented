@@ -18,15 +18,6 @@
     attemptSyncWarning: "This mission can continue, but the shared explorer record could not update right now.",
   };
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
   function normalizePlayerName(name) {
     return String(name || "")
       .trim()
