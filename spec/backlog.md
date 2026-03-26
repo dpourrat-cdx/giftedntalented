@@ -304,6 +304,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - **Progress note**: PR 17 adds the first frontend Vitest + jsdom foundation for `question-bank.js`, `scoreboard.js`, and mission-completion gamification behavior under the existing backend test job.
 - **Progress note**: PR 15 addresses roadmap items 1-8 with the locale-stable comparator, crypto-backed randomness, async error handling cleanup, proper `Error` usage, constructor/lifecycle cleanup, enum-backed schema types, and self-hosted fonts.
 - **Follow-up note**: Legacy root browser scripts still do not map cleanly back into Sonar's coverage attribution. Until the broader frontend coverage foundation lands, touched root files may still need temporary Sonar exclusions even when targeted tests exist.
+- **Follow-up note**: PR 15 temporarily excludes `question-bank.js` and `scoreboard.js` from Sonar coverage gating because the current harness validates their behavior but Sonar still does not attribute that coverage directly back to those legacy root scripts.
 - **Follow-up note**: The next frontend coverage slice should make Sonar attribute coverage directly to the legacy root browser scripts instead of only validating them through the harness/test helper layer.
 
 ---
