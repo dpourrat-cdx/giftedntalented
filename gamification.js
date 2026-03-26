@@ -929,5 +929,10 @@
   window.GiftedGamification = Object.freeze({
     themes: GAME_THEMES,
     createGamificationController,
+    ...(window.__GiftedExposeTestUtils
+      ? {
+          __testPrefersReducedMotion: prefersReducedMotion,
+        }
+      : {}),
   });
 })();

@@ -291,6 +291,8 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - **Root cause**: The frontend JS files (`app.js`, `scoreboard.js`, `gamification.js`, `question-bank.js`, `content.js`) have no test suite. They pull the overall project coverage to 40.4% even though the backend is well covered.
 - **Why it matters**: The frontend contains the most complex logic (cognitive complexity violations above, answer rendering, score display). Zero coverage means regressions in those paths are invisible to CI.
 - **Suggested approach**: Even a lightweight Vitest + jsdom or Playwright component test suite for the three highest-complexity frontend functions would meaningfully move the needle. Full frontend coverage is a long-term goal; targeting the functions flagged in issues 2–6 above is the highest-leverage starting point.
+- **Progress note**: PR 16 adds targeted frontend coverage for the specific `app.js` and `gamification.js` lines touched by the accessibility and cleanup slice so the new-code gate is backed by tests, not exclusions alone.
+- **Follow-up note**: Legacy root browser scripts still do not map cleanly back into Sonar's coverage attribution. Until the broader frontend coverage foundation lands, touched root files may still need temporary Sonar exclusions even when targeted tests exist.
 
 ---
 
