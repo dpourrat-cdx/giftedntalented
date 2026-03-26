@@ -36,7 +36,8 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
 - [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
-  Baseline CSP slice is open in PR 11: lock scripts to self, allow current Google Fonts and Render API origins, and temporarily keep `'unsafe-inline'` for styles until remaining inline style generation is removed.
+  Baseline CSP landed: scripts are locked to self, current Google Fonts and Render API origins are explicitly allowed, and `'unsafe-inline'` remains temporary for styles until remaining inline style generation is removed.
+  Follow-up note: `frame-ancestors` does not work from a meta-delivered CSP on GitHub Pages, so clickjacking protection still needs a platform-aware plan.
 - [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
   First slice landed: story-panel artwork and mission footer content no longer flow through raw HTML pass-throughs.
 
@@ -86,11 +87,11 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 ## Next Recommended Delivery Slice
 
-1. Land the baseline CSP slice after review, then test the live GitHub Pages app for breakage.
-2. Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
-3. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
-4. Add explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
-5. Continue the frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+1. Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
+2. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
+3. Add explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
+4. Continue the frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+5. Plan the next CSP tightening step after inline style generation is reduced and GitHub Pages clickjacking limits are documented.
 
 ## Done Definition For This Backlog
 
