@@ -369,6 +369,65 @@
     };
   }
 
+  function isGridPositionInBounds(position, size) {
+    return position.row >= 0 && position.row < size && position.col >= 0 && position.col < size;
+  }
+
+  function traceGridPattern(startPosition, pattern, moveLookup, size) {
+    let position = startPosition;
+
+    for (const step of pattern) {
+      position = moveOnGrid(position, moveLookup[step]);
+      if (!isGridPositionInBounds(position, size)) {
+        return null;
+      }
+    }
+
+    return position;
+  }
+
+  function buildGridQuestion(section, grid, gridText, labels, size, pattern, row, col, moveLookup, seedBase, candidateIndex) {
+    const position = traceGridPattern({ row, col }, pattern, moveLookup, size);
+    if (!position) {
+      return null;
+    }
+
+    const correct = gridLabel(grid, position.row, position.col);
+    const wrongOptions = seededShuffle(labels.filter((label) => label !== correct), seedBase + candidateIndex);
+
+    return makeChoiceQuestion(
+      section,
+      `Use the grid. Start at ${gridLabel(grid, row, col)}. Move ${pattern.join(", then ")}. Where do you end?`,
+      correct,
+      wrongOptions.slice(0, 3),
+      `Following the moves step by step lands on ${correct}.`,
+      gridText,
+      seedBase + candidateIndex,
+    );
+  }
+
+  function appendGridQuestionsForStart(section, grid, gridText, labels, size, patterns, moveLookup, seedBase, row, col, questions) {
+    for (const pattern of patterns) {
+      const question = buildGridQuestion(
+        section,
+        grid,
+        gridText,
+        labels,
+        size,
+        pattern,
+        row,
+        col,
+        moveLookup,
+        seedBase,
+        questions.length,
+      );
+
+      if (question) {
+        questions.push(question);
+      }
+    }
+  }
+
   function validMovesFor(grid, position) {
     const moves = [
       { name: "up", row: -1, col: 0 },
@@ -1030,58 +1089,15 @@
 
     for (let row = 0; row < size; row += 1) {
       for (let col = 0; col < size; col += 1) {
-        for (const pattern of patterns) {
-          let position = { row, col };
-          let valid = true;
-
-          for (const step of pattern) {
-            position = moveOnGrid(position, moveLookup[step]);
-            if (position.row < 0 || position.row >= size || position.col < 0 || position.col >= size) {
-              valid = false;
-              break;
-            }
-          }
-
-          if (!valid) {
-            continue;
-          }
-
-          const correct = gridLabel(grid, position.row, position.col);
-          const wrongOptions = seededShuffle(labels.filter((label) => label !== correct), seedBase + candidates.length);
-          const prompt = `Use the grid. Start at ${gridLabel(grid, row, col)}. Move ${pattern.join(", then ")}. Where do you end?`;
-
-          candidates.push(
-            makeChoiceQuestion(
-              section,
-              prompt,
-              correct,
-              wrongOptions.slice(0, 3),
-              `Following the moves step by step lands on ${correct}.`,
-              gridText,
-              seedBase + candidates.length,
-            ),
-          );
-        }
+        appendGridQuestionsForStart(section, grid, gridText, labels, size, patterns, moveLookup, seedBase, row, col, candidates);
       }
     }
 
     return seededShuffle(candidates, seedBase).slice(0, count);
   }
 
-  function buildSpatialQuestions() {
-    const section = SECTIONS[3];
+  function buildSpatialTurnQuestions(section, directions, displayDirections) {
     const questions = [];
-
-    questions.push(...generateGridQuestions(section, 3, 25, 4000));
-    questions.push(...generateGridQuestions(section, 4, 25, 5000));
-
-    const directions = ["north", "east", "south", "west"];
-    const displayDirections = {
-      north: "North",
-      east: "East",
-      south: "South",
-      west: "West",
-    };
 
     for (let index = 0; index < 50; index += 1) {
       const start = directions[index % directions.length];
@@ -1108,9 +1124,24 @@
       );
     }
 
-    questions.push(...buildSpatialChallengeQuestions(section));
-
     return questions;
+  }
+
+  function buildSpatialQuestions() {
+    const section = SECTIONS[3];
+    const directions = ["north", "east", "south", "west"];
+    const displayDirections = {
+      north: "North",
+      east: "East",
+      south: "South",
+      west: "West",
+    };
+    return [
+      ...generateGridQuestions(section, 3, 25, 4000),
+      ...generateGridQuestions(section, 4, 25, 5000),
+      ...buildSpatialTurnQuestions(section, directions, displayDirections),
+      ...buildSpatialChallengeQuestions(section),
+    ];
   }
 
   function buildPatternQuestions() {

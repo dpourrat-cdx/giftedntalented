@@ -157,6 +157,61 @@ describe("GiftedQuestionBank", () => {
     });
   });
 
+  it("builds representative spatial questions from each generated family", async () => {
+    await loadFrontendScript("question-bank.js");
+
+    const spatialSection = window.GiftedQuestionBank.SECTIONS[3];
+    const spatialQuestions = window.GiftedQuestionBank.getQuestionPool()[spatialSection];
+
+    const representatives = [
+      {
+        index: 0,
+        prompt: "Use the grid. Start at I. Move left, then left. Where do you end?",
+        answer: "G",
+        explanation: "Following the moves step by step lands on G.",
+        stimulus: "A   B   C\nD   E   F\nG   H   I",
+      },
+      {
+        index: 25,
+        prompt: "Use the grid. Start at E. Move right, then down, then left. Where do you end?",
+        answer: "I",
+        explanation: "Following the moves step by step lands on I.",
+        stimulus: "A   B   C   D\nE   F   G   H\nI   J   K   L\nM   N   O   P",
+      },
+      {
+        index: 50,
+        prompt: "A rocket starts facing North. It turns right, then right. Which way does it face now?",
+        answer: "South",
+        explanation: "Turn by turn, the rocket ends up facing South.",
+      },
+      {
+        index: 100,
+        prompt: "Use the grid. Start at B. Move right, then down, then left. Where do you end?",
+        answer: "G",
+        explanation: "Following the moves step by step lands on G.",
+        stimulus: "A   B   C   D   E\nF   G   H   I   J\nK   L   M   N   O\nP   Q   R   S   T\nU   V   W   X   Y",
+      },
+      {
+        index: 120,
+        prompt: "A rocket starts facing North. It turns right, then left, then opposite, then right. Which way does it face now?",
+        answer: "West",
+        explanation: "Following the turns in order leaves the rocket facing West.",
+      },
+    ] as const;
+
+    representatives.forEach(({ index, prompt, answer, explanation, stimulus }) => {
+      const question = spatialQuestions[index];
+
+      expect(question.prompt).toBe(prompt);
+      expect(question.options[question.answer]).toBe(answer);
+      expect(question.explanation).toBe(explanation);
+
+      if (stimulus) {
+        expect(question.stimulus).toBe(stimulus);
+      }
+    });
+  });
+
   it("builds the logic challenge activity-order prompts with the expected reasoning text", async () => {
     await loadFrontendScript("question-bank.js");
 
