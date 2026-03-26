@@ -51,9 +51,17 @@ type ScoreAttemptRow = {
 };
 
 type AttemptEventType = "attempt_started" | "answer_accepted" | "attempt_finalized" | "score_saved";
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
 
 function addHoursIso(hours: number) {
   return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+function addHoursToIso(timestamp: string, hours: number) {
+  return new Date(Date.parse(timestamp) + hours * 60 * 60 * 1000).toISOString();
 }
 
 function mapScoreRow(row: Record<string, unknown>) {
@@ -153,8 +161,12 @@ function computeAttemptProgress(questionKey: AttemptQuestionKey[], answers: Arra
   };
 }
 
-function isExpired(expiresAt: string | null) {
+function isExpired(expiresAt: string | null | undefined) {
   return typeof expiresAt === "string" && Date.parse(expiresAt) <= Date.now();
+}
+
+function isMissingExpiresAtSchema(error: SupabaseErrorLike | null | undefined) {
+  return error?.code === "PGRST204" && typeof error.message === "string" && error.message.includes("'expires_at'");
 }
 
 export class AttemptService {
@@ -226,13 +238,31 @@ export class AttemptService {
   }
 
   private async getAttemptRow(attemptId: string) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("score_attempts")
       .select(
         "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, last_elapsed_seconds",
       )
       .eq("id", attemptId)
       .single();
+
+    if (isMissingExpiresAtSchema(error)) {
+      const fallbackResponse = await supabase
+        .from("score_attempts")
+        .select(
+          "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, last_elapsed_seconds",
+        )
+        .eq("id", attemptId)
+        .single();
+
+      data = fallbackResponse.data
+        ? {
+            ...fallbackResponse.data,
+            expires_at: null,
+          }
+        : fallbackResponse.data;
+      error = fallbackResponse.error;
+    }
 
     if (error) {
       if (error.code === "PGRST116") {
@@ -246,7 +276,8 @@ export class AttemptService {
   }
 
   private assertAttemptIsActive(attempt: ScoreAttemptRow) {
-    if (!attempt.completed_at && isExpired(attempt.expires_at)) {
+    const effectiveExpiry = attempt.expires_at ?? addHoursToIso(attempt.started_at, ATTEMPT_TTL_HOURS);
+    if (!attempt.completed_at && isExpired(effectiveExpiry)) {
       throw new AppError(409, "ATTEMPT_EXPIRED", "This score attempt has expired.");
     }
   }
@@ -320,7 +351,7 @@ export class AttemptService {
 
     const emptyAnswers = questionKey.map(() => null);
     const expiresAt = addHoursIso(ATTEMPT_TTL_HOURS);
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("score_attempts")
       .insert({
         player_name: normalizedName,
@@ -335,8 +366,36 @@ export class AttemptService {
       .select("id, total_questions, expires_at")
       .single();
 
+    if (isMissingExpiresAtSchema(error)) {
+      const fallbackResponse = await supabase
+        .from("score_attempts")
+        .insert({
+          player_name: normalizedName,
+          client_type: input.clientType,
+          mode: input.mode,
+          total_questions: questionKey.length,
+          question_key: questionKey,
+          answers: emptyAnswers,
+          last_elapsed_seconds: null,
+        })
+        .select("id, total_questions")
+        .single();
+
+      data = fallbackResponse.data
+        ? {
+            ...fallbackResponse.data,
+            expires_at: null,
+          }
+        : fallbackResponse.data;
+      error = fallbackResponse.error;
+    }
+
     if (error) {
       throw new AppError(502, "ATTEMPT_CREATE_FAILED", "The score attempt could not be created.", error);
+    }
+
+    if (!data) {
+      throw new AppError(502, "ATTEMPT_CREATE_FAILED", "The score attempt could not be created.");
     }
 
     await this.recordAttemptEvent({
@@ -347,7 +406,7 @@ export class AttemptService {
       metadata: {
         mode: input.mode,
         totalQuestions: data.total_questions,
-        expiresAt: data.expires_at,
+        expiresAt: data.expires_at ?? expiresAt,
       },
     });
 

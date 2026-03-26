@@ -247,6 +247,31 @@ describe("AttemptService", () => {
         }),
       ).rejects.toMatchObject({ statusCode: 502, code: "ATTEMPT_CREATE_FAILED" });
     });
+
+    it("retries start without expires_at when the schema cache is stale", async () => {
+      mockInsertSingle
+        .mockResolvedValueOnce({
+          data: null,
+          error: {
+            code: "PGRST204",
+            message: "Could not find the 'expires_at' column of 'score_attempts' in the schema cache",
+          },
+        })
+        .mockResolvedValueOnce({
+          data: { id: ATTEMPT_ID, total_questions: 4 },
+          error: null,
+        });
+
+      const result = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+        questions: VALID_QUESTIONS,
+      });
+
+      expect(result.attemptId).toBe(ATTEMPT_ID);
+      expect(mockInsertSingle).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("submitAnswer", () => {
@@ -345,6 +370,34 @@ describe("AttemptService", () => {
       await expect(
         service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
       ).rejects.toMatchObject({ statusCode: 502, code: "ATTEMPT_WRITE_FAILED" });
+    });
+
+    it("retries lookup without expires_at when the schema cache is stale", async () => {
+      mockSingle
+        .mockResolvedValueOnce({
+          data: null,
+          error: {
+            code: "PGRST204",
+            message: "Could not find the 'expires_at' column of 'score_attempts' in the schema cache",
+          },
+        })
+        .mockResolvedValueOnce(
+          makeAttemptRow({
+            started_at: "2099-01-01T00:00:00Z",
+            updated_at: "2099-01-01T00:00:00Z",
+            expires_at: undefined,
+          }),
+        );
+      mockSavedScore();
+
+      const result = await service.submitAnswer(ATTEMPT_ID, {
+        questionId: 1,
+        bankId: "q1",
+        selectedAnswer: 0,
+      });
+
+      expect(result.accepted).toBe(true);
+      expect(mockSingle).toHaveBeenCalledTimes(2);
     });
   });
 
