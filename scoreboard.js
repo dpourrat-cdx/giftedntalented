@@ -558,7 +558,8 @@
 
     async finalizeAttempt({ elapsedSeconds }) {
       await this.answerQueue.catch(() => undefined);
-      const attemptId = this.activeAttemptId || (await this.activeAttemptPromise);
+      const inFlightAttempt = this.activeAttemptPromise ? await this.activeAttemptPromise : null;
+      const attemptId = this.activeAttemptId || inFlightAttempt?.attemptId || null;
       if (!attemptId) {
         return null;
       }

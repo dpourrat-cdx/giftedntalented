@@ -2,6 +2,7 @@ const {
   SECTIONS: sections,
   QUESTIONS_PER_TEST_SECTION,
   buildTestSession,
+  getQuestionPool,
 } = window.GiftedQuestionBank;
 
 const missionRewards =
@@ -116,6 +117,7 @@ let isTimerPaused = false;
 let deferredAdvanceQuestionIndex = -1;
 let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
+let questionBankLookup = null;
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -164,18 +166,50 @@ function createNewSession() {
   lastRenderedQuestionIndex = -1;
 }
 
+function canonicalQuestionByBankId(bankId) {
+  if (!bankId || typeof getQuestionPool !== "function") {
+    return null;
+  }
+
+  if (!questionBankLookup) {
+    questionBankLookup = new Map();
+    const questionPool = getQuestionPool();
+    for (const section of sections) {
+      if (!Array.isArray(questionPool?.[section])) {
+        continue;
+      }
+
+      questionPool[section].forEach((question) => {
+        if (question?.bankId) {
+          questionBankLookup.set(question.bankId, question);
+        }
+      });
+    }
+  }
+
+  return questionBankLookup.get(bankId) || null;
+}
+
 function normalizeAttemptQuestion(question, index) {
   if (!question || typeof question !== "object") {
     return null;
   }
 
   const candidate = question;
-  const options = Array.isArray(candidate.options) ? candidate.options.map((option) => String(option)) : null;
+  const bankId = typeof candidate.bankId === "string" ? candidate.bankId : "";
+  const canonicalQuestion = canonicalQuestionByBankId(bankId);
+  const options = Array.isArray(candidate.options)
+    ? candidate.options.map((option) => String(option))
+    : Array.isArray(canonicalQuestion?.options)
+      ? canonicalQuestion.options.map((option) => String(option))
+      : null;
   const answer =
     Number.isInteger(candidate.answer) && candidate.answer >= 0 && candidate.answer <= 3
       ? candidate.answer
       : Number.isInteger(candidate.correctAnswer) && candidate.correctAnswer >= 0 && candidate.correctAnswer <= 3
         ? candidate.correctAnswer
+        : Number.isInteger(canonicalQuestion?.answer) && canonicalQuestion.answer >= 0 && canonicalQuestion.answer <= 3
+          ? canonicalQuestion.answer
         : null;
   const id =
     Number.isInteger(candidate.id) && candidate.id > 0
@@ -183,11 +217,30 @@ function normalizeAttemptQuestion(question, index) {
       : Number.isInteger(candidate.questionId) && candidate.questionId > 0
         ? candidate.questionId
         : index + 1;
-  const bankId = typeof candidate.bankId === "string" ? candidate.bankId : "";
-  const section = typeof candidate.section === "string" ? candidate.section : "";
-  const prompt = typeof candidate.prompt === "string" ? candidate.prompt : "";
-  const explanation = typeof candidate.explanation === "string" ? candidate.explanation : "";
-  const stimulus = typeof candidate.stimulus === "string" ? candidate.stimulus : "";
+  const section =
+    typeof candidate.section === "string" && candidate.section
+      ? candidate.section
+      : typeof canonicalQuestion?.section === "string"
+        ? canonicalQuestion.section
+        : "";
+  const prompt =
+    typeof candidate.prompt === "string" && candidate.prompt
+      ? candidate.prompt
+      : typeof canonicalQuestion?.prompt === "string"
+        ? canonicalQuestion.prompt
+        : "";
+  const explanation =
+    typeof candidate.explanation === "string" && candidate.explanation
+      ? candidate.explanation
+      : typeof canonicalQuestion?.explanation === "string"
+        ? canonicalQuestion.explanation
+        : "";
+  const stimulus =
+    typeof candidate.stimulus === "string"
+      ? candidate.stimulus
+      : typeof canonicalQuestion?.stimulus === "string"
+        ? canonicalQuestion.stimulus
+        : "";
 
   if (!id || !bankId || !section || !prompt || !options || options.length !== 4 || answer === null) {
     return null;
