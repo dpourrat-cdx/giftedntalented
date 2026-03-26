@@ -204,13 +204,24 @@ function normalizeAttemptQuestion(question, index) {
     : Array.isArray(canonicalQuestion?.options)
       ? canonicalQuestion.options.map((option) => String(option))
       : null;
+  const canonicalCorrectOption =
+    Array.isArray(canonicalQuestion?.options) &&
+    Number.isInteger(canonicalQuestion?.answer) &&
+    canonicalQuestion.answer >= 0 &&
+    canonicalQuestion.answer < canonicalQuestion.options.length
+      ? String(canonicalQuestion.options[canonicalQuestion.answer])
+      : null;
+  const derivedAnswerIndex =
+    canonicalCorrectOption && Array.isArray(options)
+      ? options.findIndex((option) => option === canonicalCorrectOption)
+      : -1;
   const answer =
     Number.isInteger(candidate.answer) && candidate.answer >= 0 && candidate.answer <= 3
       ? candidate.answer
       : Number.isInteger(candidate.correctAnswer) && candidate.correctAnswer >= 0 && candidate.correctAnswer <= 3
         ? candidate.correctAnswer
-        : Number.isInteger(canonicalQuestion?.answer) && canonicalQuestion.answer >= 0 && canonicalQuestion.answer <= 3
-          ? canonicalQuestion.answer
+        : derivedAnswerIndex >= 0 && derivedAnswerIndex <= 3
+          ? derivedAnswerIndex
         : null;
   const id =
     Number.isInteger(candidate.id) && candidate.id > 0
