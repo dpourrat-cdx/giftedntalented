@@ -6,18 +6,24 @@ This folder is the home for feature specs before implementation work starts.
 
 Spec-driven development helps us make changes with clearer scope, fewer surprises, and better alignment before code is written.
 
-## Current Feature Specs
+## Current Specs And Docs
 
-- `backend-api-spec.md` - live Render backend architecture, API responsibilities, current security model, and branch/deployment notes
-- `backend-deploy-checklist.md` - lightweight Render deploy checklist and live smoke-command reference
-- `unified-architecture-and-release-flow.md` - current GitHub Pages, Render, and Supabase release flow plus live smoke-check expectations
-- `captain-nova-ux-refresh.md` - story-first UX architecture for the Captain Nova mission flow, including mission modals, progress feedback, and payoff-first results
-- `captain-nova-current-product-spec.md` - current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, backend-backed score saving, and parent controls
-- `next-implementation-todo.md` - prioritized backlog after the March 25 score-attempt rollout, with the remaining trust, docs, and ops work still first
+### In `spec/`
+
+- `backend-api-spec.md` — Render backend architecture, API responsibilities, and security model. **Note:** predates the March 26 attempt-based flow; a full rewrite is tracked as Priority 2 in `next-implementation-todo.md`
+- `backend-deploy-checklist.md` — lightweight deploy checklist and smoke-command reference for Render releases
+- `unified-architecture-and-release-flow.md` — current GitHub Pages, Render, and Supabase release flow, CI and branch protection rules, and smoke-check expectations
+- `captain-nova-ux-refresh.md` — story-first UX architecture for the Captain Nova mission flow, including mission modals, progress feedback, and payoff-first results
+- `captain-nova-current-product-spec.md` — current shipped behavior for cinematic storyline packs, modal mission flow, mission routing, backend-owned attempt flow, and parent controls
+- `next-implementation-todo.md` — prioritized backlog after the March 26 CI and docs rollout, with the remaining security, docs, and ops work
+
+### At repo root
+
+- `CONTRIBUTING.md` — branch naming, test expectations, merge+deploy workflow, and multi-agent (Claude + Codex) working conventions
 
 ## Current Status
 
-These specs were refreshed through the March 25, 2026 score-attempt rollout. The shipped system now includes:
+These specs were refreshed through the March 26, 2026 CI, branch protection, and docs rollout. The shipped system now includes:
 
 - cinematic story content with a swappable storyline-pack structure
 - blocking mission introduction, update, completion, and final-launch modals
@@ -31,6 +37,9 @@ These specs were refreshed through the March 25, 2026 score-attempt rollout. The
 - a live Render backend for score read/save/reset
 - backend-to-Supabase score persistence with one best row per child name
 - backend-owned score attempts with route-level validation and finalize flow
+- CI pipeline (GitHub Actions) running check, test, build, and audit on every PR
+- branch protection on `master` requiring passing CI before merge
+- `CONTRIBUTING.md` documenting the multi-agent (Claude + Codex) workflow conventions
 - device-only score fallback messaging instead of silent local-first score display
 - server-side reset PIN verification instead of browser-held reset logic
 - backend source now merged into `master`
