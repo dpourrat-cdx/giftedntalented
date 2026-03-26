@@ -43,4 +43,13 @@ describe("adminAuth", () => {
     const err = (next as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
     expect(err.statusCode).toBe(401);
   });
+
+  it("calls next with AppError(401) when key length does not match", () => {
+    const { req, res, next } = createMockReqRes("short-key");
+    adminAuth(req, res, next);
+    expect(next).toHaveBeenCalledWith(expect.any(AppError));
+    const err = (next as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
+    expect(err.statusCode).toBe(401);
+    expect(err.code).toBe("ADMIN_AUTH_REQUIRED");
+  });
 });
