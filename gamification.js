@@ -669,12 +669,13 @@
       this.lastSyncedSectionKey = null;
     }
 
-    sync(snapshot) {
+    sync(snapshot, options = {}) {
       this.state = buildGamificationState(snapshot, this.theme);
       const currentSectionKey = this.state.currentSection?.key || null;
       const shouldReplayIntroduction =
         currentSectionKey !== null && this.pendingIntroductionSectionKey === currentSectionKey;
       const sectionChanged = currentSectionKey !== this.lastSyncedSectionKey;
+      const skipSectionCompletion = Boolean(options.skipSectionCompletion);
       const shouldShowHud = this.state.hasStarted;
       this.roots.hudRoot.classList.toggle("is-hidden", !shouldShowHud);
       this.progressIndicator.render(this.state);
@@ -688,10 +689,12 @@
       }
       const shouldReplayCompletion =
         currentSectionKey !== null && this.pendingSectionCompletionKey === currentSectionKey;
-      this.maybeTriggerSectionCompletion(this.state, {
-        allowReplay: shouldReplayCompletion,
-      });
-      if (shouldReplayCompletion) {
+      if (!skipSectionCompletion) {
+        this.maybeTriggerSectionCompletion(this.state, {
+          allowReplay: shouldReplayCompletion,
+        });
+      }
+      if (shouldReplayCompletion && !skipSectionCompletion) {
         this.pendingSectionCompletionKey = null;
       }
       this.lastSyncedSectionKey = currentSectionKey;
@@ -699,7 +702,9 @@
     }
 
     onAnswerEvaluated(snapshot, answerEvent) {
-      const state = this.sync(snapshot);
+      const state = this.sync(snapshot, {
+        skipSectionCompletion: true,
+      });
       if (!state.hasStarted || !state.currentSection) {
         return state;
       }
