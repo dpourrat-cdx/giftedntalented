@@ -34,6 +34,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
 - [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
+  Baseline CSP slice in progress: lock scripts to self, allow current Google Fonts and Render API origins, and temporarily keep `'unsafe-inline'` for styles until remaining inline style generation is removed.
 - [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
   First slice in progress: remove raw story-panel HTML pass-through for artwork and mission footer content.
 
