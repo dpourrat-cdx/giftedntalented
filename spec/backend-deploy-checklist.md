@@ -4,9 +4,9 @@ Use this when the Render backend or the `master` branch changes.
 
 ## Before Merge
 
-- Confirm the backend tests pass locally.
-- Confirm the TypeScript check passes locally.
-- Confirm the new smoke runner is available with `npm run smoke:live`.
+- Confirm the backend tests pass locally: `npm run check && npm test && npm run build`.
+- CI runs these checks automatically on every PR — the `Backend` job must be green before merge is allowed.
+- Confirm the smoke runner is available with `npm run smoke:live`.
 
 ## After Deploy
 

@@ -24,7 +24,6 @@ The app already has rocket rewards, mission structure, and story text, but the e
 ## Non-Goals
 
 - No change to question bank logic or scoring rules.
-- No change to question bank logic or scoring rules.
 - No removal of existing icons, rocket stages, midpoint boosts, or celebration overlays.
 - No move away from the current static frontend deployment model.
 

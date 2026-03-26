@@ -1,8 +1,10 @@
 # Backend API Spec
 
+> **Note:** This spec predates the March 26, 2026 score-attempt rollout. It does not yet document the attempt-based API (`POST /attempts`, `POST /attempts/:id/answers`, `POST /attempts/:id/finalize`), the `score_attempts` and `score_attempt_events` tables, or backend-owned question selection. A full rewrite is tracked as Priority 2 in `next-implementation-todo.md`. Until then, treat the Endpoints and Database Model sections as partially outdated and refer to `captain-nova-current-product-spec.md` for the live API surface.
+
 ## Overview
 
-This document captures the current backend architecture that powers the live Captain Nova score and reset flows.
+This document captures the backend architecture that powers the Captain Nova score and reset flows.
 
 The backend is deployed on Render at:
 
@@ -110,9 +112,8 @@ The score reset route is designed for parent use and keeps the PIN server-side:
 
 ### Remaining Risks
 
-- Score correctness is still browser-trusted.
-  - The browser calculates score, percentage, and elapsed time and submits them to the backend.
-- The question bank and answer key still ship to the browser.
+- The backend now owns question selection and answer validation through the attempt flow, removing the browser-trusted score vector for the web quiz.
+- The frontend question bank bundle still ships to the browser (used for UI rendering), but answer correctness is validated server-side.
 - Explorer names remain guessable identifiers.
 - Old credentials and reset values may still exist in git history from earlier versions.
 
@@ -173,36 +174,9 @@ Behavior:
 - returns `404` if no record exists
 - uses normalized player names
 
-#### `POST /api/v1/players/:playerName/record`
+#### `POST /api/v1/players/:playerName/record` — **DISABLED**
 
-Purpose:
-
-- save a score attempt and keep only the best record for that player
-
-Path params:
-
-- `playerName`
-
-Body:
-
-- `score`
-- `percentage`
-- `totalQuestions`
-- `elapsedSeconds`
-- `clientType` with values `web` or `android`
-- `mode` with values `quiz` or `story`
-
-Behavior:
-
-- validates all numeric ranges
-- rejects invalid totals
-- ignores `story` mode for persistence
-- updates the saved record only when the new result is better
-- tie-breaker prefers the faster elapsed time
-
-Response:
-
-- the stored best record after comparison
+This endpoint now returns `410 LEGACY_SCORE_ENDPOINT_DISABLED`. Score writes must go through the attempt flow: `POST /api/v1/attempts` → `POST /api/v1/attempts/:attemptId/answers` → `POST /api/v1/attempts/:attemptId/finalize`.
 
 #### `POST /api/v1/devices/register`
 

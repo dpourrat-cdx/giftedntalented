@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 18 backend deployment and frontend API integration updates.
+This document captures the current shipped behavior of the Captain Nova rocket mission app as it exists after the March 26, 2026 backend-owned score attempts rollout.
 
 The product is a static, story-driven gifted practice site for children. It combines an 8-mission question flow, rocket-building rewards, per-child score tracking, and a parent-only control area.
 
@@ -225,8 +225,13 @@ The product is a static, story-driven gifted practice site for children. It comb
 
 - Current live API paths used by the frontend:
   - `GET /api/v1/players/:playerName/record`
-  - `POST /api/v1/players/:playerName/record`
+  - `POST /api/v1/attempts` — start a new attempt, backend assigns question order
+  - `POST /api/v1/attempts/:attemptId/answers` — submit one answer
+  - `POST /api/v1/attempts/:attemptId/finalize` — finalize and persist the best score
   - `POST /api/v1/admin/scores/reset`
+
+- Disabled (returns `410 LEGACY_SCORE_ENDPOINT_DISABLED`):
+  - `POST /api/v1/players/:playerName/record`
 
 - Saved record fields:
   - player name
@@ -243,17 +248,15 @@ The product is a static, story-driven gifted practice site for children. It comb
 ## Constraints
 
 - This is a static frontend app.
-- The frontend currently still performs scoring and timing calculations before submitting them to the backend.
+- The backend now owns question selection and answer-order randomization for each attempt.
 - Remote storage depends on the Render backend staying in sync with its Supabase schema.
-- The question bank and answer logic ship to the browser.
+- The question bank snapshot used by the backend lives in `backend/src/lib/question-bank.data.json` and is gitignored for future changes, but the initial version is tracked.
 - The backend now lives in the same repo and `master` branch as the frontend, but deploys from the `backend/` root on Render.
 
 ## Known Limitations
 
-- Score integrity is still browser-trusted even though writes now route through the backend.
 - Parent reset still relies on a browser prompt for PIN entry, even though verification is server-side.
 - Saved child names and scores can remain on shared devices.
-- There is no automated test suite in the repo yet.
 - Storyline selection is still code-configured rather than parent-configurable.
 - Story Only mode currently reuses the normal ending screen and score-band ending story instead of having a separate story-only finale.
 - Older secrets and reset values may still exist in git history from earlier public versions.
@@ -295,5 +298,5 @@ The product is a static, story-driven gifted practice site for children. It comb
 - `styles.css`
 - `scoreboard.css`
 - `gamification.css`
-- `supabase/scoreboard_setup.sql`
+- `backend/supabase/backend_schema.sql` — live schema source of truth
 - `spec/backend-api-spec.md`
