@@ -10,6 +10,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - Backend schema is hardened: SECURITY DEFINER function lockdown (PR 21) and RLS with service-role-only policies (PR 22) are both live.
 - The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
 - The review-card innerHTML sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
+- Sonar quick wins landed (PR 28): `@types/*` moved to devDependencies, dead `savePlayerRecord` path removed, CSS contrast fixed, nested template literals and dead `escapeHtml` removed, `buildSectionButton` converted to DOM construction.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
@@ -51,13 +52,8 @@ SonarCloud currently reports 12 critical cognitive-complexity violations (S3776)
 Additional code quality items:
 
 - [ ] Sweep nested ternaries (28 Sonar MAJOR S3358 issues) across `app.js` and `question-bank.js`.
-- [ ] Replace nested template literals (4 Sonar MAJOR S4624) in `app.js:1177` and `scoreboard.js:625–626`.
+- [ ] Replace remaining nested template literals — `app.js:1177` and `scoreboard.js:625–626` resolved in PR 28; confirm via Sonar whether any remain.
 - [ ] Replace optional-chaining opportunities (9 Sonar MAJOR S6582) across `app.js`, `scoreboard.js`, and `gamification.js`.
-- [ ] Fix CSS text-contrast failures (2 Sonar MAJOR, accessibility) in `styles.css:917` and `gamification.css:373`.
-- [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
-  Progress: PR 28 bundles the low-risk Sonar quick wins, including the type-package move plus the paired frontend/CSS cleanup items.
-- [ ] Remove dead score-write code paths left behind after the `410` legacy endpoint change.
-  Progress: PR 28 removes the leftover legacy `savePlayerRecord` path from `backend/src/services/score.service.ts` and its tests.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
@@ -89,7 +85,7 @@ Additional code quality items:
 
 ## Next Recommended Delivery Slice
 
-1. **Quick wins** — move `@types/*` to devDependencies, remove dead legacy score-write code, fix 2 CSS contrast failures, replace 4 nested template literals. Low risk, resolves ~7 Sonar issues.
-2. **Backend complexity** — split `saveAuthoritativeScore()` in `attempt.service.ts:560` (complexity 25) as the first step of the broader `attempt.service.ts` decomposition.
-3. **Frontend complexity** — refactor `renderQuestion()` in `app.js:1243` (complexity 56), the single largest Sonar issue in the codebase.
+1. **Backend complexity** — split `saveAuthoritativeScore()` in `attempt.service.ts:560` (complexity 25) as the first step of the broader `attempt.service.ts` decomposition.
+2. **Frontend complexity** — refactor `renderQuestion()` in `app.js:1243` (complexity 56), the single largest Sonar issue in the codebase.
+3. **Optional chaining sweep** — replace the 9 S6582 optional-chaining opportunities across `app.js`, `scoreboard.js`, and `gamification.js`. Low risk, measurable Sonar improvement.
 4. **Decide the reset route security model** — unblocks the API spec update and any future auth change on that route.
