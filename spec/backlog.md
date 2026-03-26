@@ -38,6 +38,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
 - [x] Add SonarCloud static analysis to CI for ongoing code quality and security scanning.
   Landed: SonarCloud is live on every PR and push to `master` via `sonarqube-scan-action`. Coverage report (lcov) is fed from vitest. Quality gate enforces new-code coverage, security hotspots, and ratings.
+  Follow-up landed: the workflow now skips the scan cleanly when `SONAR_TOKEN` is unavailable on same-repo automation runs (for example some Dependabot contexts) so dependency PRs do not fail on secret isolation alone.
 - [x] Add a baseline Content Security Policy to the GitHub Pages frontend.
   Landed (PR #11 and follow-up hardening): `default-src 'self'`, scripts/styles/fonts locked to same-origin, and the Render API origin explicitly allowed. `'unsafe-inline'` is still retained temporarily for styles.
 - [x] Replace frontend `Math.random()` shuffles with crypto-backed randomness where the values affect question or message ordering.
