@@ -265,6 +265,8 @@
       this.activeAttemptId = null;
       this.activeAttemptPromise = null;
       this.activeAttemptFingerprint = "";
+      this.activeAttemptUnavailableFingerprint = "";
+      this.activeAttemptQuestions = [];
       this.activeAttemptPlayerName = "";
       this.answerQueue = Promise.resolve();
       this.boundReset = this.handleResetClick.bind(this);
@@ -430,6 +432,8 @@
       this.activeAttemptId = null;
       this.activeAttemptPromise = null;
       this.activeAttemptFingerprint = "";
+      this.activeAttemptUnavailableFingerprint = "";
+      this.activeAttemptQuestions = [];
       this.activeAttemptPlayerName = "";
       this.answerQueue = Promise.resolve();
     }
@@ -443,11 +447,18 @@
 
       const fingerprint = this.buildAttemptFingerprint(normalizedName, questions);
       if (this.activeAttemptId && this.activeAttemptFingerprint === fingerprint) {
-        return this.activeAttemptId;
+        return {
+          attemptId: this.activeAttemptId,
+          questions: this.activeAttemptQuestions,
+        };
       }
 
       if (this.activeAttemptPromise && this.activeAttemptFingerprint === fingerprint) {
         return this.activeAttemptPromise;
+      }
+
+      if (this.activeAttemptUnavailableFingerprint === fingerprint) {
+        return null;
       }
 
       this.activeAttemptId = null;
@@ -462,10 +473,14 @@
         })
         .then((result) => {
           this.activeAttemptId = result?.attemptId || null;
-          return this.activeAttemptId;
+          this.activeAttemptQuestions = Array.isArray(result?.questions) ? result.questions : [];
+          this.activeAttemptUnavailableFingerprint = "";
+          return result || null;
         })
         .catch((error) => {
           this.activeAttemptId = null;
+          this.activeAttemptQuestions = [];
+          this.activeAttemptUnavailableFingerprint = fingerprint;
           this.setStatus(scoreboardContent.attemptStartWarning, "info", true);
           return null;
         })
@@ -482,11 +497,12 @@
       }
 
       if (this.activeAttemptPromise) {
-        const attemptId = await this.activeAttemptPromise;
-        return attemptId || null;
+        const attemptResult = await this.activeAttemptPromise;
+        return attemptResult?.attemptId || null;
       }
 
-      return this.beginAttempt(options);
+      const attemptResult = await this.beginAttempt(options);
+      return attemptResult?.attemptId || null;
     }
 
     async recordValidatedAnswer({

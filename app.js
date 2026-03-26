@@ -164,6 +164,81 @@ function createNewSession() {
   lastRenderedQuestionIndex = -1;
 }
 
+function normalizeAttemptQuestion(question, index) {
+  if (!question || typeof question !== "object") {
+    return null;
+  }
+
+  const candidate = question;
+  const options = Array.isArray(candidate.options) ? candidate.options.map((option) => String(option)) : null;
+  const answer =
+    Number.isInteger(candidate.answer) && candidate.answer >= 0 && candidate.answer <= 3
+      ? candidate.answer
+      : Number.isInteger(candidate.correctAnswer) && candidate.correctAnswer >= 0 && candidate.correctAnswer <= 3
+        ? candidate.correctAnswer
+        : null;
+  const id =
+    Number.isInteger(candidate.id) && candidate.id > 0
+      ? candidate.id
+      : Number.isInteger(candidate.questionId) && candidate.questionId > 0
+        ? candidate.questionId
+        : index + 1;
+  const bankId = typeof candidate.bankId === "string" ? candidate.bankId : "";
+  const section = typeof candidate.section === "string" ? candidate.section : "";
+  const prompt = typeof candidate.prompt === "string" ? candidate.prompt : "";
+  const explanation = typeof candidate.explanation === "string" ? candidate.explanation : "";
+  const stimulus = typeof candidate.stimulus === "string" ? candidate.stimulus : "";
+
+  if (!id || !bankId || !section || !prompt || !options || options.length !== 4 || answer === null) {
+    return null;
+  }
+
+  return {
+    id,
+    questionId: id,
+    bankId,
+    section,
+    prompt,
+    options,
+    answer,
+    explanation,
+    stimulus,
+  };
+}
+
+function normalizeAttemptQuestions(questions) {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return null;
+  }
+
+  const normalized = questions.map((question, index) => normalizeAttemptQuestion(question, index));
+  if (normalized.some((question) => !question)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function adoptBackendAttemptQuestions(questions) {
+  if (!hasStarted || isSubmitted || answeredTotal() !== 0 || currentIndex !== 0) {
+    return false;
+  }
+
+  const normalizedQuestions = normalizeAttemptQuestions(questions);
+  if (!normalizedQuestions || normalizedQuestions.length !== totalQuestions()) {
+    return false;
+  }
+
+  sessionQuestions = normalizedQuestions;
+  selectedAnswers = Array(totalQuestions()).fill(null);
+  validatedAnswers = Array(totalQuestions()).fill(null);
+  lastRenderedQuestionIndex = -1;
+  updateProgress();
+  updateTimerDisplay();
+  renderQuestion();
+  return true;
+}
+
 function answeredTotal() {
   return validatedAnswers.filter((answer) => answer !== null).length;
 }
@@ -1328,14 +1403,8 @@ function startTestFromBeginning() {
   currentIndex = 0;
   hasStarted = true;
   isStoryOnlySession = storyOnlyModeEnabled;
-  if (scoreboardController && !isStoryOnlySession) {
-    void scoreboardController.beginAttempt({
-      playerName,
-      clientType: "web",
-      mode: "quiz",
-      questions: buildAttemptQuestionRegistration(),
-    });
-  }
+  const isQuizSession = !isStoryOnlySession;
+  const attemptQuestions = isQuizSession ? buildAttemptQuestionRegistration() : [];
   if (isStoryOnlySession) {
     clearTimer();
     setTimerPaused(true);
@@ -1344,6 +1413,21 @@ function startTestFromBeginning() {
     startTimer();
   }
   renderQuestion();
+
+  if (scoreboardController && isQuizSession) {
+    void scoreboardController
+      .beginAttempt({
+        playerName,
+        clientType: "web",
+        mode: "quiz",
+        questions: attemptQuestions,
+      })
+      .then((result) => {
+        if (result?.attemptId && result.questions && adoptBackendAttemptQuestions(result.questions)) {
+          return;
+        }
+      });
+  }
 }
 
 function restartTest() {
