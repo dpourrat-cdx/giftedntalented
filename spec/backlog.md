@@ -73,6 +73,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Remove dead score-write code paths that are no longer reachable after the `410` legacy endpoint change.
 - [ ] Keep low-risk backend dependency bumps current, starting with the TypeScript type-only packages and then the compiler/runtime tooling updates.
   Progress: PR #2 refreshes the TypeScript 6 bump onto the latest `master` so Dependabot validation runs against the current SonarCloud workflow instead of the pre-fix merge snapshot.
+  Progress: PR #3 updates the Vitest 4 bump to also carry the matching `@vitest/coverage-v8` major so the backend test and coverage toolchain stays version-aligned.
 - [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [x] Replace non-`Error` scoreboard request throws with `Error` instances and stop swallowing frontend async failures with `void` fire-and-forget calls.

@@ -11,7 +11,9 @@ const mockAttemptService = vi.hoisted(() => ({
 const ATTEMPT_ID = "550e8400-e29b-41d4-a716-446655440000";
 
 vi.mock("../services/attempt.service.js", () => ({
-  AttemptService: vi.fn(() => mockAttemptService),
+  AttemptService: vi.fn(function AttemptServiceMock() {
+    return mockAttemptService;
+  }),
 }));
 
 vi.mock("../lib/supabase.js", () => ({
