@@ -1422,17 +1422,20 @@ function renderHintAndButton(state) {
     dom.nextHint.classList.remove("is-hidden");
   }
 
-  dom.nextButton.textContent = isSubmitted
-    ? currentIndex === totalQuestions() - 1
-      ? questionContent.buttons.finished
-      : questionContent.buttons.next
-    : validatedAnswer === null
-      ? questionContent.buttons.check
-      : allQuestionsAnswered()
-        ? questionContent.buttons.launch
-        : isMissionTransitionReady
-          ? (questionContent.buttons.nextMission || "Next mission")
-          : questionContent.buttons.next;
+  if (isSubmitted) {
+    dom.nextButton.textContent =
+      currentIndex === totalQuestions() - 1
+        ? questionContent.buttons.finished
+        : questionContent.buttons.next;
+  } else if (validatedAnswer === null) {
+    dom.nextButton.textContent = questionContent.buttons.check;
+  } else if (allQuestionsAnswered()) {
+    dom.nextButton.textContent = questionContent.buttons.launch;
+  } else if (isMissionTransitionReady) {
+    dom.nextButton.textContent = questionContent.buttons.nextMission || "Next mission";
+  } else {
+    dom.nextButton.textContent = questionContent.buttons.next;
+  }
   dom.nextButton.disabled =
     isAutoAdvancing ||
     isAwaitingAnswerSync ||
