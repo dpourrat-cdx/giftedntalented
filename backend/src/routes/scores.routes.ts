@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../middleware/async-handler.js";
-import { readLimiter, writeLimiter } from "../middleware/rate-limit.js";
+import { lookupLimiter, writeLimiter } from "../middleware/rate-limit.js";
 import { validate } from "../middleware/validate.js";
 import { ScoreService } from "../services/score.service.js";
 import { playerNameParamsSchema } from "../validators/score.validators.js";
@@ -11,7 +11,7 @@ export const scoresRouter = Router();
 
 scoresRouter.get(
   "/players/:playerName/record",
-  readLimiter,
+  lookupLimiter,
   validate({ params: playerNameParamsSchema }),
   asyncHandler(async (request, response) => {
     const playerName = String(request.params.playerName);
@@ -20,7 +20,7 @@ scoresRouter.get(
     if (!record) {
       response.status(404).json({
         error: "PLAYER_RECORD_NOT_FOUND",
-        message: "No saved record exists for that player yet.",
+        message: "The requested score record is not available.",
         requestId: request.requestId,
       });
       return;

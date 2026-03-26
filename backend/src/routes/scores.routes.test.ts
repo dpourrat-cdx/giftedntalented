@@ -71,6 +71,20 @@ describe("Score routes", () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe("PLAYER_RECORD_NOT_FOUND");
+      expect(res.body.message).toBe("The requested score record is not available.");
+    });
+
+    it("rate limits repeated public lookups", async () => {
+      mockRpc.mockResolvedValue({ data: [], error: null });
+
+      for (let index = 0; index < 19; index += 1) {
+        const response = await request(app).get(`/api/v1/players/Name${index}/record`);
+        expect(response.status).toBe(404);
+      }
+
+      const limited = await request(app).get("/api/v1/players/Overflow/record");
+
+      expect(limited.status).toBe(429);
     });
   });
 
