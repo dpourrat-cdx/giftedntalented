@@ -292,7 +292,9 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - **Why it matters**: The frontend contains the most complex logic (cognitive complexity violations above, answer rendering, score display). Zero coverage means regressions in those paths are invisible to CI.
 - **Suggested approach**: Even a lightweight Vitest + jsdom or Playwright component test suite for the three highest-complexity frontend functions would meaningfully move the needle. Full frontend coverage is a long-term goal; targeting the functions flagged in issues 2–6 above is the highest-leverage starting point.
 - **Progress note**: PR 16 adds targeted frontend coverage for the specific `app.js` and `gamification.js` lines touched by the accessibility and cleanup slice so the new-code gate is backed by tests, not exclusions alone.
+- **Progress note**: PR 17 adds the first frontend Vitest + jsdom foundation for `question-bank.js`, `scoreboard.js`, and mission-completion gamification behavior under the existing backend test job.
 - **Follow-up note**: Legacy root browser scripts still do not map cleanly back into Sonar's coverage attribution. Until the broader frontend coverage foundation lands, touched root files may still need temporary Sonar exclusions even when targeted tests exist.
+- **Follow-up note**: The next frontend coverage slice should make Sonar attribute coverage directly to the legacy root browser scripts instead of only validating them through the harness/test helper layer.
 
 ---
 
@@ -314,7 +316,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 | 12 | Resolve nested ternaries as a sweep (issue 10) | 30+ instances; mechanical refactor, best done file-by-file | M |
 | 13 | Fix contrast ratio violations (issue 15) | Landed in PR 16: the flagged badge and reward color pairs were darkened to meet the contrast target without changing the visual system. | S per instance |
 | 14 | Fix accessibility issues in `index.html` (issue 16) | Landed in PR 16: the question prompt now has a non-empty initial heading and the answer list uses a semantic `<ul>`. | S |
-| 15 | Add frontend test coverage (coverage gap) | Moves overall coverage toward 80%; requires sustained effort | L |
+| 15 | Add frontend test coverage (coverage gap) | First foundation slice is PR 17; follow with direct source attribution and broader app/scoreboard coverage to move overall coverage toward 80%. | L |
 
 ---
 
