@@ -621,18 +621,23 @@
       }
 
       this.elements.name.textContent = topScore.playerName;
-      const metaBits = [
-        `<span>${escapeHtml(`${topScore.score}/${topScore.totalQuestions}`)}</span>`,
-        `<span>${escapeHtml(`${topScore.percentage}%`)}</span>`,
+      this.elements.score.textContent = "";
+
+      const scoreBits = [
+        `${topScore.score}/${topScore.totalQuestions}`,
+        `${topScore.percentage}%`,
       ];
 
       if (topScore.elapsedSeconds !== null) {
-        metaBits.push(`<span>${escapeHtml(formatElapsedTime(topScore.elapsedSeconds))}</span>`);
+        scoreBits.push(formatElapsedTime(topScore.elapsedSeconds));
       }
 
-      this.elements.score.innerHTML = `
-        ${metaBits.join("")}
-      `;
+      scoreBits.forEach((value) => {
+        const span = document.createElement("span");
+        span.textContent = value;
+        this.elements.score.appendChild(span);
+      });
+
       this.cachePlayerScore(topScore);
     }
 
