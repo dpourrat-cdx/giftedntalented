@@ -55,6 +55,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
   - legacy `POST /players/:playerName/record` disabled behavior
 - [x] Architecture note (`spec/architecture.md`) covers GitHub Pages, Render, Supabase, CI, release flow, and smoke checks.
 - [x] Add `CONTRIBUTING.md` with branch naming, test expectations, merge flow, and multi-agent working conventions.
+  Updated (PR #18): contributing guidance now explicitly requires meaningful automated coverage on every PR and a green SonarCloud new-code gate before merge.
 - [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
 
 ## Priority 3: Code Quality And Maintainability
