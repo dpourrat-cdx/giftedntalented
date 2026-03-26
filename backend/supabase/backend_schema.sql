@@ -44,11 +44,25 @@ create table if not exists public.score_attempts (
   started_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   completed_at timestamptz,
+  expires_at timestamptz not null default (timezone('utc', now()) + interval '2 hours'),
   last_elapsed_seconds integer check (last_elapsed_seconds is null or last_elapsed_seconds >= 0)
 );
 
 create index if not exists score_attempts_player_name_started_idx
 on public.score_attempts ((lower(btrim(player_name))), started_at desc);
+
+create table if not exists public.score_attempt_events (
+  id uuid primary key default extensions.gen_random_uuid(),
+  attempt_id uuid not null references public.score_attempts (id) on delete cascade,
+  event_type text not null check (event_type in ('attempt_started', 'answer_accepted', 'attempt_finalized', 'score_saved')),
+  player_name text not null check (char_length(trim(player_name)) between 1 and 40),
+  client_type text not null check (client_type in ('android', 'web')),
+  metadata jsonb not null default '{}'::jsonb check (jsonb_typeof(metadata) = 'object'),
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create index if not exists score_attempt_events_attempt_created_idx
+on public.score_attempt_events (attempt_id, created_at desc);
 
 create or replace function public.touch_notification_device_updated_at()
 returns trigger

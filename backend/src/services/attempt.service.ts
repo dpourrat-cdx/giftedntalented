@@ -1,7 +1,10 @@
 import { getLoadedQuestionBank } from "../lib/question-bank.js";
+import { logger } from "../config/logger.js";
 import { supabase } from "../lib/supabase.js";
 import { AppError } from "../utils/errors.js";
 import { normalizeElapsedSeconds, normalizePlayerName } from "../utils/normalize.js";
+
+const ATTEMPT_TTL_HOURS = 2;
 
 type StartAttemptInput = {
   playerName: string;
@@ -43,8 +46,15 @@ type ScoreAttemptRow = {
   started_at: string;
   updated_at: string;
   completed_at: string | null;
+  expires_at: string | null;
   last_elapsed_seconds: number | null;
 };
+
+type AttemptEventType = "attempt_started" | "answer_accepted" | "attempt_finalized" | "score_saved";
+
+function addHoursIso(hours: number) {
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
 
 function mapScoreRow(row: Record<string, unknown>) {
   return {
@@ -143,9 +153,42 @@ function computeAttemptProgress(questionKey: AttemptQuestionKey[], answers: Arra
   };
 }
 
+function isExpired(expiresAt: string | null) {
+  return typeof expiresAt === "string" && Date.parse(expiresAt) <= Date.now();
+}
+
 export class AttemptService {
-  private async saveAuthoritativeScore(args: {
+  private async recordAttemptEvent(args: {
+    attemptId: string;
+    eventType: AttemptEventType;
     playerName: string;
+    clientType: "web" | "android";
+    metadata?: Record<string, unknown>;
+  }) {
+    const { error } = await supabase.from("score_attempt_events").insert({
+      attempt_id: args.attemptId,
+      event_type: args.eventType,
+      player_name: normalizePlayerName(args.playerName),
+      client_type: args.clientType,
+      metadata: args.metadata ?? {},
+    });
+
+    if (error) {
+      logger.warn(
+        {
+          error,
+          attemptId: args.attemptId,
+          eventType: args.eventType,
+        },
+        "Score attempt event could not be recorded.",
+      );
+    }
+  }
+
+  private async saveAuthoritativeScore(args: {
+    attemptId: string;
+    playerName: string;
+    clientType: "web" | "android";
     correctCount: number;
     totalQuestions: number;
     elapsedSeconds: number | null;
@@ -166,6 +209,19 @@ export class AttemptService {
       throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", error);
     }
 
+    await this.recordAttemptEvent({
+      attemptId: args.attemptId,
+      eventType: "score_saved",
+      playerName: args.playerName,
+      clientType: args.clientType,
+      metadata: {
+        score: data.score,
+        percentage: data.percentage,
+        totalQuestions: data.total_questions,
+        elapsedSeconds: data.elapsed_seconds,
+      },
+    });
+
     return mapScoreRow(data);
   }
 
@@ -173,7 +229,7 @@ export class AttemptService {
     const { data, error } = await supabase
       .from("score_attempts")
       .select(
-        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, last_elapsed_seconds",
+        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, last_elapsed_seconds",
       )
       .eq("id", attemptId)
       .single();
@@ -187,6 +243,12 @@ export class AttemptService {
     }
 
     return data as ScoreAttemptRow;
+  }
+
+  private assertAttemptIsActive(attempt: ScoreAttemptRow) {
+    if (!attempt.completed_at && isExpired(attempt.expires_at)) {
+      throw new AppError(409, "ATTEMPT_EXPIRED", "This score attempt has expired.");
+    }
   }
 
   async startAttempt(input: StartAttemptInput) {
@@ -257,6 +319,7 @@ export class AttemptService {
     }
 
     const emptyAnswers = questionKey.map(() => null);
+    const expiresAt = addHoursIso(ATTEMPT_TTL_HOURS);
     const { data, error } = await supabase
       .from("score_attempts")
       .insert({
@@ -266,14 +329,27 @@ export class AttemptService {
         total_questions: questionKey.length,
         question_key: questionKey,
         answers: emptyAnswers,
+        expires_at: expiresAt,
         last_elapsed_seconds: null,
       })
-      .select("id, total_questions")
+      .select("id, total_questions, expires_at")
       .single();
 
     if (error) {
       throw new AppError(502, "ATTEMPT_CREATE_FAILED", "The score attempt could not be created.", error);
     }
+
+    await this.recordAttemptEvent({
+      attemptId: data.id,
+      eventType: "attempt_started",
+      playerName: normalizedName,
+      clientType: input.clientType,
+      metadata: {
+        mode: input.mode,
+        totalQuestions: data.total_questions,
+        expiresAt: data.expires_at,
+      },
+    });
 
     return {
       storyOnly: false,
@@ -284,6 +360,7 @@ export class AttemptService {
 
   async submitAnswer(attemptId: string, input: SubmitAnswerInput) {
     const attempt = await this.getAttemptRow(attemptId);
+    this.assertAttemptIsActive(attempt);
     if (attempt.completed_at) {
       throw new AppError(409, "ATTEMPT_ALREADY_COMPLETED", "This score attempt has already been completed.");
     }
@@ -314,11 +391,26 @@ export class AttemptService {
       if (error) {
         throw new AppError(502, "ATTEMPT_WRITE_FAILED", "The validated answer could not be stored.", error);
       }
+
+      await this.recordAttemptEvent({
+        attemptId,
+        eventType: "answer_accepted",
+        playerName: attempt.player_name,
+        clientType: attempt.client_type,
+        metadata: {
+          questionId: input.questionId,
+          bankId: input.bankId,
+          selectedAnswer: input.selectedAnswer,
+          elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds),
+        },
+      });
     }
 
     const progress = computeAttemptProgress(questionKey, answers);
     const record = await this.saveAuthoritativeScore({
+      attemptId,
       playerName: attempt.player_name,
+      clientType: attempt.client_type,
       correctCount: progress.correctCount,
       totalQuestions: progress.totalQuestions,
       elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds),
@@ -333,14 +425,16 @@ export class AttemptService {
 
   async finalizeAttempt(attemptId: string, input: FinalizeAttemptInput) {
     const attempt = await this.getAttemptRow(attemptId);
+    this.assertAttemptIsActive(attempt);
     const questionKey = parseQuestionKey(attempt.question_key, attempt.total_questions);
     const answers = parseAnswers(attempt.answers, attempt.total_questions);
 
     if (!attempt.completed_at) {
+      const finalizedAt = new Date().toISOString();
       const { error } = await supabase
         .from("score_attempts")
         .update({
-          completed_at: new Date().toISOString(),
+          completed_at: finalizedAt,
           last_elapsed_seconds: normalizeElapsedSeconds(input.elapsedSeconds),
         })
         .eq("id", attemptId);
@@ -348,11 +442,24 @@ export class AttemptService {
       if (error) {
         throw new AppError(502, "ATTEMPT_FINALIZE_FAILED", "The score attempt could not be finalized.", error);
       }
+
+      await this.recordAttemptEvent({
+        attemptId,
+        eventType: "attempt_finalized",
+        playerName: attempt.player_name,
+        clientType: attempt.client_type,
+        metadata: {
+          completedAt: finalizedAt,
+          elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds),
+        },
+      });
     }
 
     const progress = computeAttemptProgress(questionKey, answers);
     const record = await this.saveAuthoritativeScore({
+      attemptId,
       playerName: attempt.player_name,
+      clientType: attempt.client_type,
       correctCount: progress.correctCount,
       totalQuestions: progress.totalQuestions,
       elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds ?? attempt.last_elapsed_seconds),

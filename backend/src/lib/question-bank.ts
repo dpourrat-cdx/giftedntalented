@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import vm from "node:vm";
+import questionBankData from "./question-bank.data.json" with { type: "json" };
 
 type CanonicalQuestion = {
   bankId: string;
@@ -11,12 +10,10 @@ type CanonicalQuestion = {
   stimulus?: string;
 };
 
-type QuestionPool = Record<string, CanonicalQuestion[]>;
-
-type QuestionBankApi = {
-  SECTIONS: string[];
-  QUESTIONS_PER_TEST_SECTION: number;
-  getQuestionPool: () => QuestionPool;
+type QuestionBankData = {
+  sections: string[];
+  questionsPerTestSection: number;
+  questions: CanonicalQuestion[];
 };
 
 type LoadedQuestionBank = {
@@ -27,66 +24,20 @@ type LoadedQuestionBank = {
 
 let questionBankPromise: Promise<LoadedQuestionBank> | null = null;
 
-function createQuestionBankContext() {
-  const localStorage = {
-    getItem() {
-      return null;
-    },
-    setItem() {
-      return undefined;
-    },
-    removeItem() {
-      return undefined;
-    },
-  };
-
-  const windowObject = {
-    localStorage,
-  } as Record<string, unknown>;
-
-  const context = vm.createContext({
-    window: windowObject,
-    console,
-  });
-
-  return {
-    context,
-    windowObject,
-  };
-}
-
 async function loadQuestionBank() {
-  const source = await readFile(new URL("../../../question-bank.js", import.meta.url), "utf8");
-  const { context, windowObject } = createQuestionBankContext();
-
-  vm.runInContext(source, context, {
-    filename: "question-bank.js",
-  });
-
-  if (windowObject.GiftedQuestionBankError) {
-    throw new Error(`Question bank failed to load: ${String(windowObject.GiftedQuestionBankError)}`);
-  }
-
-  const api = windowObject.GiftedQuestionBank as QuestionBankApi | undefined;
-  if (!api || typeof api.getQuestionPool !== "function") {
-    throw new Error("Question bank API is unavailable to the backend.");
-  }
-
-  const pool = api.getQuestionPool();
+  const typedData = questionBankData as QuestionBankData;
   const questionIndex = new Map<string, CanonicalQuestion>();
 
-  Object.values(pool).forEach((questions) => {
-    questions.forEach((question) => {
-      questionIndex.set(question.bankId, {
-        ...question,
-        options: [...question.options],
-      });
+  typedData.questions.forEach((question) => {
+    questionIndex.set(question.bankId, {
+      ...question,
+      options: [...question.options],
     });
   });
 
   return {
-    sections: [...api.SECTIONS],
-    questionsPerTestSection: api.QUESTIONS_PER_TEST_SECTION,
+    sections: [...typedData.sections],
+    questionsPerTestSection: typedData.questionsPerTestSection,
     questionIndex,
   };
 }

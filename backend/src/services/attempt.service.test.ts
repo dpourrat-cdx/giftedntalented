@@ -5,30 +5,48 @@ const mockRpc = vi.fn();
 const mockSingle = vi.fn();
 const mockInsertSingle = vi.fn();
 const mockUpdateEq = vi.fn();
+const mockEventInsert = vi.fn();
 
 vi.mock("../lib/supabase.js", () => ({
   supabase: {
     rpc: (...args: unknown[]) => mockRpc(...args),
-    from: vi.fn(() => ({
-      select: () => ({
-        eq: () => ({
-          single: () => mockSingle(),
-        }),
-      }),
-      insert: () => ({
+    from: vi.fn((table: string) => {
+      if (table === "score_attempt_events") {
+        return {
+          insert: (...args: unknown[]) => mockEventInsert(...args),
+        };
+      }
+
+      return {
         select: () => ({
-          single: () => mockInsertSingle(),
+          eq: () => ({
+            single: () => mockSingle(),
+          }),
         }),
-      }),
-      update: () => ({
-        eq: (...args: unknown[]) => mockUpdateEq(...args),
-      }),
-    })),
+        insert: () => ({
+          select: () => ({
+            single: () => mockInsertSingle(),
+          }),
+        }),
+        update: () => ({
+          eq: (...args: unknown[]) => mockUpdateEq(...args),
+        }),
+      };
+    }),
   },
 }));
 
 vi.mock("../lib/question-bank.js", () => ({
   getLoadedQuestionBank: vi.fn(),
+}));
+
+vi.mock("../config/logger.js", () => ({
+  logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => ({ warn: vi.fn(), info: vi.fn(), error: vi.fn() })),
+  },
 }));
 
 import { getLoadedQuestionBank } from "../lib/question-bank.js";
@@ -87,6 +105,7 @@ function makeAttemptRow(overrides: Record<string, unknown> = {}) {
       started_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
       completed_at: null,
+      expires_at: "2099-01-01T00:00:00Z",
       last_elapsed_seconds: null,
       ...overrides,
     },
@@ -115,6 +134,7 @@ describe("AttemptService", () => {
     service = new AttemptService();
     vi.mocked(getLoadedQuestionBank).mockResolvedValue(MOCK_BANK as never);
     mockUpdateEq.mockResolvedValue({ error: null });
+    mockEventInsert.mockResolvedValue({ error: null });
   });
 
   describe("startAttempt", () => {
@@ -132,7 +152,7 @@ describe("AttemptService", () => {
 
     it("inserts attempt row and returns attemptId for valid quiz input", async () => {
       mockInsertSingle.mockResolvedValue({
-        data: { id: ATTEMPT_ID, total_questions: 4 },
+        data: { id: ATTEMPT_ID, total_questions: 4, expires_at: "2099-01-01T00:00:00Z" },
         error: null,
       });
 
@@ -146,6 +166,7 @@ describe("AttemptService", () => {
       expect(result.storyOnly).toBe(false);
       expect(result.attemptId).toBe(ATTEMPT_ID);
       expect(result.totalQuestions).toBe(4);
+      expect(mockEventInsert).toHaveBeenCalledOnce();
     });
 
     it("throws 400 when question count does not match expected total (web)", async () => {
@@ -245,6 +266,7 @@ describe("AttemptService", () => {
       expect(result.progress.answeredCount).toBe(1);
       expect(result.record).toBeDefined();
       expect(mockUpdateEq).toHaveBeenCalledOnce();
+      expect(mockEventInsert).toHaveBeenCalledTimes(2);
     });
 
     it("records a wrong answer without saving score (correctCount = 0)", async () => {
@@ -282,6 +304,14 @@ describe("AttemptService", () => {
       await expect(
         service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
       ).rejects.toMatchObject({ statusCode: 409, code: "ATTEMPT_ALREADY_COMPLETED" });
+    });
+
+    it("throws 409 when the attempt is expired", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ expires_at: "2025-01-01T00:00:00Z" }));
+
+      await expect(
+        service.submitAnswer(ATTEMPT_ID, { questionId: 1, bankId: "q1", selectedAnswer: 0 }),
+      ).rejects.toMatchObject({ statusCode: 409, code: "ATTEMPT_EXPIRED" });
     });
 
     it("throws 409 when answer is locked to a different value", async () => {
@@ -339,6 +369,7 @@ describe("AttemptService", () => {
       expect(result.progress.correctCount).toBe(4);
       expect(result.progress.percentage).toBe(100);
       expect(mockUpdateEq).toHaveBeenCalledOnce(); // sets completed_at
+      expect(mockEventInsert).toHaveBeenCalledTimes(2);
     });
 
     it("skips the DB update when already finalized but still saves score", async () => {
@@ -369,6 +400,15 @@ describe("AttemptService", () => {
       await expect(service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 30 })).rejects.toMatchObject({
         statusCode: 502,
         code: "ATTEMPT_FINALIZE_FAILED",
+      });
+    });
+
+    it("throws 409 when finalize is attempted after expiry", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ expires_at: "2025-01-01T00:00:00Z" }));
+
+      await expect(service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 30 })).rejects.toMatchObject({
+        statusCode: 409,
+        code: "ATTEMPT_EXPIRED",
       });
     });
   });
