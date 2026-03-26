@@ -560,8 +560,7 @@
     return questions;
   }
 
-  function buildQuantitativeQuestions() {
-    const section = SECTIONS[1];
+  function buildQuantitativeArithmeticQuestions(section) {
     const questions = [];
 
     for (let index = 0; index < 20; index += 1) {
@@ -594,6 +593,12 @@
       }
     }
 
+    return questions;
+  }
+
+  function buildQuantitativeMissingValueQuestions(section) {
+    const questions = [];
+
     for (let index = 0; index < 20; index += 1) {
       const addend = 6 + index;
       const missing = 3 + (index % 7);
@@ -623,6 +628,12 @@
         );
       }
     }
+
+    return questions;
+  }
+
+  function buildQuantitativeSequenceQuestions(section) {
+    const questions = [];
 
     for (let index = 0; index < 20; index += 1) {
       let sequence = [];
@@ -658,6 +669,12 @@
       );
     }
 
+    return questions;
+  }
+
+  function buildQuantitativeGroupingQuestions(section) {
+    const questions = [];
+
     for (let index = 0; index < 20; index += 1) {
       if (index % 2 === 0) {
         const groups = 2 + (index % 4);
@@ -687,6 +704,12 @@
         );
       }
     }
+
+    return questions;
+  }
+
+  function buildQuantitativeComparisonQuestions(section) {
+    const questions = [];
 
     for (let index = 0; index < 20; index += 1) {
       if (index < 10) {
@@ -734,30 +757,27 @@
       }
     }
 
-    questions.push(...buildMathChallengeQuestions(section));
-
     return questions;
   }
 
-  function buildNonverbalQuestions() {
-    const section = SECTIONS[2];
+  function buildQuantitativeQuestions() {
+    const section = SECTIONS[1];
+    return [
+      ...buildQuantitativeArithmeticQuestions(section),
+      ...buildQuantitativeMissingValueQuestions(section),
+      ...buildQuantitativeSequenceQuestions(section),
+      ...buildQuantitativeGroupingQuestions(section),
+      ...buildQuantitativeComparisonQuestions(section),
+      ...buildMathChallengeQuestions(section),
+    ];
+  }
+
+  function nonverbalDistractors(tokens, correct) {
+    return tokens.filter((token) => token !== correct).slice(0, 3);
+  }
+
+  function buildNonverbalPatternQuestions(section, tokens) {
     const questions = [];
-    const tokens = ["O", "[]", "/\\", "*", "<>"];
-    const names = ["circle", "square", "triangle", "star", "diamond"];
-    const fills = [
-      ["outline circle", "filled circle"],
-      ["outline square", "filled square"],
-      ["outline triangle", "filled triangle"],
-      ["outline star", "filled star"],
-      ["outline diamond", "filled diamond"],
-    ];
-    const sizes = [
-      ["small circle", "big circle"],
-      ["small square", "big square"],
-      ["small triangle", "big triangle"],
-      ["small star", "big star"],
-      ["small diamond", "big diamond"],
-    ];
 
     for (let index = 0; index < 25; index += 1) {
       let correct = "";
@@ -769,20 +789,20 @@
         const second = tokens[(index + 1) % tokens.length];
         correct = second;
         stimulus = `${first}  ${second}  ${first}  ${second}  ${first}  ?`;
-        distractors = tokens.filter((token) => token !== correct).slice(0, 3);
+        distractors = nonverbalDistractors(tokens, correct);
       } else if (index < 18) {
         const first = tokens[index % tokens.length];
         const second = tokens[(index + 2) % tokens.length];
         correct = second;
         stimulus = `${first}  ${first}  ${second}  ${first}  ${first}  ?`;
-        distractors = tokens.filter((token) => token !== correct).slice(0, 3);
+        distractors = nonverbalDistractors(tokens, correct);
       } else {
         const first = tokens[index % tokens.length];
         const second = tokens[(index + 1) % tokens.length];
         const third = tokens[(index + 2) % tokens.length];
         correct = third;
         stimulus = `${first}  ${second}  ${third}  ${first}  ${second}  ?`;
-        distractors = tokens.filter((token) => token !== correct).slice(0, 3);
+        distractors = nonverbalDistractors(tokens, correct);
       }
 
       questions.push(
@@ -797,6 +817,12 @@
         ),
       );
     }
+
+    return questions;
+  }
+
+  function buildNonverbalOddOneOutQuestions(section, names, fills, sizes) {
+    const questions = [];
 
     for (let index = 0; index < 25; index += 1) {
       if (index < 10) {
@@ -848,6 +874,12 @@
       }
     }
 
+    return questions;
+  }
+
+  function buildNonverbalTransformationQuestions(section, names, fills, sizes) {
+    const questions = [];
+
     for (let index = 0; index < 25; index += 1) {
       if (index < 9) {
         const group = sizes[index % sizes.length];
@@ -895,6 +927,11 @@
       }
     }
 
+    return questions;
+  }
+
+  function buildNonverbalArrowQuestions(section) {
+    const questions = [];
     const arrowDirections = ["up", "right", "down", "left"];
     const arrowMap = {
       up: "north",
@@ -930,9 +967,35 @@
       );
     }
 
-    questions.push(...buildNonverbalChallengeQuestions(section));
-
     return questions;
+  }
+
+  function buildNonverbalQuestions() {
+    const section = SECTIONS[2];
+    const tokens = ["O", "[]", "/\\", "*", "<>"];
+    const names = ["circle", "square", "triangle", "star", "diamond"];
+    const fills = [
+      ["outline circle", "filled circle"],
+      ["outline square", "filled square"],
+      ["outline triangle", "filled triangle"],
+      ["outline star", "filled star"],
+      ["outline diamond", "filled diamond"],
+    ];
+    const sizes = [
+      ["small circle", "big circle"],
+      ["small square", "big square"],
+      ["small triangle", "big triangle"],
+      ["small star", "big star"],
+      ["small diamond", "big diamond"],
+    ];
+
+    return [
+      ...buildNonverbalPatternQuestions(section, tokens),
+      ...buildNonverbalOddOneOutQuestions(section, names, fills, sizes),
+      ...buildNonverbalTransformationQuestions(section, names, fills, sizes),
+      ...buildNonverbalArrowQuestions(section),
+      ...buildNonverbalChallengeQuestions(section),
+    ];
   }
 
   function generateGridQuestions(section, size, count, seedBase) {

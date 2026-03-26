@@ -35,6 +35,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
+Current slice in progress: extracting focused helpers for buildQuantitativeQuestions() and buildNonverbalQuestions() with deterministic frontend coverage for representative generated questions.
+
 SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
 
 - [ ] Refactor `renderQuestion()` in `app.js:1243` — complexity 56, worst function in the codebase. Split into question-render, option-render, feedback-render, and state-sync helpers.
