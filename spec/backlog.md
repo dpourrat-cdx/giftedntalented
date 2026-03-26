@@ -17,6 +17,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 - [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
+- [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
+  Progress: PR 22 enables RLS and adds service-role-only policies for the backend-owned tables without changing reset-route behavior.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
   Progress: PR 21 lands the function execute lockdown for the current `SECURITY DEFINER` functions before the wider RLS/policy pass.
 - [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated from frontend JS.
