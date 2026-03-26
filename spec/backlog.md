@@ -72,7 +72,8 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 - [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
 - [ ] Add browser-level verification for desktop and mobile layout/interaction paths.
-- [x] Keep `backend/scripts/smoke-live-backend.ts` aligned with production behavior whenever schema or score flow changes.
+- [x] Add automatic cleanup to `backend/scripts/smoke-live-backend.ts` so test records do not accumulate after each run.
+- [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned with production behavior whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
