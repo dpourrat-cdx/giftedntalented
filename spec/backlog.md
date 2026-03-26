@@ -12,6 +12,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The review-card innerHTML sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
 - Sonar quick wins landed (PR 28): `@types/*` moved to devDependencies, dead `savePlayerRecord` path removed, CSS contrast fixed, nested template literals and dead `escapeHtml` removed, `buildSectionButton` converted to DOM construction.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
+- The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
@@ -20,7 +21,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 1: Security Hardening
 
-- [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. This decision blocks the reset-route section of the API spec and any future auth change on that route.
+- [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. See `spec/reset-security-decision-brief.md` for the current behavior, options, tradeoffs, and recommendation.
 - [ ] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`.
 - [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [ ] Add clickjacking protection planning for the GitHub Pages frontend. GitHub Pages cannot enforce `frame-ancestors` from a meta CSP, so this likely requires a hosting decision or an explicit risk acceptance.
