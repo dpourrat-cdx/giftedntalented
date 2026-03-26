@@ -113,18 +113,45 @@ function makeAttemptRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function mockSavedScore() {
-  mockRpc.mockResolvedValue({
-    data: {
-      player_name: "Alice",
-      score: 1,
-      percentage: 25,
-      total_questions: 4,
-      elapsed_seconds: null,
-      completed_at: null,
+function makeSavedScoreRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    player_name: "Alice",
+    score: 1,
+    percentage: 25,
+    total_questions: 4,
+    elapsed_seconds: null,
+    completed_at: null,
+    ...overrides,
+  };
+}
+
+function makeScoreSavePayload(overrides: Record<string, unknown> = {}) {
+  const record = makeSavedScoreRecord(overrides) as {
+    player_name: string;
+    score: number;
+    percentage: number;
+    total_questions: number;
+    elapsed_seconds: number | null;
+    completed_at: string | null;
+  };
+
+  return {
+    record,
+    audit: {
+      attemptId: ATTEMPT_ID,
+      playerName: "Alice",
+      clientType: "web",
+      selectionFingerprint: "fingerprint",
+      oldBest: null,
+      newBest: record,
+      replacedBest: true,
+      savedAt: "2026-01-01T00:00:00Z",
+      score: record.score,
+      percentage: record.percentage,
+      totalQuestions: record.total_questions,
+      elapsedSeconds: record.elapsed_seconds,
     },
-    error: null,
-  });
+  };
 }
 
 describe("AttemptService", () => {
@@ -275,9 +302,8 @@ describe("AttemptService", () => {
   });
 
   describe("submitAnswer", () => {
-    it("accepts a new correct answer, writes to DB, and saves score", async () => {
+    it("accepts a new correct answer, writes to DB, and returns a preview record", async () => {
       mockSingle.mockResolvedValue(makeAttemptRow());
-      mockSavedScore();
 
       const result = await service.submitAnswer(ATTEMPT_ID, {
         questionId: 1,
@@ -291,10 +317,11 @@ describe("AttemptService", () => {
       expect(result.progress.answeredCount).toBe(1);
       expect(result.record).toBeDefined();
       expect(mockUpdateEq).toHaveBeenCalledOnce();
-      expect(mockEventInsert).toHaveBeenCalledTimes(2);
+      expect(mockRpc).not.toHaveBeenCalled();
+      expect(mockEventInsert).toHaveBeenCalledOnce();
     });
 
-    it("records a wrong answer without saving score (correctCount = 0)", async () => {
+    it("records a wrong answer without returning a preview record", async () => {
       mockSingle.mockResolvedValue(makeAttemptRow());
 
       const result = await service.submitAnswer(ATTEMPT_ID, {
@@ -311,7 +338,6 @@ describe("AttemptService", () => {
 
     it("is idempotent when the same answer is resubmitted", async () => {
       mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, null, null, null] }));
-      mockSavedScore();
 
       const result = await service.submitAnswer(ATTEMPT_ID, {
         questionId: 1,
@@ -321,6 +347,7 @@ describe("AttemptService", () => {
 
       expect(result.accepted).toBe(true);
       expect(mockUpdateEq).not.toHaveBeenCalled(); // no re-write
+      expect(mockRpc).not.toHaveBeenCalled();
     });
 
     it("throws 409 when attempt is already completed", async () => {
@@ -388,8 +415,6 @@ describe("AttemptService", () => {
             expires_at: undefined,
           }),
         );
-      mockSavedScore();
-
       const result = await service.submitAnswer(ATTEMPT_ID, {
         questionId: 1,
         bankId: "q1",
@@ -416,8 +441,6 @@ describe("AttemptService", () => {
             expires_at: undefined,
           }),
         );
-      mockSavedScore();
-
       const result = await service.submitAnswer(ATTEMPT_ID, {
         questionId: 1,
         bankId: "q1",
@@ -432,17 +455,40 @@ describe("AttemptService", () => {
   describe("finalizeAttempt", () => {
     it("marks attempt complete and saves final score", async () => {
       mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, 1, 2, 3] })); // all correct
-      mockRpc.mockResolvedValue({
-        data: {
-          player_name: "Alice",
-          score: 4,
-          percentage: 100,
-          total_questions: 4,
-          elapsed_seconds: 60,
-          completed_at: "2026-01-01T00:00:00Z",
-        },
-        error: null,
-      });
+      mockRpc
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({
+          data: {
+            record: makeSavedScoreRecord({
+              score: 4,
+              percentage: 100,
+              total_questions: 4,
+              elapsed_seconds: 60,
+              completed_at: "2026-01-01T00:00:00Z",
+            }),
+            audit: {
+              attemptId: ATTEMPT_ID,
+              playerName: "Alice",
+              clientType: "web",
+              selectionFingerprint: "fingerprint",
+              oldBest: null,
+              newBest: makeSavedScoreRecord({
+                score: 4,
+                percentage: 100,
+                total_questions: 4,
+                elapsed_seconds: 60,
+                completed_at: "2026-01-01T00:00:00Z",
+              }),
+              replacedBest: true,
+              savedAt: "2026-01-01T00:00:00Z",
+              score: 4,
+              percentage: 100,
+              totalQuestions: 4,
+              elapsedSeconds: 60,
+            },
+          },
+          error: null,
+        });
 
       const result = await service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 60 });
 
@@ -450,19 +496,68 @@ describe("AttemptService", () => {
       expect(result.progress.correctCount).toBe(4);
       expect(result.progress.percentage).toBe(100);
       expect(mockUpdateEq).toHaveBeenCalledOnce(); // sets completed_at
-      expect(mockEventInsert).toHaveBeenCalledTimes(2);
+      expect(mockRpc).toHaveBeenCalledTimes(2);
+      expect(mockEventInsert).toHaveBeenCalledOnce();
     });
 
-    it("skips the DB update when already finalized but still saves score", async () => {
+    it("returns the stored score payload without saving again", async () => {
       mockSingle.mockResolvedValue(
-        makeAttemptRow({ answers: [0, null, null, null], completed_at: "2026-01-01T00:00:00Z" }),
+        makeAttemptRow({
+          answers: [0, null, null, null],
+          completed_at: "2026-01-01T00:00:00Z",
+          score_saved_payload: makeScoreSavePayload({
+            score: 1,
+            percentage: 25,
+            total_questions: 4,
+            elapsed_seconds: null,
+            completed_at: "2026-01-01T00:00:00Z",
+          }),
+        }),
       );
-      mockSavedScore();
 
       const result = await service.finalizeAttempt(ATTEMPT_ID, {});
 
       expect(result.finalized).toBe(true);
       expect(mockUpdateEq).not.toHaveBeenCalled();
+      expect(mockRpc).not.toHaveBeenCalled();
+      expect(result.record).toEqual({
+        playerName: "Alice",
+        score: 1,
+        percentage: 25,
+        totalQuestions: 4,
+        elapsedSeconds: null,
+        completedAt: "2026-01-01T00:00:00Z",
+      });
+    });
+
+    it("falls back to legacy score saving and persists structured metadata", async () => {
+      mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, 1, 2, 3] }));
+      mockRpc
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({
+          data: null,
+          error: {
+            code: "PGRST202",
+            message: "Could not find the function public.save_attempt_score_from_attempt",
+          },
+        })
+        .mockResolvedValueOnce({
+          data: makeSavedScoreRecord({
+            score: 4,
+            percentage: 100,
+            total_questions: 4,
+            elapsed_seconds: 60,
+            completed_at: "2026-01-01T00:00:00Z",
+          }),
+          error: null,
+        });
+
+      const result = await service.finalizeAttempt(ATTEMPT_ID, { elapsedSeconds: 60 });
+
+      expect(result.finalized).toBe(true);
+      expect(mockRpc).toHaveBeenCalledTimes(3);
+      expect(mockUpdateEq).toHaveBeenCalledTimes(2);
+      expect(mockEventInsert).toHaveBeenCalledTimes(2);
     });
 
     it("throws 404 when attempt does not exist", async () => {

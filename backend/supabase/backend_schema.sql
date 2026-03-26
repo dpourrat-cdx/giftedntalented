@@ -45,6 +45,12 @@ create table if not exists public.score_attempts (
   updated_at timestamptz not null default timezone('utc', now()),
   completed_at timestamptz,
   expires_at timestamptz not null default (timezone('utc', now()) + interval '2 hours'),
+  selection_fingerprint text,
+  score_saved_at timestamptz,
+  score_saved_score integer check (score_saved_score is null or score_saved_score >= 0),
+  score_saved_percentage integer check (score_saved_percentage is null or (score_saved_percentage between 0 and 100)),
+  score_saved_elapsed_seconds integer check (score_saved_elapsed_seconds is null or score_saved_elapsed_seconds >= 0),
+  score_saved_payload jsonb,
   last_elapsed_seconds integer check (last_elapsed_seconds is null or last_elapsed_seconds >= 0)
 );
 
@@ -63,6 +69,125 @@ create table if not exists public.score_attempt_events (
 
 create index if not exists score_attempt_events_attempt_created_idx
 on public.score_attempt_events (attempt_id, created_at desc);
+
+create or replace function public.save_attempt_score_from_attempt(
+  target_attempt_id uuid,
+  target_player_name text,
+  score integer,
+  percentage integer,
+  total_questions integer,
+  elapsed_seconds integer default null,
+  target_selection_fingerprint text default null,
+  target_saved_at timestamptz default timezone('utc', now())
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  attempt_row public.score_attempts;
+  old_best_row public.test_scores;
+  saved_row public.test_scores;
+  replaced_best boolean;
+  payload jsonb;
+begin
+  select *
+  into attempt_row
+  from public.score_attempts
+  where id = target_attempt_id
+  for update;
+
+  if not found then
+    raise exception 'The score attempt could not be found.';
+  end if;
+
+  if attempt_row.score_saved_at is not null and attempt_row.score_saved_payload is not null then
+    return attempt_row.score_saved_payload;
+  end if;
+
+  select *
+  into old_best_row
+  from public.test_scores as scores
+  where lower(btrim(scores.player_name)) = lower(btrim(coalesce(target_player_name, '')))
+  order by
+    scores.score desc,
+    scores.percentage desc,
+    scores.elapsed_seconds asc nulls last,
+    scores.completed_at asc
+  limit 1;
+
+  saved_row := public.save_player_score(
+    target_player_name := target_player_name,
+    score := score,
+    percentage := percentage,
+    total_questions := total_questions,
+    elapsed_seconds := elapsed_seconds
+  );
+
+  replaced_best :=
+    old_best_row.id is null
+    or saved_row.score > old_best_row.score
+    or (
+      saved_row.score = old_best_row.score
+      and saved_row.percentage > old_best_row.percentage
+    )
+    or (
+      saved_row.score = old_best_row.score
+      and saved_row.percentage = old_best_row.percentage
+      and saved_row.elapsed_seconds is not null
+      and (
+        old_best_row.elapsed_seconds is null
+        or saved_row.elapsed_seconds < old_best_row.elapsed_seconds
+      )
+    );
+
+  payload := jsonb_build_object(
+    'record', to_jsonb(saved_row),
+    'audit', jsonb_build_object(
+      'attemptId', target_attempt_id,
+      'playerName', saved_row.player_name,
+      'clientType', attempt_row.client_type,
+      'selectionFingerprint', coalesce(target_selection_fingerprint, attempt_row.selection_fingerprint),
+      'oldBest', to_jsonb(old_best_row),
+      'newBest', to_jsonb(saved_row),
+      'replacedBest', replaced_best,
+      'savedAt', target_saved_at,
+      'score', saved_row.score,
+      'percentage', saved_row.percentage,
+      'totalQuestions', saved_row.total_questions,
+      'elapsedSeconds', saved_row.elapsed_seconds
+    )
+  );
+
+  update public.score_attempts
+  set
+    selection_fingerprint = coalesce(target_selection_fingerprint, attempt_row.selection_fingerprint),
+    score_saved_at = target_saved_at,
+    score_saved_score = saved_row.score,
+    score_saved_percentage = saved_row.percentage,
+    score_saved_elapsed_seconds = saved_row.elapsed_seconds,
+    score_saved_payload = payload
+  where id = target_attempt_id;
+
+  insert into public.score_attempt_events (
+    attempt_id,
+    event_type,
+    player_name,
+    client_type,
+    metadata
+  )
+  values (
+    target_attempt_id,
+    'score_saved',
+    saved_row.player_name,
+    attempt_row.client_type,
+    payload -> 'audit'
+  );
+
+  return payload;
+end;
+$$;
 
 create or replace function public.touch_notification_device_updated_at()
 returns trigger

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getLoadedQuestionBank } from "../lib/question-bank.js";
 import { logger } from "../config/logger.js";
 import { supabase } from "../lib/supabase.js";
@@ -35,6 +36,15 @@ type AttemptQuestionKey = {
   section: string;
 };
 
+type ScoreSaveComparableRow = {
+  player_name: string;
+  score: number;
+  percentage: number;
+  total_questions: number;
+  elapsed_seconds: number | null;
+  completed_at: string | null;
+};
+
 type ScoreAttemptRow = {
   id: string;
   player_name: string;
@@ -47,6 +57,12 @@ type ScoreAttemptRow = {
   updated_at: string;
   completed_at: string | null;
   expires_at: string | null;
+  selection_fingerprint: string | null;
+  score_saved_at: string | null;
+  score_saved_score: number | null;
+  score_saved_percentage: number | null;
+  score_saved_elapsed_seconds: number | null;
+  score_saved_payload: unknown;
   last_elapsed_seconds: number | null;
 };
 
@@ -54,6 +70,23 @@ type AttemptEventType = "attempt_started" | "answer_accepted" | "attempt_finaliz
 type SupabaseErrorLike = {
   code?: string;
   message?: string;
+};
+type AttemptSaveResult = {
+  record: ReturnType<typeof mapScoreRow> | null;
+  audit: {
+    attemptId: string;
+    playerName: string;
+    clientType: "web" | "android";
+    selectionFingerprint: string;
+    oldBest: ScoreSaveComparableRow | null;
+    newBest: ScoreSaveComparableRow | null;
+    replacedBest: boolean;
+    savedAt: string;
+  };
+};
+type AttemptSavePayload = {
+  record?: Record<string, unknown> | null;
+  audit?: AttemptSaveResult["audit"] | null;
 };
 
 function addHoursIso(hours: number) {
@@ -161,15 +194,124 @@ function computeAttemptProgress(questionKey: AttemptQuestionKey[], answers: Arra
   };
 }
 
+function buildSelectionFingerprint(questionKey: AttemptQuestionKey[]) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify(
+        questionKey.map((question) => ({
+          questionId: question.questionId,
+          bankId: question.bankId,
+          correctAnswer: question.correctAnswer,
+          section: question.section,
+        })),
+      ),
+    )
+    .digest("hex");
+}
+
+function buildPreviewRecord(playerName: string, progress: ReturnType<typeof computeAttemptProgress>, elapsedSeconds: number | null) {
+  if (progress.correctCount <= 0) {
+    return null;
+  }
+
+  return {
+    playerName,
+    score: progress.correctCount,
+    percentage: progress.percentage,
+    totalQuestions: progress.totalQuestions,
+    elapsedSeconds,
+    completedAt: null,
+  };
+}
+
+function buildScoreSaveAudit(args: {
+  attemptId: string;
+  playerName: string;
+  clientType: "web" | "android";
+  selectionFingerprint: string;
+  oldBest: ScoreSaveComparableRow | null;
+  newBest: ScoreSaveComparableRow | null;
+  replacedBest: boolean;
+  savedAt: string;
+  score: number;
+  percentage: number;
+  totalQuestions: number;
+  elapsedSeconds: number | null;
+}) {
+  return {
+    attemptId: args.attemptId,
+    playerName: args.playerName,
+    clientType: args.clientType,
+    selectionFingerprint: args.selectionFingerprint,
+    oldBest: args.oldBest,
+    newBest: args.newBest,
+    replacedBest: args.replacedBest,
+    savedAt: args.savedAt,
+    score: args.score,
+    percentage: args.percentage,
+    totalQuestions: args.totalQuestions,
+    elapsedSeconds: args.elapsedSeconds,
+  };
+}
+
+function isScoreSavePayload(value: unknown): value is AttemptSavePayload {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return "record" in candidate || "audit" in candidate;
+}
+
+function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isScoreSaveComparableRow(value: unknown): value is ScoreSaveComparableRow {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.player_name === "string" &&
+    typeof candidate.score === "number" &&
+    typeof candidate.percentage === "number" &&
+    typeof candidate.total_questions === "number" &&
+    (candidate.elapsed_seconds === null || typeof candidate.elapsed_seconds === "number") &&
+    (candidate.completed_at === null || typeof candidate.completed_at === "string")
+  );
+}
+
+function doesSaveReplaceBest(oldBest: ScoreSaveComparableRow | null, newBest: ScoreSaveComparableRow) {
+  return (
+    !oldBest ||
+    newBest.score > oldBest.score ||
+    (newBest.score === oldBest.score && newBest.percentage > oldBest.percentage) ||
+    (newBest.score === oldBest.score &&
+      newBest.percentage === oldBest.percentage &&
+      newBest.elapsed_seconds !== null &&
+      (oldBest.elapsed_seconds === null || newBest.elapsed_seconds < oldBest.elapsed_seconds))
+  );
+}
+
 function isExpired(expiresAt: string | null | undefined) {
   return typeof expiresAt === "string" && Date.parse(expiresAt) <= Date.now();
 }
 
-function isMissingExpiresAtSchema(error: SupabaseErrorLike | null | undefined) {
+function isMissingColumnSchema(error: SupabaseErrorLike | null | undefined, columnNames: string[]) {
+  const message = error?.message ?? "";
   return (
     (error?.code === "PGRST204" || error?.code === "42703") &&
-    typeof error.message === "string" &&
-    error.message.includes("expires_at")
+    columnNames.some((column) => message.includes(column))
+  );
+}
+
+function isMissingFunctionSchema(error: SupabaseErrorLike | null | undefined, functionName: string) {
+  const message = error?.message ?? "";
+  return (
+    (error?.code === "42883" || error?.code === "PGRST202" || error?.code === "PGRST204") &&
+    message.includes(functionName)
   );
 }
 
@@ -208,49 +350,149 @@ export class AttemptService {
     correctCount: number;
     totalQuestions: number;
     elapsedSeconds: number | null;
+    selectionFingerprint: string;
   }) {
     if (args.correctCount <= 0) {
       return null;
     }
 
-    const { data, error } = await supabase.rpc("save_player_score", {
+    const score = args.correctCount;
+    const percentage = Math.round((args.correctCount / args.totalQuestions) * 100);
+    const elapsedSeconds = normalizeElapsedSeconds(args.elapsedSeconds);
+    const oldBestResponse = await supabase.rpc("get_player_top_score", {
       target_player_name: normalizePlayerName(args.playerName),
-      score: args.correctCount,
-      percentage: Math.round((args.correctCount / args.totalQuestions) * 100),
+    });
+
+    if (oldBestResponse.error) {
+      throw new AppError(502, "SUPABASE_READ_FAILED", "The score record could not be loaded.", oldBestResponse.error);
+    }
+
+    const oldBest = oldBestResponse.data && oldBestResponse.data.length > 0 && isScoreSaveComparableRow(oldBestResponse.data[0])
+      ? oldBestResponse.data[0]
+      : null;
+    const savedAt = new Date().toISOString();
+    const targetPlayerName = normalizePlayerName(args.playerName);
+
+    const { data, error } = await supabase.rpc("save_attempt_score_from_attempt", {
+      target_attempt_id: args.attemptId,
+      target_player_name: targetPlayerName,
+      score,
+      percentage,
       total_questions: args.totalQuestions,
-      elapsed_seconds: normalizeElapsedSeconds(args.elapsedSeconds),
+      elapsed_seconds: elapsedSeconds,
+      target_selection_fingerprint: args.selectionFingerprint,
+      target_saved_at: savedAt,
     });
 
     if (error) {
-      throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", error);
+      if (isMissingFunctionSchema(error, "save_attempt_score_from_attempt")) {
+        const legacySave = await supabase.rpc("save_player_score", {
+          target_player_name: targetPlayerName,
+          score,
+          percentage,
+          total_questions: args.totalQuestions,
+          elapsed_seconds: elapsedSeconds,
+        });
+
+        if (legacySave.error) {
+          throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error);
+        }
+
+        const fallbackRecord = legacySave.data && isScoreSaveComparableRow(legacySave.data) ? legacySave.data : null;
+        if (!fallbackRecord) {
+          throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error ?? null);
+        }
+
+        const fallbackAudit = buildScoreSaveAudit({
+          attemptId: args.attemptId,
+          playerName: targetPlayerName,
+          clientType: args.clientType,
+          selectionFingerprint: args.selectionFingerprint,
+          oldBest,
+          newBest: fallbackRecord,
+          replacedBest: doesSaveReplaceBest(oldBest, fallbackRecord),
+          savedAt,
+          score,
+          percentage,
+          totalQuestions: args.totalQuestions,
+          elapsedSeconds,
+        });
+
+        const fallbackPayload = {
+          record: fallbackRecord,
+          audit: fallbackAudit,
+        };
+
+        const { error: metadataError } = await supabase
+          .from("score_attempts")
+          .update({
+            selection_fingerprint: args.selectionFingerprint,
+            score_saved_at: savedAt,
+            score_saved_score: score,
+            score_saved_percentage: percentage,
+            score_saved_elapsed_seconds: elapsedSeconds,
+            score_saved_payload: fallbackPayload,
+          })
+          .eq("id", args.attemptId);
+
+        if (
+          metadataError &&
+          !isMissingColumnSchema(metadataError, [
+            "selection_fingerprint",
+            "score_saved_at",
+            "score_saved_score",
+            "score_saved_percentage",
+            "score_saved_elapsed_seconds",
+            "score_saved_payload",
+          ])
+        ) {
+          logger.warn(
+            {
+              error: metadataError,
+              attemptId: args.attemptId,
+            },
+            "Score attempt metadata could not be persisted.",
+          );
+        }
+
+        await this.recordAttemptEvent({
+          attemptId: args.attemptId,
+          eventType: "score_saved",
+          playerName: args.playerName,
+          clientType: args.clientType,
+          metadata: fallbackAudit,
+        });
+
+        return {
+          record: mapScoreRow(fallbackRecord),
+          audit: fallbackAudit,
+        };
+      }
+
+      throw new AppError(502, "ATTEMPT_SAVE_FAILED", "The score record could not be saved.", error);
     }
 
-    await this.recordAttemptEvent({
-      attemptId: args.attemptId,
-      eventType: "score_saved",
-      playerName: args.playerName,
-      clientType: args.clientType,
-      metadata: {
-        score: data.score,
-        percentage: data.percentage,
-        totalQuestions: data.total_questions,
-        elapsedSeconds: data.elapsed_seconds,
-      },
-    });
+    if (!data || typeof data !== "object") {
+      return null;
+    }
 
-    return mapScoreRow(data);
+    const payload = data as AttemptSavePayload;
+
+    return isRecordLike(payload.record)
+      ? { record: mapScoreRow(payload.record), audit: isScoreSavePayload(payload) ? payload.audit ?? null : null }
+      : null;
   }
 
   private async getAttemptRow(attemptId: string) {
     let { data, error } = await supabase
       .from("score_attempts")
       .select(
-        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, last_elapsed_seconds",
+        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, selection_fingerprint, score_saved_at, score_saved_score, score_saved_percentage, score_saved_elapsed_seconds, score_saved_payload, last_elapsed_seconds",
       )
       .eq("id", attemptId)
       .single();
 
-    if (isMissingExpiresAtSchema(error)) {
+    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint", "score_saved_at", "score_saved_payload"])) {
       const fallbackResponse = await supabase
         .from("score_attempts")
         .select(
@@ -263,6 +505,12 @@ export class AttemptService {
         ? {
             ...fallbackResponse.data,
             expires_at: null,
+            selection_fingerprint: null,
+            score_saved_at: null,
+            score_saved_score: null,
+            score_saved_percentage: null,
+            score_saved_elapsed_seconds: null,
+            score_saved_payload: null,
           }
         : fallbackResponse.data;
       error = fallbackResponse.error;
@@ -355,6 +603,7 @@ export class AttemptService {
 
     const emptyAnswers = questionKey.map(() => null);
     const expiresAt = addHoursIso(ATTEMPT_TTL_HOURS);
+    const selectionFingerprint = buildSelectionFingerprint(questionKey);
     let { data, error } = await supabase
       .from("score_attempts")
       .insert({
@@ -365,12 +614,13 @@ export class AttemptService {
         question_key: questionKey,
         answers: emptyAnswers,
         expires_at: expiresAt,
+        selection_fingerprint: selectionFingerprint,
         last_elapsed_seconds: null,
       })
-      .select("id, total_questions, expires_at")
+      .select("id, total_questions, expires_at, selection_fingerprint")
       .single();
 
-    if (isMissingExpiresAtSchema(error)) {
+    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint"])) {
       const fallbackResponse = await supabase
         .from("score_attempts")
         .insert({
@@ -389,6 +639,7 @@ export class AttemptService {
         ? {
             ...fallbackResponse.data,
             expires_at: null,
+            selection_fingerprint: selectionFingerprint,
           }
         : fallbackResponse.data;
       error = fallbackResponse.error;
@@ -411,6 +662,7 @@ export class AttemptService {
         mode: input.mode,
         totalQuestions: data.total_questions,
         expiresAt: data.expires_at ?? expiresAt,
+        selectionFingerprint,
       },
     });
 
@@ -470,14 +722,11 @@ export class AttemptService {
     }
 
     const progress = computeAttemptProgress(questionKey, answers);
-    const record = await this.saveAuthoritativeScore({
-      attemptId,
-      playerName: attempt.player_name,
-      clientType: attempt.client_type,
-      correctCount: progress.correctCount,
-      totalQuestions: progress.totalQuestions,
-      elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds),
-    });
+    const record = buildPreviewRecord(
+      attempt.player_name,
+      progress,
+      normalizeElapsedSeconds(input.elapsedSeconds),
+    );
 
     return {
       accepted: true,
@@ -519,19 +768,33 @@ export class AttemptService {
     }
 
     const progress = computeAttemptProgress(questionKey, answers);
-    const record = await this.saveAuthoritativeScore({
+    if (attempt.score_saved_payload && typeof attempt.score_saved_payload === "object") {
+      const savedPayload = attempt.score_saved_payload as {
+        record?: Record<string, unknown> | null;
+        audit?: Record<string, unknown> | null;
+      };
+
+      return {
+        finalized: true,
+        progress,
+        record: savedPayload.record ? mapScoreRow(savedPayload.record) : null,
+      };
+    }
+
+    const saved = await this.saveAuthoritativeScore({
       attemptId,
       playerName: attempt.player_name,
       clientType: attempt.client_type,
       correctCount: progress.correctCount,
       totalQuestions: progress.totalQuestions,
       elapsedSeconds: normalizeElapsedSeconds(input.elapsedSeconds ?? attempt.last_elapsed_seconds),
+      selectionFingerprint: attempt.selection_fingerprint ?? buildSelectionFingerprint(questionKey),
     });
 
     return {
       finalized: true,
       progress,
-      record,
+      record: saved?.record ?? null,
     };
   }
 }
