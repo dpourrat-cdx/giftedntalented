@@ -1,6 +1,6 @@
 # Backend API Spec
 
-> **Note:** This spec predates the March 26, 2026 score-attempt rollout. It does not yet document the attempt-based API (`POST /attempts`, `POST /attempts/:id/answers`, `POST /attempts/:id/finalize`), the `score_attempts` and `score_attempt_events` tables, or backend-owned question selection. A full rewrite is tracked as Priority 2 in `next-implementation-todo.md`. Until then, treat the Endpoints and Database Model sections as partially outdated and refer to `captain-nova-current-product-spec.md` for the live API surface.
+> **Note:** This spec predates the March 26, 2026 score-attempt rollout. It does not yet document the attempt-based API (`POST /attempts`, `POST /attempts/:id/answers`, `POST /attempts/:id/finalize`), the `score_attempts` and `score_attempt_events` tables, or backend-owned question selection. A full rewrite is tracked as Priority 2 in `backlog.md`. Until then, treat the Endpoints and Database Model sections as partially outdated and refer to `product-spec.md` for the live API surface.
 
 ## Overview
 
