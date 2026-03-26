@@ -144,7 +144,9 @@ function syncGamification() {
     return;
   }
 
-  gamificationController.sync(buildGamificationSnapshot());
+  gamificationController.sync(buildGamificationSnapshot(), {
+    skipSectionCompletion: pendingAnswerQuestionIndex !== -1,
+  });
 }
 
 function testDurationSeconds() {
