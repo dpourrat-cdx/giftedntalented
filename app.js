@@ -1411,14 +1411,17 @@ function renderHintAndButton(state) {
       count: totalQuestions(),
     });
     dom.nextHint.classList.remove("is-hidden");
+  } else if (isAutoAdvancing) {
+    dom.nextHint.textContent = questionContent.autoAdvanceHint;
+    dom.nextHint.classList.remove("is-hidden");
+  } else if (isAwaitingAnswerSync) {
+    dom.nextHint.textContent = "Mission Control is checking that answer...";
+    dom.nextHint.classList.remove("is-hidden");
+  } else if (isMissionTransitionReady) {
+    dom.nextHint.textContent = questionContent.nextMissionHint || "Rocket part secured. Press Next mission.";
+    dom.nextHint.classList.remove("is-hidden");
   } else {
-    dom.nextHint.textContent = isAutoAdvancing
-      ? questionContent.autoAdvanceHint
-      : isAwaitingAnswerSync
-        ? "Mission Control is checking that answer..."
-        : isMissionTransitionReady
-          ? (questionContent.nextMissionHint || "Rocket part secured. Press Next mission.")
-          : questionContent.lockedHint;
+    dom.nextHint.textContent = questionContent.lockedHint;
     dom.nextHint.classList.remove("is-hidden");
   }
 
