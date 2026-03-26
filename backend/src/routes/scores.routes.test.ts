@@ -75,13 +75,14 @@ describe("Score routes", () => {
   });
 
   describe("POST /api/v1/players/:playerName/record", () => {
-    it("returns 410 — endpoint is disabled", async () => {
+    it("returns 410 when the legacy endpoint is disabled", async () => {
       const res = await request(app)
         .post("/api/v1/players/Alice/record")
         .send({ score: 50, percentage: 78, totalQuestions: 64, clientType: "web" });
 
       expect(res.status).toBe(410);
       expect(res.body.error).toBe("LEGACY_SCORE_ENDPOINT_DISABLED");
+      expect(res.body.message).toContain("Direct score submission is disabled");
     });
   });
 });

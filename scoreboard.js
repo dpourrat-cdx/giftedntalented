@@ -14,6 +14,8 @@
     allResetSuccess: "Every saved explorer record has been cleared.",
     resetPrompt: "Enter the admin PIN to clear saved explorer records.",
     resetConfirm: "Clear every saved explorer record on this device? This cannot be undone.",
+    attemptStartWarning: "This mission can continue, but online score protection could not start right now.",
+    attemptSyncWarning: "This mission can continue, but the shared explorer record could not update right now.",
   };
 
   function escapeHtml(value) {
@@ -215,6 +217,27 @@
       });
     }
 
+    async startAttempt(payload) {
+      return this.request("/attempts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
+
+    async submitAttemptAnswer(attemptId, payload) {
+      return this.request(`/attempts/${encodeURIComponent(attemptId)}/answers`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
+
+    async finalizeAttempt(attemptId, payload) {
+      return this.request(`/attempts/${encodeURIComponent(attemptId)}/finalize`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
+
     async resetScores(resetPin) {
       return this.request("/admin/scores/reset", {
         method: "POST",
@@ -235,6 +258,11 @@
       this.lastSavedFingerprint = "";
       this.activePlayerName = "";
       this.cachedScoreMap = readCachedScoreMap();
+      this.activeAttemptId = null;
+      this.activeAttemptPromise = null;
+      this.activeAttemptFingerprint = "";
+      this.activeAttemptPlayerName = "";
+      this.answerQueue = Promise.resolve();
       this.boundReset = this.handleResetClick.bind(this);
     }
 
@@ -369,6 +397,151 @@
       writeCachedScoreMap({});
     }
 
+    buildAttemptFingerprint(playerName, questions) {
+      return JSON.stringify([
+        normalizePlayerName(playerName),
+        questions.map((question) => [question.questionId, question.bankId, ...(question.options || [])]),
+      ]);
+    }
+
+    resetActiveAttempt() {
+      this.activeAttemptId = null;
+      this.activeAttemptPromise = null;
+      this.activeAttemptFingerprint = "";
+      this.activeAttemptPlayerName = "";
+      this.answerQueue = Promise.resolve();
+    }
+
+    async beginAttempt({ playerName, clientType = "web", mode = "quiz", questions = [] }) {
+      const normalizedName = normalizePlayerName(playerName);
+      if (!normalizedName || mode === "story") {
+        this.resetActiveAttempt();
+        return null;
+      }
+
+      const fingerprint = this.buildAttemptFingerprint(normalizedName, questions);
+      if (this.activeAttemptId && this.activeAttemptFingerprint === fingerprint) {
+        return this.activeAttemptId;
+      }
+
+      if (this.activeAttemptPromise && this.activeAttemptFingerprint === fingerprint) {
+        return this.activeAttemptPromise;
+      }
+
+      this.activeAttemptId = null;
+      this.activeAttemptPlayerName = normalizedName;
+      this.activeAttemptFingerprint = fingerprint;
+      this.activeAttemptPromise = this.service
+        .startAttempt({
+          playerName: normalizedName,
+          clientType,
+          mode,
+          questions,
+        })
+        .then((result) => {
+          this.activeAttemptId = result?.attemptId || null;
+          return this.activeAttemptId;
+        })
+        .catch((error) => {
+          this.activeAttemptId = null;
+          this.setStatus(scoreboardContent.attemptStartWarning, "info", true);
+          return null;
+        })
+        .finally(() => {
+          this.activeAttemptPromise = null;
+        });
+
+      return this.activeAttemptPromise;
+    }
+
+    async ensureActiveAttempt(options) {
+      if (this.activeAttemptId) {
+        return this.activeAttemptId;
+      }
+
+      if (this.activeAttemptPromise) {
+        const attemptId = await this.activeAttemptPromise;
+        return attemptId || null;
+      }
+
+      return this.beginAttempt(options);
+    }
+
+    async recordValidatedAnswer({
+      playerName,
+      clientType = "web",
+      mode = "quiz",
+      sessionQuestions = [],
+      questionId,
+      bankId,
+      selectedAnswer,
+      elapsedSeconds,
+    }) {
+      if (mode === "story") {
+        return null;
+      }
+
+      this.answerQueue = this.answerQueue
+        .catch(() => undefined)
+        .then(async () => {
+          const attemptId = await this.ensureActiveAttempt({
+            playerName,
+            clientType,
+            mode,
+            questions: sessionQuestions,
+          });
+
+          if (!attemptId) {
+            return null;
+          }
+
+          try {
+            const result = await this.service.submitAttemptAnswer(attemptId, {
+              questionId,
+              bankId,
+              selectedAnswer,
+              elapsedSeconds: normalizeElapsedSeconds(elapsedSeconds),
+            });
+
+            if (result?.record) {
+              this.renderTopScore(result.record, playerName);
+              this.clearStatus();
+            }
+
+            return result;
+          } catch (error) {
+            this.setStatus(scoreboardContent.attemptSyncWarning, "info", true);
+            return null;
+          }
+        });
+
+      return this.answerQueue;
+    }
+
+    async finalizeAttempt({ elapsedSeconds }) {
+      await this.answerQueue.catch(() => undefined);
+      const attemptId = this.activeAttemptId || (await this.activeAttemptPromise);
+      if (!attemptId) {
+        return null;
+      }
+
+      try {
+        const result = await this.service.finalizeAttempt(attemptId, {
+          elapsedSeconds: normalizeElapsedSeconds(elapsedSeconds),
+        });
+
+        if (result?.record) {
+          this.renderTopScore(result.record, this.activeAttemptPlayerName);
+          this.clearStatus();
+        }
+
+        return result;
+      } catch (error) {
+        this.setStatus(scoreboardContent.attemptSyncWarning, "info", true);
+        return null;
+      }
+    }
+
     async authorizeReset() {
       const resetPin = window.prompt(scoreboardContent.resetPrompt);
       if (resetPin === null) {
@@ -497,6 +670,7 @@
     setActivePlayerName(playerName) {
       const normalizedName = normalizePlayerName(playerName);
       window.clearTimeout(this.lookupDelayId);
+      this.resetActiveAttempt();
 
       if (!normalizedName) {
         this.lookupToken += 1;
@@ -615,6 +789,7 @@
 
         this.lastSavedFingerprint = "";
         this.clearCachedScores();
+        this.resetActiveAttempt();
 
         if (this.activePlayerName) {
           this.renderNoScoreState(this.activePlayerName);

@@ -2359,11 +2359,27 @@
       return session;
     }
 
+    function cloneQuestionPool(pool) {
+      const clone = {};
+
+      SECTIONS.forEach((section) => {
+        clone[section] = pool[section].map((question) => ({
+          ...question,
+          options: [...question.options],
+        }));
+      });
+
+      return clone;
+    }
+
     window.GiftedQuestionBank = Object.freeze({
       SECTIONS,
       QUESTIONS_PER_SECTION,
       QUESTIONS_PER_TEST_SECTION,
       buildTestSession,
+      getQuestionPool() {
+        return cloneQuestionPool(QUESTION_POOL);
+      },
     });
   } catch (error) {
     window.GiftedQuestionBankError = error.message;

@@ -99,6 +99,14 @@ export class ScoreService {
       throw new AppError(502, "RESET_COUNT_FAILED", "The score reset could not be prepared.", countError);
     }
 
+    const { count: attemptCount, error: attemptCountError } = await supabase
+      .from("score_attempts")
+      .select("id", { count: "exact", head: true });
+
+    if (attemptCountError) {
+      throw new AppError(502, "RESET_COUNT_FAILED", "The score reset could not be prepared.", attemptCountError);
+    }
+
     const { error: deleteError } = await supabase
       .from("test_scores")
       .delete()
@@ -108,8 +116,18 @@ export class ScoreService {
       throw new AppError(502, "RESET_DELETE_FAILED", "The score records could not be cleared.", deleteError);
     }
 
+    const { error: deleteAttemptsError } = await supabase
+      .from("score_attempts")
+      .delete()
+      .not("id", "is", null);
+
+    if (deleteAttemptsError) {
+      throw new AppError(502, "RESET_DELETE_FAILED", "The score attempts could not be cleared.", deleteAttemptsError);
+    }
+
     return {
       deletedCount: count ?? 0,
+      deletedAttemptCount: attemptCount ?? 0,
       resetAt: new Date().toISOString(),
     };
   }

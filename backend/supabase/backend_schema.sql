@@ -33,6 +33,23 @@ create table if not exists public.notification_devices (
   last_seen_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.score_attempts (
+  id uuid primary key default extensions.gen_random_uuid(),
+  player_name text not null check (char_length(trim(player_name)) between 1 and 40),
+  client_type text not null check (client_type in ('android', 'web')),
+  mode text not null check (mode in ('quiz', 'story')),
+  total_questions integer not null check (total_questions > 0),
+  question_key jsonb not null check (jsonb_typeof(question_key) = 'array'),
+  answers jsonb not null check (jsonb_typeof(answers) = 'array'),
+  started_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  completed_at timestamptz,
+  last_elapsed_seconds integer check (last_elapsed_seconds is null or last_elapsed_seconds >= 0)
+);
+
+create index if not exists score_attempts_player_name_started_idx
+on public.score_attempts ((lower(btrim(player_name))), started_at desc);
+
 create or replace function public.touch_notification_device_updated_at()
 returns trigger
 language plpgsql
@@ -46,6 +63,12 @@ $$;
 drop trigger if exists notification_devices_set_updated_at on public.notification_devices;
 create trigger notification_devices_set_updated_at
 before update on public.notification_devices
+for each row
+execute function public.touch_notification_device_updated_at();
+
+drop trigger if exists score_attempts_set_updated_at on public.score_attempts;
+create trigger score_attempts_set_updated_at
+before update on public.score_attempts
 for each row
 execute function public.touch_notification_device_updated_at();
 

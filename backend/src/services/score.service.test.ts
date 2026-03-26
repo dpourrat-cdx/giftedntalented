@@ -171,7 +171,6 @@ describe("ScoreService", () => {
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
 
       const { supabase } = await import("../lib/supabase.js");
-      // Tracks calls per table to distinguish count vs delete
       const callCounts: Record<string, number> = {};
       vi.mocked(supabase.from).mockImplementation(((table: string) => {
         if (table === "app_admin_settings") {
@@ -187,13 +186,18 @@ describe("ScoreService", () => {
             }),
           };
         }
+
         callCounts[table] = (callCounts[table] ?? 0) + 1;
-        // First call per table is the count query, second is delete
         if (callCounts[table] === 1) {
           return {
-            select: () => Promise.resolve({ count: 5, error: null }),
+            select: () =>
+              Promise.resolve({
+                count: table === "score_attempts" ? 3 : 5,
+                error: null,
+              }),
           };
         }
+
         return {
           delete: () => ({
             not: () => Promise.resolve({ error: null }),
@@ -204,6 +208,7 @@ describe("ScoreService", () => {
       const result = await service.resetScores("1234");
 
       expect(result.deletedCount).toBe(5);
+      expect(result.deletedAttemptCount).toBe(3);
       expect(result.resetAt).toBeDefined();
     });
 

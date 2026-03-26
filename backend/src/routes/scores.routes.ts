@@ -3,7 +3,7 @@ import { asyncHandler } from "../middleware/async-handler.js";
 import { readLimiter, writeLimiter } from "../middleware/rate-limit.js";
 import { validate } from "../middleware/validate.js";
 import { ScoreService } from "../services/score.service.js";
-import { playerNameParamsSchema, scoreRecordBodySchema } from "../validators/score.validators.js";
+import { playerNameParamsSchema } from "../validators/score.validators.js";
 
 const scoreService = new ScoreService();
 
@@ -34,20 +34,10 @@ scoresRouter.get(
   }),
 );
 
-scoresRouter.post(
-  "/players/:playerName/record",
-  writeLimiter,
-  validate({ params: playerNameParamsSchema, body: scoreRecordBodySchema }),
-  asyncHandler(async (request, response) => {
-    const playerName = String(request.params.playerName);
-    const result = await scoreService.savePlayerRecord({
-      playerName,
-      ...request.body,
-    });
-
-    response.status(result.storyOnly ? 200 : 201).json({
-      ...result,
-      requestId: request.requestId,
-    });
-  }),
-);
+scoresRouter.post("/players/:playerName/record", writeLimiter, asyncHandler(async (request, response) => {
+  response.status(410).json({
+    error: "LEGACY_SCORE_ENDPOINT_DISABLED",
+    message: "Direct score submission is disabled. Start a score attempt and submit validated answers instead.",
+    requestId: request.requestId,
+  });
+}));

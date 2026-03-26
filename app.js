@@ -149,6 +149,9 @@ function createNewSession() {
   deferredAdvanceQuestionIndex = -1;
   isTimerPaused = false;
   isStoryOnlySession = false;
+  if (scoreboardController && typeof scoreboardController.resetActiveAttempt === "function") {
+    scoreboardController.resetActiveAttempt();
+  }
   sessionQuestions = buildTestSession();
   selectedAnswers = Array(totalQuestions()).fill(null);
   validatedAnswers = Array(totalQuestions()).fill(null);
@@ -1305,6 +1308,14 @@ function buildLiveScoreRecord() {
   };
 }
 
+function buildAttemptQuestionRegistration() {
+  return sessionQuestions.map((question) => ({
+    questionId: question.id,
+    bankId: question.bankId,
+    options: [...question.options],
+  }));
+}
+
 function startTestFromBeginning() {
   if (hasStarted || !playerName) {
     return;
@@ -1313,6 +1324,14 @@ function startTestFromBeginning() {
   currentIndex = 0;
   hasStarted = true;
   isStoryOnlySession = storyOnlyModeEnabled;
+  if (scoreboardController && !isStoryOnlySession) {
+    void scoreboardController.beginAttempt({
+      playerName,
+      clientType: "web",
+      mode: "quiz",
+      questions: buildAttemptQuestionRegistration(),
+    });
+  }
   if (isStoryOnlySession) {
     clearTimer();
     setTimerPaused(true);
@@ -1369,7 +1388,9 @@ function submitTest() {
     gamificationController.onTestCompleted(buildGamificationSnapshot());
   }
   if (scoreboardController && !isStoryOnlySession) {
-    scoreboardController.recordScore(buildFinalScoreRecord());
+    void scoreboardController.finalizeAttempt({
+      elapsedSeconds: elapsedMissionSeconds(),
+    });
   }
   dom.resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1439,7 +1460,16 @@ dom.nextButton.addEventListener("click", () => {
       });
     }
     if (scoreboardController) {
-      scoreboardController.recordScore(buildLiveScoreRecord());
+      void scoreboardController.recordValidatedAnswer({
+        playerName,
+        clientType: "web",
+        mode: isStoryOnlySession ? "story" : "quiz",
+        sessionQuestions: buildAttemptQuestionRegistration(),
+        questionId: question.id,
+        bankId: question.bankId,
+        selectedAnswer,
+        elapsedSeconds: elapsedMissionSeconds(),
+      });
     }
     if (isCorrect) {
       if (gamificationController && gamificationController.hasBlockingOverlay()) {
