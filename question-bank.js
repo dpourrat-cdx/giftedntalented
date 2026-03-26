@@ -1443,99 +1443,127 @@
 
   function buildLogicalQuestions() {
     const section = SECTIONS[7];
-    const questions = [];
     const events = ["breakfast", "reading", "math", "art", "lunch", "recess", "music", "bedtime"];
     const names = ["Mia", "Ben", "Ava", "Leo", "Nora", "Sam", "Ella", "Jay"];
     const nonsense = ["zib", "mip", "tov", "lax", "pim", "bex", "dor", "vup"];
     const attributes = ["blue", "striped", "round", "soft", "sparkly", "tiny", "green", "wooden"];
+    const questions = [];
 
     for (let index = 0; index < 25; index += 1) {
-      const first = events[index % events.length];
-      const second = events[(index + 1) % events.length];
-      const third = events[(index + 2) % events.length];
-      const ask = index % 3 === 0 ? "first" : index % 3 === 1 ? "last" : "second";
-      const correct = ask === "first" ? first : ask === "last" ? third : second;
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `${first} happened before ${second}. ${second} happened before ${third}. What happened ${ask}?`,
-          correct,
-          [first, second, third].filter((value) => value !== correct).concat("not enough information").slice(0, 3),
-          `The order is ${first}, then ${second}, then ${third}.`,
-          "",
-          10000 + index,
-        ),
-      );
+      questions.push(buildEventOrderQuestion(section, events, index));
     }
 
     for (let index = 0; index < 25; index += 1) {
-      const tallest = names[index % names.length];
-      const middle = names[(index + 1) % names.length];
-      const shortest = names[(index + 2) % names.length];
-      const askTallest = index % 2 === 0;
-      const correct = askTallest ? tallest : shortest;
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `${tallest} is taller than ${middle}. ${middle} is taller than ${shortest}. Who is ${askTallest ? "tallest" : "shortest"}?`,
-          correct,
-          [tallest, middle, shortest, names[(index + 3) % names.length]].filter((value) => value !== correct).slice(0, 3),
-          `If ${tallest} is taller than ${middle} and ${middle} is taller than ${shortest}, the order is clear.`,
-          "",
-          10100 + index,
-        ),
-      );
+      questions.push(buildHeightOrderQuestion(section, names, index));
     }
 
     for (let index = 0; index < 25; index += 1) {
-      const madeUpWord = nonsense[index % nonsense.length];
-      const name = names[(index + 3) % names.length];
-      const attribute = attributes[index % attributes.length];
-      const result = attributes[(index + 2) % attributes.length];
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `All ${madeUpWord}s are ${attribute}. All ${attribute} things are ${result}. ${name} has a ${madeUpWord}. What must be true?`,
-          `${name} has something ${result}.`,
-          [
-            `${name} has something red.`,
-            `Everything ${result} is a ${madeUpWord}.`,
-            `${name} does not have a ${madeUpWord}.`,
-          ],
-          `If every ${madeUpWord} is ${attribute}, and every ${attribute} thing is ${result}, then ${name}'s ${madeUpWord} must be ${result}.`,
-          "",
-          10200 + index,
-        ),
-      );
+      questions.push(buildAttributeTruthQuestion(section, names, nonsense, attributes, index));
     }
 
     for (let index = 0; index < 25; index += 1) {
-      const first = names[index % names.length];
-      const second = names[(index + 1) % names.length];
-      const third = names[(index + 2) % names.length];
-      const order = [first, second, third];
-      const ask = index % 3 === 0 ? "first" : index % 3 === 1 ? "middle" : "last";
-      const correct = ask === "first" ? order[0] : ask === "middle" ? order[1] : order[2];
-
-      questions.push(
-        makeChoiceQuestion(
-          section,
-          `${order[1]} is after ${order[0]}. ${order[2]} is after ${order[1]}. Who is ${ask} in line?`,
-          correct,
-          [order[0], order[1], order[2], "not enough information"].filter((value) => value !== correct).slice(0, 3),
-          `The line order is ${order[0]}, then ${order[1]}, then ${order[2]}.`,
-          "",
-          10300 + index,
-        ),
-      );
+      questions.push(buildLineOrderQuestion(section, names, index));
     }
 
     questions.push(...buildLogicChallengeQuestions(section));
 
     return questions;
+  }
+
+  function buildEventOrderQuestion(section, events, index) {
+    const sequence = [
+      events[index % events.length],
+      events[(index + 1) % events.length],
+      events[(index + 2) % events.length],
+    ];
+    const [first, second, third] = sequence;
+    const askLabels = ["first", "last", "second"];
+    const answerIndexByLabel = {
+      first: 0,
+      last: 2,
+      second: 1,
+    };
+    const ask = askLabels[index % askLabels.length];
+    const correct = sequence[answerIndexByLabel[ask]];
+
+    return makeChoiceQuestion(
+      section,
+      `${first} happened before ${second}. ${second} happened before ${third}. What happened ${ask}?`,
+      correct,
+      sequence.filter((value) => value !== correct).concat("not enough information").slice(0, 3),
+      `The order is ${first}, then ${second}, then ${third}.`,
+      "",
+      10000 + index,
+    );
+  }
+
+  function buildHeightOrderQuestion(section, names, index) {
+    const ranking = [
+      names[index % names.length],
+      names[(index + 1) % names.length],
+      names[(index + 2) % names.length],
+      names[(index + 3) % names.length],
+    ];
+    const [tallest, middle, shortest] = ranking;
+    const askTallest = index % 2 === 0;
+    const correct = askTallest ? tallest : shortest;
+
+    return makeChoiceQuestion(
+      section,
+      `${tallest} is taller than ${middle}. ${middle} is taller than ${shortest}. Who is ${askTallest ? "tallest" : "shortest"}?`,
+      correct,
+      ranking.filter((value) => value !== correct).slice(0, 3),
+      `If ${tallest} is taller than ${middle} and ${middle} is taller than ${shortest}, the order is clear.`,
+      "",
+      10100 + index,
+    );
+  }
+
+  function buildAttributeTruthQuestion(section, names, nonsense, attributes, index) {
+    const madeUpWord = nonsense[index % nonsense.length];
+    const name = names[(index + 3) % names.length];
+    const attribute = attributes[index % attributes.length];
+    const result = attributes[(index + 2) % attributes.length];
+
+    return makeChoiceQuestion(
+      section,
+      `All ${madeUpWord}s are ${attribute}. All ${attribute} things are ${result}. ${name} has a ${madeUpWord}. What must be true?`,
+      `${name} has something ${result}.`,
+      [
+        `${name} has something red.`,
+        `Everything ${result} is a ${madeUpWord}.`,
+        `${name} does not have a ${madeUpWord}.`,
+      ],
+      `If every ${madeUpWord} is ${attribute}, and every ${attribute} thing is ${result}, then ${name}'s ${madeUpWord} must be ${result}.`,
+      "",
+      10200 + index,
+    );
+  }
+
+  function buildLineOrderQuestion(section, names, index) {
+    const order = [
+      names[index % names.length],
+      names[(index + 1) % names.length],
+      names[(index + 2) % names.length],
+    ];
+    const askLabels = ["first", "middle", "last"];
+    const ask = askLabels[index % askLabels.length];
+    const answerIndexByLabel = {
+      first: 0,
+      middle: 1,
+      last: 2,
+    };
+    const correct = order[answerIndexByLabel[ask]];
+
+    return makeChoiceQuestion(
+      section,
+      `${order[1]} is after ${order[0]}. ${order[2]} is after ${order[1]}. Who is ${ask} in line?`,
+      correct,
+      order.concat("not enough information").filter((value) => value !== correct).slice(0, 3),
+      `The line order is ${order[0]}, then ${order[1]}, then ${order[2]}.`,
+      "",
+      10300 + index,
+    );
   }
 
   function buildVerbalChallengeQuestions(section) {

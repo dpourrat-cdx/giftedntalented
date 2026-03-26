@@ -110,4 +110,62 @@ describe("GiftedQuestionBank", () => {
     expect(attributeChallenge?.options[attributeChallenge.answer]).toBe("Nora has something round.");
     expect(attributeChallenge?.explanation).toContain("Nora's zib must be round.");
   });
+
+  it("builds the logical event-order prompts with the expected answer and explanation", async () => {
+    await loadFrontendScript("question-bank.js");
+
+    const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
+    const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
+    const eventQuestion = logicalQuestions[0];
+
+    expect(eventQuestion.prompt).toBe(
+      "breakfast happened before reading. reading happened before math. What happened first?",
+    );
+    expect(eventQuestion.options[eventQuestion.answer]).toBe("breakfast");
+    expect(eventQuestion.explanation).toBe("The order is breakfast, then reading, then math.");
+  });
+
+  it("builds the logical height-order prompts with the expected tallest answer", async () => {
+    await loadFrontendScript("question-bank.js");
+
+    const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
+    const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
+    const heightQuestion = logicalQuestions[25];
+
+    expect(heightQuestion.prompt).toBe(
+      "Mia is taller than Ben. Ben is taller than Ava. Who is tallest?",
+    );
+    expect(heightQuestion.options[heightQuestion.answer]).toBe("Mia");
+    expect(heightQuestion.explanation).toBe(
+      "If Mia is taller than Ben and Ben is taller than Ava, the order is clear.",
+    );
+  });
+
+  it("builds the logical attribute-truth prompts with the derived must-be-true answer", async () => {
+    await loadFrontendScript("question-bank.js");
+
+    const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
+    const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
+    const attributeQuestion = logicalQuestions[50];
+
+    expect(attributeQuestion.prompt).toBe(
+      "All zibs are blue. All blue things are round. Leo has a zib. What must be true?",
+    );
+    expect(attributeQuestion.options[attributeQuestion.answer]).toBe("Leo has something round.");
+    expect(attributeQuestion.explanation).toContain("Leo's zib must be round.");
+  });
+
+  it("builds the logical line-order prompts with the expected middle answer", async () => {
+    await loadFrontendScript("question-bank.js");
+
+    const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
+    const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
+    const lineQuestion = logicalQuestions[76];
+
+    expect(lineQuestion.prompt).toBe(
+      "Ava is after Ben. Leo is after Ava. Who is middle in line?",
+    );
+    expect(lineQuestion.options[lineQuestion.answer]).toBe("Ava");
+    expect(lineQuestion.explanation).toBe("The line order is Ben, then Ava, then Leo.");
+  });
 });
