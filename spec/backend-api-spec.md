@@ -1,26 +1,31 @@
 # Backend API Spec
 
-> **Note:** This spec predates the March 26, 2026 score-attempt rollout. It does not yet document the attempt-based API (`POST /attempts`, `POST /attempts/:id/answers`, `POST /attempts/:id/finalize`), the `score_attempts` and `score_attempt_events` tables, or backend-owned question selection. A full rewrite is tracked as Priority 2 in `backlog.md`. Until then, treat the Endpoints and Database Model sections as partially outdated and refer to `product-spec.md` for the live API surface.
+This document describes the live backend contract for the Captain Nova score, attempt, reset, and device flows.
+
+Base URL:
+
+- `https://giftedntalented.onrender.com/api/v1`
+
+Primary frontend:
+
+- `https://dpourrat-cdx.github.io/giftedntalented/`
 
 ## Overview
 
-This document captures the backend architecture that powers the Captain Nova score and reset flows.
+The backend is the source of truth for:
 
-The backend is deployed on Render at:
+- score-attempt creation
+- backend-owned question selection for web quiz attempts
+- answer validation
+- authoritative score persistence
+- explorer record lookup
+- parent reset authorization
+- device registration
+- admin-triggered push delivery
 
-- `https://giftedntalented.onrender.com`
+The browser is not trusted for answer correctness, reset authorization, or direct database access.
 
-The web frontend on GitHub Pages now calls this backend for score reads, score saves, and score reset behavior.
-
-## Goal
-
-- Remove browser-held trust for score storage and reset actions.
-- Make cross-browser and cross-device explorer records consistent.
-- Keep the frontend static and GitHub Pages-friendly.
-- Support the current web app and a future Android client from the same API surface.
-- Prepare the platform for Firebase Cloud Messaging support without exposing server credentials to the client.
-
-## Technology Choices
+## Runtime And Stack
 
 - Runtime: Node.js 22
 - Framework: Express 5
@@ -28,138 +33,96 @@ The web frontend on GitHub Pages now calls this backend for score reads, score s
 - Validation: Zod
 - Logging: Pino
 - Security middleware: Helmet, CORS, rate limiting
-- Database access: Supabase using the service-role key on the server only
-- Push notifications: Firebase Admin SDK scaffolding for FCM
-- Deployment target: Render web service
+- Database access: Supabase with backend-held service role credentials
+- Push notifications: Firebase Admin SDK
+- Deployment target: Render
 
-## Current Deployment
+## Security Model
 
-- Render service URL: `https://giftedntalented.onrender.com`
-- Health endpoint: `/api/v1/health`
-- Browser origin currently allowed:
-  - `https://dpourrat-cdx.github.io`
-- Expected live frontend page:
-  - `https://dpourrat-cdx.github.io/giftedntalented/`
+### Browser Trust
 
-## Current Responsibilities
+The public web app is hosted on GitHub Pages, so the backend treats the browser as untrusted.
 
-The backend currently owns:
+The backend therefore owns:
 
-- health reporting
-- reading one player's best saved record
-- saving one player's best record
-- verifying the reset PIN server-side
-- clearing saved records after successful reset authorization
-- future-ready device registration endpoints
-- future-ready admin push-send endpoints
+- attempt question selection for live web quiz runs
+- answer correctness checks
+- score comparison and best-record persistence
+- reset PIN verification
 
-The frontend no longer needs to:
+### Database Access
 
-- hold a reset PIN
-- embed a Supabase publishable key for score actions
-- talk directly to Supabase for scores
-- decide whether a reset request is authorized
+The backend uses the Supabase service role key from the server only.
 
-## Security Choices
+Current schema hardening in `backend/supabase/backend_schema.sql` includes:
 
-### Client Security Model
+- explicit function execute grants/revokes for current `SECURITY DEFINER` functions
+- RLS enabled on backend-owned tables
+- service-role-only policies for backend table access
 
-Because the web client is a public GitHub Pages app, no browser-held secret is treated as trusted.
+### Admin Surface
 
-Public client endpoints are allowed for:
+`POST /admin/push/send` requires `X-Admin-Key`.
 
-- reading one player's best score
-- submitting a player's score
-- registering and unregistering device tokens
+`POST /admin/scores/reset` currently remains parent-accessible by reset PIN rather than `X-Admin-Key`. The broader long-term security decision for that route is still tracked in `spec/backlog.md`.
 
-These public endpoints are protected with:
+## CORS
 
-- strict input validation
-- per-route rate limiting
-- normalized player names
-- server-side score comparison logic
-- CORS restricted to the GitHub Pages origin
-
-Protected admin endpoints are required for:
-
-- sending push notifications
-
-Admin routes use:
-
-- `X-Admin-Key`
-- server-side environment variable validation
-- tighter rate limiting
-
-The score reset route is designed for parent use and keeps the PIN server-side:
-
-- the client sends the parent-entered reset PIN to the backend
-- the backend verifies the stored hash in Supabase
-- the PIN is never embedded in frontend code
-
-### Good Changes Already Landed
-
-- Reset authorization moved off the frontend.
-- The live frontend no longer embeds the old reset PIN.
-- The live frontend no longer embeds the Supabase publishable key for score actions.
-- Supabase service-role access is held only by the backend.
-- CORS is restricted to the GitHub Pages origin.
-- Request payloads are validated server-side.
-- Rate limiting is applied to public and admin-sensitive routes.
-- Earlier exposed values were rotated after the backend rollout, including:
-  - the old frontend-used Supabase publishable key
-  - the old reset PIN value
-  - the Render admin API key used by backend admin routes
-
-### Remaining Risks
-
-- The backend now owns question selection and answer validation through the attempt flow, removing the browser-trusted score vector for the web quiz.
-- The frontend question bank bundle still ships to the browser (used for UI rendering), but answer correctness is validated server-side.
-- Explorer names remain guessable identifiers.
-- Old credentials and reset values may still exist in git history from earlier versions.
-
-## CORS Policy
-
-Allowed browser origin:
+Expected production browser origin:
 
 - `https://dpourrat-cdx.github.io`
 
-The backend may also allow local development origins by environment variable override.
+Development origins may be added through environment configuration.
 
-## API Versioning
+## Common Response Shape
 
-All endpoints are versioned under:
+Successful JSON responses usually include:
 
-- `/api/v1`
+- endpoint-specific payload fields
+- `requestId`
+
+Error responses return:
+
+- `error`
+- `message`
+- `requestId`
+
+Validation failures may also include:
+
+- `details`
 
 ## Endpoints
 
-### Public Endpoints
-
-#### `GET /api/v1/health`
+### `GET /health`
 
 Purpose:
 
-- health check for Render and monitoring
+- health check for Render and operational smoke tests
 
 Response:
 
-- service status
-- environment name
-- timestamp
-- whether Supabase is reachable
-- whether FCM is configured
+- `status`: `ok` or `degraded`
+- `environment`
+- `checkedAt`
+- `services.supabase`: `ok` or `down`
+- `services.fcm`: `configured` or `not_configured`
 
-#### `GET /api/v1/players/:playerName/record`
+Notes:
+
+- health uses a lightweight Supabase read against `test_scores`
+
+### `GET /players/:playerName/record`
 
 Purpose:
 
-- fetch the best saved score for one player
+- fetch the current best saved record for one explorer
 
-Path params:
+Validation:
 
-- `playerName`
+- `playerName` is normalized server-side
+- valid length is `1..40`
 
-Response:
+Success response:
 
 - `playerName`
 - `score`
@@ -167,89 +130,276 @@ Response:
 - `totalQuestions`
 - `elapsedSeconds`
 - `completedAt`
-- `source`
+- `source` with current value `supabase`
+- `requestId`
 
-Behavior:
+Not found:
 
-- returns `404` if no record exists
-- uses normalized player names
+- `404 PLAYER_RECORD_NOT_FOUND`
 
-#### `POST /api/v1/players/:playerName/record` — **DISABLED**
-
-This endpoint now returns `410 LEGACY_SCORE_ENDPOINT_DISABLED`. Score writes must go through the attempt flow: `POST /api/v1/attempts` → `POST /api/v1/attempts/:attemptId/answers` → `POST /api/v1/attempts/:attemptId/finalize`.
-
-#### `POST /api/v1/devices/register`
+### `POST /players/:playerName/record`
 
 Purpose:
 
-- register a device token for future push notifications
+- legacy direct score-write route
 
-Body:
+Current behavior:
+
+- always disabled
+- always returns `410 LEGACY_SCORE_ENDPOINT_DISABLED`
+
+Replacement flow:
+
+1. `POST /attempts`
+2. `POST /attempts/:attemptId/answers`
+3. `POST /attempts/:attemptId/finalize`
+
+### `POST /attempts`
+
+Purpose:
+
+- start a score attempt
+
+Request body:
+
+- `playerName`: normalized, `1..40`
+- `clientType`: `web` or `android`
+- `mode`: `quiz` or `story`
+- `questions`: optional transitional field for caller-supplied question shape
+
+Live behavior:
+
+- `story` mode returns a story-only response and does not create a score attempt row
+- `quiz` mode creates a persisted attempt
+- web quiz attempts can be backend-selected and backend-randomized
+- attempt rows are stored in `score_attempts`
+- attempt start audit events are stored in `score_attempt_events`
+
+Quiz success response:
+
+- `storyOnly: false`
+- `attemptId`
+- `totalQuestions`
+- `questions`
+- `requestId`
+
+Each question includes:
+
+- `questionId`
+- `bankId`
+- `section`
+- `prompt`
+- `options`
+- `stimulus` optional
+
+Status code:
+
+- `201 Created` for persisted quiz attempts
+
+Story-only response:
+
+- `storyOnly: true`
+- `attemptId: null`
+- `totalQuestions: 0`
+- `questions: []`
+- `requestId`
+
+Status code:
+
+- `200 OK` for story-only mode
+
+Possible failures:
+
+- `400 ATTEMPT_SHAPE_INVALID`
+- `500 QUESTION_BANK_INVALID`
+- `502 ATTEMPT_CREATE_FAILED`
+
+### `POST /attempts/:attemptId/answers`
+
+Purpose:
+
+- submit one validated answer for an existing attempt
+
+Request params:
+
+- `attemptId`: UUID
+
+Request body:
+
+- `questionId`
+- `bankId`
+- `selectedAnswer`: integer `0..3`
+- `elapsedSeconds` optional, nullable, integer `>= 0`
+
+Success response:
+
+- `accepted: true`
+- `correctAnswer`
+- `isCorrect`
+- `progress`
+- `record`
+- `requestId`
+
+`progress` includes:
+
+- `answeredCount`
+- `correctCount`
+- `totalQuestions`
+- `percentage`
+
+`record` is a preview only:
+
+- it is present only when the explorer has at least one correct answer so far
+- it is not the final authoritative saved record
+
+Status code:
+
+- `201 Created`
+
+Important behavior:
+
+- the backend verifies that the submitted `questionId` and `bankId` belong to the saved attempt
+- the backend compares `selectedAnswer` against the saved attempt key
+- a previously validated answer cannot be changed to a different answer
+
+Possible failures:
+
+- `404 ATTEMPT_NOT_FOUND`
+- `400 ATTEMPT_ANSWER_INVALID`
+- `409 ATTEMPT_ANSWER_LOCKED`
+- `409 ATTEMPT_ALREADY_COMPLETED`
+- `409 ATTEMPT_EXPIRED`
+- `502 ATTEMPT_READ_FAILED`
+- `502 ATTEMPT_WRITE_FAILED`
+
+### `POST /attempts/:attemptId/finalize`
+
+Purpose:
+
+- finalize an attempt and persist the authoritative best score when applicable
+
+Request params:
+
+- `attemptId`: UUID
+
+Request body:
+
+- `elapsedSeconds` optional, nullable, integer `>= 0`
+
+Success response:
+
+- `finalized: true`
+- `progress`
+- `record`
+- `requestId`
+
+Behavior:
+
+- finalizes the attempt once
+- persists the best score through the backend-owned save flow
+- replay-safe for already-saved attempts
+- returns `record: null` when the attempt did not produce a saved score
+- story mode never reaches this endpoint because it does not create an attempt
+
+Possible failures:
+
+- `404 ATTEMPT_NOT_FOUND`
+- `409 ATTEMPT_EXPIRED`
+- `502 ATTEMPT_FINALIZE_FAILED`
+- `502 ATTEMPT_SAVE_FAILED`
+
+### `POST /devices/register`
+
+Purpose:
+
+- register or refresh a notification device
+
+Request body:
 
 - `deviceToken`
-- `platform` with values `android` or `web`
+- `platform`: `android` or `web`
+- `clientType`: `android` or `web`
 - `playerName` optional
-- `clientType` with values `web` or `android`
 - `appVersion` optional
 
+Success response:
+
+- `success: true`
+- `device`
+- `requestId`
+
+Status code:
+
+- `201 Created`
+
 Behavior:
 
-- upserts the token
-- marks the token active
-- updates last-seen metadata
+- upserts on `device_token`
+- marks the device active
+- updates `last_seen_at`
 
-Response:
-
-- success result and normalized token record metadata
-
-#### `POST /api/v1/devices/unregister`
+### `POST /devices/unregister`
 
 Purpose:
 
-- deactivate a device token without deleting historical metadata
+- deactivate a notification device token
 
-Body:
+Request body:
 
 - `deviceToken`
 
-Response:
+Success response:
 
-- success result
+- `success: true`
+- `requestId`
 
-### Parent/Admin Endpoints
+Behavior:
 
-#### `POST /api/v1/admin/scores/reset`
+- marks the device inactive rather than deleting history
+
+### `POST /admin/scores/reset`
 
 Purpose:
 
-- clear saved score records after verifying the parent PIN
+- clear saved records and saved attempts after parent reset PIN verification
 
-Body:
+Request body:
 
 - `resetPin`
 
+Success response:
+
+- `deletedCount`
+- `deletedAttemptCount`
+- `resetAt`
+- `requestId`
+
 Behavior:
 
-- server verifies the PIN against the stored Supabase hash
-- route is heavily rate-limited
-- no reset logic is exposed in the browser
+- verifies `resetPin` against the stored hash in `app_admin_settings`
+- counts rows before deleting them
+- clears both `test_scores` and `score_attempts`
+- relies on cascade delete from `score_attempts` to `score_attempt_events`
 
-Response:
+Possible failures:
 
-- number of deleted rows
-- reset timestamp
+- `401 INVALID_RESET_PIN`
+- `409 RESET_PIN_NOT_CONFIGURED`
+- `502 RESET_PIN_LOOKUP_FAILED`
+- `502 RESET_COUNT_FAILED`
+- `502 RESET_DELETE_FAILED`
 
-#### `POST /api/v1/admin/push/send`
+### `POST /admin/push/send`
 
 Purpose:
 
-- send Android push notifications through FCM
+- send FCM push notifications from the backend
 
 Headers:
 
 - `X-Admin-Key`
 
-Body:
+Request body:
 
 - `target`
 - `notification`
@@ -257,69 +407,82 @@ Body:
 
 Supported targets:
 
-- single token
-- all active tokens for one player
-- all active Android tokens
+- `{ "type": "token", "token": "..." }`
+- `{ "type": "player", "playerName": "..." }`
+- `{ "type": "allAndroid" }`
 
-Response:
+Success response:
 
-- send summary
-- number attempted
-- number succeeded
-- number failed
+- send summary fields from the push service
+- `requestId`
 
 ## Database Model
 
-### Existing Tables Reused
+### `public.test_scores`
 
-- `public.test_scores`
-- `public.app_admin_settings`
+Purpose:
 
-### New Table Added
+- one best authoritative score row per explorer name
 
-`public.notification_devices`
+Tie-break order:
 
-Columns:
+1. higher `score`
+2. higher `percentage`
+3. lower `elapsed_seconds`
 
-- `id`
-- `device_token`
-- `platform`
-- `client_type`
-- `player_name`
-- `app_version`
-- `is_active`
-- `created_at`
-- `updated_at`
-- `last_seen_at`
+### `public.app_admin_settings`
 
-Constraints:
+Purpose:
 
-- unique token
-- optional normalized player name length limit
-- platform restricted to `android` or `web`
-- client type restricted to `android` or `web`
+- singleton settings row for reset PIN hash
 
-## Score Persistence Rules
+### `public.notification_devices`
 
-- one best row per player name
-- score wins first
-- percentage breaks ties
-- faster elapsed time breaks equal-score ties
-- story-only mode does not create a score record
+Purpose:
 
-## Error Handling
+- push registration and active-token tracking
 
-Every error response returns structured JSON:
+### `public.score_attempts`
 
-- `error`
-- `message`
-- `requestId`
+Purpose:
 
-Validation errors also include:
+- persisted attempt state for backend-owned validation and replay-safe score saving
 
-- `details`
+Notable fields:
 
-No stack traces are returned in production.
+- `question_key`
+- `answers`
+- `started_at`
+- `completed_at`
+- `expires_at`
+- `selection_fingerprint`
+- `score_saved_at`
+- `score_saved_payload`
+- `last_elapsed_seconds`
+
+### `public.score_attempt_events`
+
+Purpose:
+
+- attempt audit trail
+
+Current event types:
+
+- `attempt_started`
+- `answer_accepted`
+- `attempt_finalized`
+- `score_saved`
+
+## Rate Limiting
+
+The backend applies route-specific rate limiting for:
+
+- public reads
+- public writes
+- reset requests
+- admin routes
+
+Exact thresholds are configured through environment variables rather than hard-coded in this spec.
 
 ## Environment Variables
 
@@ -338,7 +501,7 @@ Optional FCM:
 - `FCM_CLIENT_EMAIL`
 - `FCM_PRIVATE_KEY`
 
-Optional app tuning:
+Optional tuning:
 
 - `LOG_LEVEL`
 - `READ_RATE_LIMIT_WINDOW_MS`
@@ -350,67 +513,22 @@ Optional app tuning:
 - `ADMIN_RATE_LIMIT_WINDOW_MS`
 - `ADMIN_RATE_LIMIT_MAX`
 
-## Render Deployment
+## Deployment And Verification
 
-Render service requirements:
+Render service:
 
 - root directory: `backend`
 - build command: `npm install && npm run build`
 - start command: `npm run start`
-- health check path: `/api/v1/health`
+- health path: `/api/v1/health`
 
-Current live service:
+Operational checks:
 
-- branch currently targeted in Render should be `master` after branch cleanup
-- service URL: `https://giftedntalented.onrender.com`
+- local backend tests
+- local typecheck
+- `npm run smoke:live` after deploy-impacting backend changes
 
-## Project Layout
+## Known Open Decisions
 
-Current backend structure:
-
-- `backend/package.json`
-- `backend/tsconfig.json`
-- `backend/.env.example`
-- `backend/README.md`
-- `backend/src/server.ts`
-- `backend/src/app.ts`
-- `backend/src/config/*`
-- `backend/src/routes/*`
-- `backend/src/middleware/*`
-- `backend/src/services/*`
-- `backend/src/lib/*`
-- `backend/src/validators/*`
-- `backend/supabase/backend_schema.sql`
-
-## Repository Layout
-
-Current target layout:
-
-- `master`
-  - static web app
-  - live GitHub Pages frontend
-  - backend source under `backend/`
-  - Render deployment source
-
-Obsolete feature branches can be deleted after Render is confirmed to point at `master`.
-
-## Future Client Support
-
-The backend is designed so both the web client and Android client can use the same score API and the same device registration API.
-
-Android-specific support is added through:
-
-- FCM token registration
-- admin-triggered push send endpoints
-
-The backend intentionally avoids Android-only assumptions in the core score API so the same endpoints remain usable by both clients.
-
-## Acceptance Criteria For Current Backend State
-
-- Render health checks pass.
-- The backend starts with valid environment variables and fails fast when required secrets are missing.
-- The frontend can read explorer records from the backend.
-- The frontend can save best-score records through the backend.
-- Reset requests require backend PIN verification.
-- Cross-browser explorer records are consistent when the backend is reachable.
-- Device-only fallback is clearly labeled when the backend cannot be reached.
+- whether `POST /admin/scores/reset` should remain public-parent reachable or become owner-only behind `X-Admin-Key`
+- whether the frontend should eventually stop shipping the question bank bundle entirely once UI rendering is fully decoupled from local bank data
