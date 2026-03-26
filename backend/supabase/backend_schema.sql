@@ -92,6 +92,52 @@ create table if not exists public.score_attempt_events (
 create index if not exists score_attempt_events_attempt_created_idx
 on public.score_attempt_events (attempt_id, created_at desc);
 
+alter table if exists public.test_scores enable row level security;
+alter table if exists public.app_admin_settings enable row level security;
+alter table if exists public.notification_devices enable row level security;
+alter table if exists public.score_attempts enable row level security;
+alter table if exists public.score_attempt_events enable row level security;
+
+drop policy if exists test_scores_service_role_all on public.test_scores;
+create policy test_scores_service_role_all
+on public.test_scores
+for all
+to service_role
+using (true)
+with check (true);
+
+drop policy if exists app_admin_settings_service_role_all on public.app_admin_settings;
+create policy app_admin_settings_service_role_all
+on public.app_admin_settings
+for all
+to service_role
+using (true)
+with check (true);
+
+drop policy if exists notification_devices_service_role_all on public.notification_devices;
+create policy notification_devices_service_role_all
+on public.notification_devices
+for all
+to service_role
+using (true)
+with check (true);
+
+drop policy if exists score_attempts_service_role_all on public.score_attempts;
+create policy score_attempts_service_role_all
+on public.score_attempts
+for all
+to service_role
+using (true)
+with check (true);
+
+drop policy if exists score_attempt_events_service_role_all on public.score_attempt_events;
+create policy score_attempt_events_service_role_all
+on public.score_attempt_events
+for all
+to service_role
+using (true)
+with check (true);
+
 alter table if exists public.notification_devices
   alter column platform type public.client_platform using platform::public.client_platform,
   alter column client_type type public.client_platform using client_type::public.client_platform;
