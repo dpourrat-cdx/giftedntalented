@@ -255,13 +255,54 @@ function buildAttemptQuestions(selection: SelectedAttemptQuestion[]): AttemptQue
   }));
 }
 
-function hashQuestionOrder(seed: string, question: CanonicalQuestion) {
-  return createHash("sha256")
-    .update(`${seed}:${question.section}:${question.bankId}`)
-    .digest("hex");
+function shuffleItems<T>(items: T[]) {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
 }
 
-function selectBackendQuestions(questionBank: LoadedQuestionBank, seed: string) {
+function buildAnswerSlotPlan(count: number) {
+  const slots: number[] = [];
+
+  while (slots.length + 4 <= count) {
+    slots.push(0, 1, 2, 3);
+  }
+
+  if (slots.length < count) {
+    slots.push(...shuffleItems([0, 1, 2, 3]).slice(0, count - slots.length));
+  }
+
+  return shuffleItems(slots);
+}
+
+function placeCorrectAnswer(question: CanonicalQuestion, targetIndex: number) {
+  const correctOption = question.options[question.answer];
+  const distractors = shuffleItems(question.options.filter((_, optionIndex) => optionIndex !== question.answer));
+  const options: string[] = [];
+  let distractorIndex = 0;
+
+  for (let optionIndex = 0; optionIndex < 4; optionIndex += 1) {
+    if (optionIndex === targetIndex) {
+      options.push(correctOption);
+      continue;
+    }
+
+    options.push(distractors[distractorIndex]);
+    distractorIndex += 1;
+  }
+
+  return {
+    options,
+    correctAnswer: targetIndex,
+  };
+}
+
+function selectBackendQuestions(questionBank: LoadedQuestionBank) {
   const selection: SelectedAttemptQuestion[] = [];
   const questionsBySection = [...questionBank.questionIndex.values()].reduce((accumulator, question) => {
     if (!isQuestionBankQuestion(question)) {
@@ -275,28 +316,26 @@ function selectBackendQuestions(questionBank: LoadedQuestionBank, seed: string) 
   }, new Map<string, CanonicalQuestion[]>());
 
   questionBank.sections.forEach((section) => {
-    const selectedSectionQuestions = (questionsBySection.get(section) ?? [])
-      .slice()
-      .sort((left, right) => {
-        const leftHash = hashQuestionOrder(seed, left);
-        const rightHash = hashQuestionOrder(seed, right);
-        if (leftHash !== rightHash) {
-          return leftHash.localeCompare(rightHash);
-        }
+    const selectedSectionQuestions = shuffleItems(questionsBySection.get(section) ?? []).slice(
+      0,
+      questionBank.questionsPerTestSection,
+    );
+    if (selectedSectionQuestions.length !== questionBank.questionsPerTestSection) {
+      throw new AppError(500, "QUESTION_BANK_INVALID", `The ${section} mission does not have enough questions.`);
+    }
 
-        return left.bankId.localeCompare(right.bankId);
-      })
-      .slice(0, questionBank.questionsPerTestSection);
+    const answerSlots = buildAnswerSlotPlan(selectedSectionQuestions.length);
 
-    selectedSectionQuestions.forEach((question) => {
+    selectedSectionQuestions.forEach((question, questionIndex) => {
+      const randomizedQuestion = placeCorrectAnswer(question, answerSlots[questionIndex]);
       selection.push({
         questionId: selection.length + 1,
         bankId: question.bankId,
         section: question.section,
         prompt: question.prompt,
         stimulus: question.stimulus,
-        options: [...question.options],
-        correctAnswer: question.answer,
+        options: randomizedQuestion.options,
+        correctAnswer: randomizedQuestion.correctAnswer,
       });
     });
   });
@@ -713,7 +752,7 @@ export class AttemptService {
     const questionBank = await getLoadedQuestionBank();
     const normalizedName = normalizePlayerName(input.playerName);
     const hasClientQuestions = Array.isArray(input.questions) && input.questions.length > 0;
-    const generatedSelection = hasClientQuestions ? null : selectBackendQuestions(questionBank, normalizedName);
+    const generatedSelection = hasClientQuestions ? null : selectBackendQuestions(questionBank);
     const selectionData = hasClientQuestions
       ? buildLegacyAttemptQuestions(questionBank, input.questions ?? [])
       : {

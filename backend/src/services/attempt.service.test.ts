@@ -4,6 +4,7 @@ import { AppError } from "../utils/errors.js";
 const mockRpc = vi.fn();
 const mockSingle = vi.fn();
 const mockInsertSingle = vi.fn();
+const mockAttemptInsert = vi.fn();
 const mockUpdateEq = vi.fn();
 const mockEventInsert = vi.fn();
 
@@ -23,11 +24,14 @@ vi.mock("../lib/supabase.js", () => ({
             single: () => mockSingle(),
           }),
         }),
-        insert: () => ({
-          select: () => ({
-            single: () => mockInsertSingle(),
-          }),
-        }),
+        insert: (...args: unknown[]) => {
+          mockAttemptInsert(...args);
+          return {
+            select: () => ({
+              single: () => mockInsertSingle(),
+            }),
+          };
+        },
         update: () => ({
           eq: (...args: unknown[]) => mockUpdateEq(...args),
         }),
@@ -158,6 +162,7 @@ describe("AttemptService", () => {
   let service: AttemptService;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     service = new AttemptService();
     vi.mocked(getLoadedQuestionBank).mockResolvedValue(MOCK_BANK as never);
     mockUpdateEq.mockResolvedValue({ error: null });
@@ -210,8 +215,67 @@ describe("AttemptService", () => {
 
       expect(result.storyOnly).toBe(false);
       expect(result.questions).toHaveLength(4);
-      expect(result.questions.map((question) => question.prompt).sort()).toEqual(["Q1", "Q2", "Q3", "Q4"]);
+      expect(new Set(result.questions.map((question) => question.bankId)).size).toBe(4);
+      expect(result.questions.filter((question) => question.section === "Math")).toHaveLength(2);
+      expect(result.questions.filter((question) => question.section === "Verbal")).toHaveLength(2);
       expect(result.questions.every((question) => question.options.length === 4)).toBe(true);
+    });
+
+    it("randomizes backend-owned question selection between attempts", async () => {
+      mockInsertSingle.mockResolvedValue({
+        data: { id: ATTEMPT_ID, total_questions: 4, expires_at: "2099-01-01T00:00:00Z" },
+        error: null,
+      });
+
+      const randomSpy = vi.spyOn(Math, "random");
+      randomSpy.mockReturnValue(0.999);
+      const first = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+      });
+
+      randomSpy.mockReturnValue(0);
+      const second = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+      });
+
+      expect(first.questions.map((question) => question.bankId)).not.toEqual(second.questions.map((question) => question.bankId));
+      randomSpy.mockRestore();
+    });
+
+    it("stores randomized answer slots that match the returned options", async () => {
+      const uniqueBank = {
+        sections: ["Math", "Verbal"],
+        questionsPerTestSection: 1,
+        questionIndex: new Map([
+          ["q1", { bankId: "q1", section: "Math", prompt: "Q1", options: ["1", "2", "3", "4"], answer: 0, explanation: "" }],
+          ["q3", { bankId: "q3", section: "Verbal", prompt: "Q3", options: ["red", "blue", "green", "yellow"], answer: 2, explanation: "" }],
+        ]),
+      };
+
+      vi.mocked(getLoadedQuestionBank).mockResolvedValue(uniqueBank as never);
+      mockInsertSingle.mockResolvedValue({
+        data: { id: ATTEMPT_ID, total_questions: 2, expires_at: "2099-01-01T00:00:00Z" },
+        error: null,
+      });
+
+      const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+      const result = await service.startAttempt({
+        playerName: "Alice",
+        clientType: "web",
+        mode: "quiz",
+      });
+
+      const insertedAttempt = mockAttemptInsert.mock.calls[0]?.[0] as { question_key?: Array<{ correctAnswer: number }> } | undefined;
+      expect(insertedAttempt?.question_key).toBeDefined();
+      expect(insertedAttempt?.question_key?.[0]?.correctAnswer).toBe(1);
+      expect(result.questions[0]?.options[1]).toBe("1");
+      expect(insertedAttempt?.question_key?.[1]?.correctAnswer).toBe(1);
+      expect(result.questions[1]?.options[1]).toBe("green");
+      randomSpy.mockRestore();
     });
 
     it("throws 400 when question count does not match expected total (web)", async () => {
