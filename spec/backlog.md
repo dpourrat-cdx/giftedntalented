@@ -41,6 +41,7 @@ SonarCloud currently reports 12 critical cognitive-complexity violations (S3776)
 - [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
 - [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
 - [ ] Split `saveAuthoritativeScore()` in `backend/src/services/attempt.service.ts:560` — complexity 25. Aligns with the broader `attempt.service.ts` split into question-selection, attempt-state, and score-persistence helpers.
+  Progress: PR 31 extracts `fetchOldBest`, `persistScoreLegacyFallback`, and `persistScorePrimary`; `saveAuthoritativeScore` becomes a thin orchestrator. 14 new unit tests, 147 → 161 passing.
 - [ ] Refactor `refreshTopScoreForPlayer()` in `scoreboard.js:639` — complexity 22.
 - [ ] Refactor `buildQuantitativeQuestions()` in `question-bank.js:563` — complexity 23.
 - [ ] Refactor `buildNonverbalQuestions()` in `question-bank.js:742` — complexity 23.

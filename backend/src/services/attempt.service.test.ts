@@ -672,4 +672,204 @@ describe("AttemptService", () => {
       });
     });
   });
+
+  describe("fetchOldBest", () => {
+    it("returns null when RPC returns an empty array", async () => {
+      mockRpc.mockResolvedValue({ data: [], error: null });
+
+      const result = await (service as any).fetchOldBest("Alice");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns the first row when it is a valid ScoreSaveComparableRow", async () => {
+      const row = makeSavedScoreRecord();
+      mockRpc.mockResolvedValue({ data: [row], error: null });
+
+      const result = await (service as any).fetchOldBest("Alice");
+
+      expect(result).toEqual(row);
+    });
+
+    it("returns null when the first row does not match ScoreSaveComparableRow shape", async () => {
+      mockRpc.mockResolvedValue({ data: [{ unexpected: true }], error: null });
+
+      const result = await (service as any).fetchOldBest("Alice");
+
+      expect(result).toBeNull();
+    });
+
+    it("throws AppError 502 SUPABASE_READ_FAILED when RPC returns an error", async () => {
+      mockRpc.mockResolvedValue({ data: null, error: { code: "500", message: "db error" } });
+
+      await expect((service as any).fetchOldBest("Alice")).rejects.toMatchObject({
+        statusCode: 502,
+        code: "SUPABASE_READ_FAILED",
+      });
+    });
+  });
+
+  describe("persistScoreLegacyFallback", () => {
+    const baseArgs = {
+      attemptId: ATTEMPT_ID,
+      playerName: "Alice",
+      clientType: "web" as const,
+      selectionFingerprint: "fp123",
+      totalQuestions: 4,
+    };
+
+    const baseComputed = {
+      score: 2,
+      percentage: 50,
+      elapsedSeconds: null as number | null,
+      targetPlayerName: "alice",
+      savedAt: "2026-01-01T00:00:00Z",
+      oldBest: null as null,
+    };
+
+    it("returns record and audit on successful legacy save", async () => {
+      const savedRow = makeSavedScoreRecord({ score: 2, percentage: 50 });
+      mockRpc.mockResolvedValue({ data: savedRow, error: null });
+
+      const result = await (service as any).persistScoreLegacyFallback(baseArgs, baseComputed);
+
+      expect(result.record).toMatchObject({ score: 2, percentage: 50 });
+      expect(result.audit).toMatchObject({ attemptId: ATTEMPT_ID, replacedBest: true });
+      expect(mockUpdateEq).toHaveBeenCalledOnce();
+      expect(mockEventInsert).toHaveBeenCalledOnce();
+    });
+
+    it("throws AppError 502 SUPABASE_WRITE_FAILED when legacy RPC returns an error", async () => {
+      mockRpc.mockResolvedValue({ data: null, error: { code: "500", message: "write error" } });
+
+      await expect((service as any).persistScoreLegacyFallback(baseArgs, baseComputed)).rejects.toMatchObject({
+        statusCode: 502,
+        code: "SUPABASE_WRITE_FAILED",
+      });
+    });
+
+    it("throws AppError 502 SUPABASE_WRITE_FAILED when legacy RPC returns non-record data", async () => {
+      mockRpc.mockResolvedValue({ data: null, error: null });
+
+      await expect((service as any).persistScoreLegacyFallback(baseArgs, baseComputed)).rejects.toMatchObject({
+        statusCode: 502,
+        code: "SUPABASE_WRITE_FAILED",
+      });
+    });
+
+    it("warns but does not throw when metadata update fails with a real column error", async () => {
+      const savedRow = makeSavedScoreRecord({ score: 2, percentage: 50 });
+      mockRpc.mockResolvedValue({ data: savedRow, error: null });
+      mockUpdateEq.mockResolvedValue({ error: { code: "500", message: "update error" } });
+
+      const result = await (service as any).persistScoreLegacyFallback(baseArgs, baseComputed);
+
+      expect(result.record).toBeDefined();
+    });
+
+    it("silently ignores metadata error when missing column schema is detected", async () => {
+      const savedRow = makeSavedScoreRecord({ score: 2, percentage: 50 });
+      mockRpc.mockResolvedValue({ data: savedRow, error: null });
+      mockUpdateEq.mockResolvedValue({
+        error: {
+          code: "PGRST204",
+          message: "Could not find the 'score_saved_at' column of 'score_attempts' in the schema cache",
+        },
+      });
+
+      const result = await (service as any).persistScoreLegacyFallback(baseArgs, baseComputed);
+
+      expect(result.record).toBeDefined();
+    });
+  });
+
+  describe("persistScorePrimary", () => {
+    const baseArgs = {
+      attemptId: ATTEMPT_ID,
+      playerName: "Alice",
+      clientType: "web" as const,
+      selectionFingerprint: "fp123",
+      totalQuestions: 4,
+    };
+
+    const baseComputed = {
+      score: 2,
+      percentage: 50,
+      elapsedSeconds: null as number | null,
+      targetPlayerName: "alice",
+      savedAt: "2026-01-01T00:00:00Z",
+      oldBest: null as null,
+    };
+
+    it("returns the record and audit from the primary RPC payload", async () => {
+      const savedRow = makeSavedScoreRecord({ score: 2, percentage: 50 });
+      mockRpc.mockResolvedValue({
+        data: {
+          record: savedRow,
+          audit: {
+            attemptId: ATTEMPT_ID,
+            playerName: "alice",
+            clientType: "web",
+            selectionFingerprint: "fp123",
+            oldBest: null,
+            newBest: savedRow,
+            replacedBest: true,
+            savedAt: "2026-01-01T00:00:00Z",
+            score: 2,
+            percentage: 50,
+            totalQuestions: 4,
+            elapsedSeconds: null,
+          },
+        },
+        error: null,
+      });
+
+      const result = await (service as any).persistScorePrimary(baseArgs, baseComputed);
+
+      expect(result?.record).toMatchObject({ score: 2, percentage: 50 });
+    });
+
+    it("returns null when RPC returns falsy data", async () => {
+      mockRpc.mockResolvedValue({ data: null, error: null });
+
+      const result = await (service as any).persistScorePrimary(baseArgs, baseComputed);
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when RPC returns a payload with no record field", async () => {
+      mockRpc.mockResolvedValue({ data: { noRecord: true }, error: null });
+
+      const result = await (service as any).persistScorePrimary(baseArgs, baseComputed);
+
+      expect(result).toBeNull();
+    });
+
+    it("delegates to persistScoreLegacyFallback when primary function is missing", async () => {
+      const savedRow = makeSavedScoreRecord({ score: 2, percentage: 50 });
+      mockRpc
+        .mockResolvedValueOnce({
+          data: null,
+          error: {
+            code: "PGRST202",
+            message: "Could not find the function public.save_attempt_score_from_attempt",
+          },
+        })
+        .mockResolvedValueOnce({ data: savedRow, error: null });
+
+      const result = await (service as any).persistScorePrimary(baseArgs, baseComputed);
+
+      expect(result?.record).toMatchObject({ score: 2, percentage: 50 });
+      expect(mockRpc).toHaveBeenCalledTimes(2);
+    });
+
+    it("throws AppError 502 ATTEMPT_SAVE_FAILED on non-schema RPC error", async () => {
+      mockRpc.mockResolvedValue({ data: null, error: { code: "500", message: "unexpected db error" } });
+
+      await expect((service as any).persistScorePrimary(baseArgs, baseComputed)).rejects.toMatchObject({
+        statusCode: 502,
+        code: "ATTEMPT_SAVE_FAILED",
+      });
+    });
+  });
 });
