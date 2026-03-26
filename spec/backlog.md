@@ -12,14 +12,16 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [x] For web quiz attempts, the backend now owns question selection and answer-order randomization for each new attempt.
 - [x] The web app now waits for the backend-issued attempt payload before a quiz becomes interactive, avoiding local/backend answer drift.
 - [x] Replay-safe finalize behavior and structured score-save audit metadata are live.
-- [x] Public player-record lookup hardening and parent device-cache controls are live.
+- [x] Public player-record lookup hardening is live.
+- [x] The live smoke script now cleans up its own test records after each run.
+- [x] Parent device-cache controls were intentionally reverted and are not part of the current product surface.
 - [x] A one-command live backend smoke runner and deploy checklist exist in `backend/` and `spec/`.
 - [x] Backend tests and TypeScript checks are currently passing locally (`149` tests plus `npm run check` as of March 26, 2026).
-- [x] CI pipeline is live: `.github/workflows/ci.yml` runs check → test → build → audit on every push and PR targeting `master`.
+- [x] CI pipeline is live: `.github/workflows/ci.yml` runs check -> test -> build -> audit on every push and PR targeting `master`.
 - [x] Dependabot is configured (`.github/dependabot.yml`) for weekly npm updates with `@types/*` grouping and major-version pins for `express`/`zod`.
 - [x] Branch protection is enabled on `master`: passing `Backend` CI check required, branches must be up-to-date, admins included, force-push and deletion blocked.
 
-## Priority 0: Release Safety And Delivery Guardrails — COMPLETE ✅
+## Priority 0: Release Safety And Delivery Guardrails - COMPLETE
 
 - [x] Add `.github/workflows/ci.yml` that runs `npm run check`, `npm test`, and `npm run build` for `backend/` on every push and pull request.
 - [x] Add `.github/dependabot.yml` so backend dependency updates are surfaced continuously instead of manually.
@@ -29,14 +31,15 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 ## Priority 1: Security Hardening
 
-- [ ] Replace direct admin-secret string comparison in `backend/src/middleware/admin-auth.ts` with `crypto.timingSafeEqual()`.
+- [x] Replace direct admin-secret string comparison in `backend/src/middleware/admin-auth.ts` with `crypto.timingSafeEqual()`.
 - [ ] Require admin auth middleware on `POST /api/v1/admin/scores/reset` in addition to the reset PIN flow.
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
 - [ ] Add a stricter Content Security Policy plan for the GitHub Pages frontend.
-  Baseline CSP slice in progress: lock scripts to self, allow current Google Fonts and Render API origins, and temporarily keep `'unsafe-inline'` for styles until remaining inline style generation is removed.
+  Baseline CSP landed: scripts are locked to self, current Google Fonts and Render API origins are explicitly allowed, and `'unsafe-inline'` remains temporary for styles until remaining inline style generation is removed.
+  Follow-up note: `frame-ancestors` does not work from a meta-delivered CSP on GitHub Pages, so clickjacking protection still needs a platform-aware plan.
 - [ ] Review remaining `innerHTML` render paths across the frontend and replace them with safer DOM construction where practical.
-  First slice in progress: remove raw story-panel HTML pass-through for artwork and mission footer content.
+  First slice landed: story-panel artwork and mission footer content no longer flow through raw HTML pass-throughs.
 
 ## Priority 2: Documentation And Repo Hygiene
 
@@ -69,6 +72,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 - [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
 - [ ] Add browser-level verification for desktop and mobile layout/interaction paths.
+- [x] Add automatic cleanup to `backend/scripts/smoke-live-backend.ts` so test records do not accumulate after each run.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned with production behavior whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
@@ -84,11 +88,11 @@ This backlog captures the next high-value work for the Captain Nova app after th
 
 ## Next Recommended Delivery Slice
 
-1. ~~Add CI for backend check, test, and build.~~ ✅ Done
-2. ~~Enable or verify branch protection on `master`.~~ ✅ Done
-3. Land timing-safe admin auth plus admin middleware on score reset.
-4. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
-5. Start breaking up `attempt.service.ts` so future score-flow work is easier to land safely.
+1. Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
+2. Rewrite `spec/backend-api-spec.md` for the attempt-based contract.
+3. Add explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
+4. Continue the frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+5. Plan the next CSP tightening step after inline style generation is reduced and GitHub Pages clickjacking limits are documented.
 
 ## Done Definition For This Backlog
 
