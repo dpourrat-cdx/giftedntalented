@@ -7,50 +7,59 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The live score flow is attempt-based and backend-owned.
 - The legacy `POST /players/:playerName/record` write path is intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
 - CI, SonarCloud, Dependabot, branch protection, and the live smoke runner are already in place.
-- The current multi-step security sequence is tracked in `spec/security-rollout-plan.md`.
+- Backend schema is hardened: SECURITY DEFINER function lockdown (PR 21) and RLS with service-role-only policies (PR 22) are both live.
+- The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
+- The review-card innerHTML sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
+- The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
-  - `spec/backend-api-spec.md` once it is refreshed
+  - `spec/backend-api-spec.md`
 
 ## Priority 1: Security Hardening
 
-- [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
-- [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
-  Progress: PR 22 enables RLS and adds service-role-only policies for the backend-owned tables without changing reset-route behavior.
-- [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
-  Progress: PR 21 lands the function execute lockdown for the current `SECURITY DEFINER` functions before the wider RLS/policy pass.
-- [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated from frontend JS.
-- [ ] Add clickjacking protection planning for the GitHub Pages frontend.
-  GitHub Pages cannot enforce `frame-ancestors` from a meta CSP, so this likely requires a hosting decision or an explicit risk acceptance.
+- [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. This decision blocks the reset-route section of the API spec and any future auth change on that route.
+- [ ] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`.
+- [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
+- [ ] Add clickjacking protection planning for the GitHub Pages frontend. GitHub Pages cannot enforce `frame-ancestors` from a meta CSP, so this likely requires a hosting decision or an explicit risk acceptance.
 - [ ] Add a CSP `report-to` or equivalent reporting endpoint after the stricter CSP is in place.
-- [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction where practical.
+- [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation — safe today but the natural next pass.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
 ## Priority 2: Documentation And Repo Hygiene
 
-- [ ] Rewrite `spec/backend-api-spec.md` so it documents the live attempt-based flow:
-  - `POST /attempts`
-  - `POST /attempts/:attemptId/answers`
-  - `POST /attempts/:attemptId/finalize`
-  - disabled legacy record-write behavior
-  Progress: PR 23 rewrites `spec/backend-api-spec.md` as the live contract for attempts, records, reset, device registration, and admin push behavior.
-- [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
-  Progress: PR 24 refreshes `backend/README.md` so it matches the live scripts, smoke runner, schema notes, and backend-owned attempt/question flow.
 - [ ] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
+- [ ] Update `spec/backend-api-spec.md` reset-route section once the security model for `POST /api/v1/admin/scores/reset` is decided.
 
 ## Priority 3: Code Quality And Maintainability
 
-- [ ] Split `backend/src/services/attempt.service.ts` into smaller units such as question selection, attempt state, and score persistence helpers.
+SonarCloud currently reports 12 critical cognitive-complexity violations (S3776). Highest severity first:
+
+- [ ] Refactor `renderQuestion()` in `app.js:1243` — complexity 56, worst function in the codebase. Split into question-render, option-render, feedback-render, and state-sync helpers.
+- [ ] Refactor `normalizeAttemptQuestion()` in `app.js:196` — complexity 39.
+- [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
+- [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
+- [ ] Split `saveAuthoritativeScore()` in `backend/src/services/attempt.service.ts:560` — complexity 25. Aligns with the broader `attempt.service.ts` split into question-selection, attempt-state, and score-persistence helpers.
+- [ ] Refactor `refreshTopScoreForPlayer()` in `scoreboard.js:639` — complexity 22.
+- [ ] Refactor `buildQuantitativeQuestions()` in `question-bank.js:563` — complexity 23.
+- [ ] Refactor `buildNonverbalQuestions()` in `question-bank.js:742` — complexity 23.
+- [ ] Refactor `generateGridQuestions()` in `question-bank.js:938` — complexity 19.
+- [ ] Refactor `handleOverlayStateChange()` in `app.js:1714` — complexity 16.
+- [ ] Refactor `handleAnswerEvaluation()` in `app.js:1790` — complexity 16.
+- [ ] Refactor `buildSpatialQuestions()` in `question-bank.js:1008` — complexity 16.
+
+Additional code quality items:
+
+- [ ] Sweep nested ternaries (28 Sonar MAJOR S3358 issues) across `app.js` and `question-bank.js`.
+- [ ] Replace nested template literals (4 Sonar MAJOR S4624) in `app.js:1177` and `scoreboard.js:625–626`.
+- [ ] Replace optional-chaining opportunities (9 Sonar MAJOR S6582) across `app.js`, `scoreboard.js`, and `gamification.js`.
+- [ ] Fix CSS text-contrast failures (2 Sonar MAJOR, accessibility) in `styles.css:917` and `gamification.css:373`.
+- [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
+- [ ] Remove dead score-write code paths left behind after the `410` legacy endpoint change.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
-- [ ] Remove dead score-write code paths left behind after the `410` legacy endpoint change.
-- [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
-  Progress: PR 26 adds targeted `app.js` frontend coverage for the results/review path, including perfect-score and missed-question cards after the review-card DOM hardening slice.
-- [ ] Refactor the highest-complexity frontend functions in `app.js`, `question-bank.js`, and `scoreboard.js`.
-- [ ] Sweep remaining nested ternaries and similar readability debt file by file.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -78,8 +87,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Next Recommended Delivery Slice
 
-1. Decide the `POST /api/v1/admin/scores/reset` security model.
-2. Continue frontend render-sink cleanup beyond story mode, starting with the next practical `innerHTML` surface after review/results.
-3. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
-4. Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
-5. Decide whether browser-level mobile/desktop smoke coverage should land before the next larger frontend refactor slice.
+1. **Quick wins** — move `@types/*` to devDependencies, remove dead legacy score-write code, fix 2 CSS contrast failures, replace 4 nested template literals. Low risk, resolves ~7 Sonar issues.
+2. **Backend complexity** — split `saveAuthoritativeScore()` in `attempt.service.ts:560` (complexity 25) as the first step of the broader `attempt.service.ts` decomposition.
+3. **Frontend complexity** — refactor `renderQuestion()` in `app.js:1243` (complexity 56), the single largest Sonar issue in the codebase.
+4. **Decide the reset route security model** — unblocks the API spec update and any future auth change on that route.
