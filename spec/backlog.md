@@ -70,6 +70,7 @@ This backlog captures the next high-value work for the Captain Nova app after th
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can be simplified or centralized now that the live schema is aligned.
 - [ ] Remove dead score-write code paths that are no longer reachable after the `410` legacy endpoint change.
+- [ ] Keep low-risk backend dependency bumps current, starting with the TypeScript type-only packages and then the compiler/runtime tooling updates.
 - [ ] Move `@types/cors`, `@types/express`, and `@types/node` from production `dependencies` to `devDependencies`.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [x] Replace non-`Error` scoreboard request throws with `Error` instances and stop swallowing frontend async failures with `void` fire-and-forget calls.
