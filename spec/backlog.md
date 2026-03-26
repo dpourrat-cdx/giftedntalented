@@ -17,7 +17,6 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 - [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`.
 - [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
-- [ ] Review Supabase table security and explicitly enable or verify Row-Level Security plus policies for `test_scores`, `app_admin_settings`, `notification_devices`, `score_attempts`, and `score_attempt_events`.
   Progress: PR 22 enables RLS and adds service-role-only policies for the backend-owned tables without changing reset-route behavior.
 - [ ] Add explicit `REVOKE EXECUTE FROM PUBLIC` and `GRANT EXECUTE TO service_role` statements for `SECURITY DEFINER` functions in `backend/supabase/backend_schema.sql`.
   Progress: PR 21 lands the function execute lockdown for the current `SECURITY DEFINER` functions before the wider RLS/policy pass.
@@ -35,6 +34,7 @@ This file is the live backlog only. Completed work should not stay here unless i
   - `POST /attempts/:attemptId/answers`
   - `POST /attempts/:attemptId/finalize`
   - disabled legacy record-write behavior
+  Progress: PR 23 rewrites `spec/backend-api-spec.md` as the live contract for attempts, records, reset, device registration, and admin push behavior.
 - [ ] Update `backend/README.md` to reflect the smoke runner, current scripts, and backend-owned question-bank flow.
 - [ ] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
 
@@ -77,7 +77,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Next Recommended Delivery Slice
 
 1. Decide the `POST /api/v1/admin/scores/reset` security model.
-2. Land explicit Supabase function grants/revokes, then follow with RLS and policies in a separate PR.
-3. Rewrite `spec/backend-api-spec.md` for the live attempt contract.
-4. Continue frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
-5. Broaden source-attributed frontend coverage so future frontend PRs need fewer Sonar bridges.
+2. Update `backend/README.md` to reflect the smoke runner, scripts, and backend-owned question flow.
+3. Continue frontend render-sink cleanup beyond story mode, starting with review/results surfaces.
+4. Broaden source-attributed frontend coverage so future frontend PRs need fewer Sonar bridges.
+5. Remove `'unsafe-inline'` from `style-src` once inline style generation is gone.
