@@ -632,6 +632,46 @@
       this.cachePlayerScore(topScore);
     }
 
+    isStaleTopScoreLookup(requestToken, normalizedName) {
+      return requestToken !== this.lookupToken || this.activePlayerName !== normalizedName;
+    }
+
+    renderCachedTopScore(normalizedName, cachedScore) {
+      this.renderTopScore(cachedScore, normalizedName);
+      this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
+    }
+
+    handleMissingRemoteTopScore(normalizedName, cachedScore) {
+      if (cachedScore) {
+        this.renderCachedTopScore(normalizedName, cachedScore);
+        return true;
+      }
+
+      this.renderNoScoreState(normalizedName);
+      return false;
+    }
+
+    handleLookupError(normalizedName, cachedScore, error) {
+      if (cachedScore) {
+        this.renderCachedTopScore(normalizedName, cachedScore);
+        return cachedScore;
+      }
+
+      this.renderNoScoreState(normalizedName);
+
+      if (!isRemoteUnavailableError(error)) {
+        this.setStatus(buildFriendlyError(error), "info", true);
+      }
+
+      return null;
+    }
+
+    clearLookupStatus(shouldPreserveStatus) {
+      if (!shouldPreserveStatus) {
+        this.clearStatus();
+      }
+    }
+
     async refreshTopScoreForPlayer(playerName, options = {}) {
       const normalizedName = normalizePlayerName(playerName);
       const requestToken = ++this.lookupToken;
@@ -657,46 +697,27 @@
       try {
         const record = await this.service.fetchPlayerTopScore(normalizedName);
 
-        if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
+        if (this.isStaleTopScoreLookup(requestToken, normalizedName)) {
           return null;
         }
 
         const remoteScore = this.normalizeTopScore(record, normalizedName);
 
         if (!remoteScore) {
-          if (cachedScore) {
-            this.renderTopScore(cachedScore, normalizedName);
-            shouldPreserveStatus = true;
-            this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
-          } else {
-            this.renderNoScoreState(normalizedName);
-          }
-          if (!shouldPreserveStatus) {
-            this.clearStatus();
-          }
+          shouldPreserveStatus = this.handleMissingRemoteTopScore(normalizedName, cachedScore) || shouldPreserveStatus;
+          this.clearLookupStatus(shouldPreserveStatus);
           return null;
         }
 
         this.renderTopScore(remoteScore, normalizedName);
-        if (!shouldPreserveStatus) {
-          this.clearStatus();
-        }
+        this.clearLookupStatus(shouldPreserveStatus);
         return remoteScore;
       } catch (error) {
-        if (requestToken !== this.lookupToken || this.activePlayerName !== normalizedName) {
+        if (this.isStaleTopScoreLookup(requestToken, normalizedName)) {
           return null;
         }
 
-        if (cachedScore) {
-          this.renderTopScore(cachedScore, normalizedName);
-          this.setStatus(scoreboardContent.deviceOnlyScore, "info", true);
-        } else {
-          this.renderNoScoreState(normalizedName);
-          if (!isRemoteUnavailableError(error)) {
-            this.setStatus(buildFriendlyError(error), "info", true);
-          }
-        }
-        return cachedScore;
+        return this.handleLookupError(normalizedName, cachedScore, error);
       }
     }
 
