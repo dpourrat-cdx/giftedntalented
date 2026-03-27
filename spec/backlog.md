@@ -8,14 +8,11 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The legacy `POST /players/:playerName/record` write path is intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
 - CI, SonarCloud, Dependabot, branch protection, and the live smoke runner are already in place.
 - Backend schema is hardened: SECURITY DEFINER function lockdown (PR 21) and RLS with service-role-only policies (PR 22) are both live.
-- The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
-- The review-card `innerHTML` sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
-- Sonar critical cognitive-complexity issues are now cleared on `master`.
+- The live API contract is documented in `spec/backend-api-spec.md` and `backend/README.md`.
+- Sonar critical cognitive-complexity issues are cleared on `master`; 15 majors remain.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
-- The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
-- The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
-- Strict style CSP is now live on `master` (`style-src 'self'`), and the GitHub Pages header-security limitations are documented in `spec/frontend-header-security-plan.md`.
-- The remaining gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`.
+- The reset-endpoint decision is codified in `spec/reset-security-decision-brief.md`: keep the current parent-facing PIN flow.
+- Strict style CSP (`style-src 'self'`) is live; GitHub Pages header-security limitations and options are documented in `spec/frontend-header-security-plan.md`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
@@ -24,12 +21,6 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 1: Security Hardening
 
-- [x] Codify the reset endpoint decision as the current parent-facing PIN flow and update the API spec accordingly.
-- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. The last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
-- [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
-- [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
-- [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
-- [x] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`, and the shared panel/overlay helpers keep the safer path below Sonar's duplication gate.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
 ## Priority 2: Documentation And Repo Hygiene
@@ -59,7 +50,6 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
   - `question-bank.js:344`
   - `question-bank.js:1000`
 - [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`).
-- [ ] Replace remaining nested template literals - `app.js:1177` and `scoreboard.js:625-626` were resolved in PR 28; confirm via Sonar after the next scan that no more remain.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
@@ -79,7 +69,7 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 - [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
 - [ ] Add browser-level verification for desktop and mobile layout/interaction paths.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
-- [ ] Keep the Render backend build aligned with the backend dependency model. PR 29 switches `render.yaml` to `npm install --include=dev && npm run build` so TypeScript compilation still sees `@types/*` after PR 28 moved them to `devDependencies`.
+- [ ] Keep the Render backend build command aligned whenever the dependency model changes (currently `npm install --include=dev && npm run build` so TypeScript sees `devDependencies`).
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
