@@ -11,6 +11,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
 - The review-card `innerHTML` sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
 - Sonar critical cognitive-complexity issues are now cleared on `master`.
+- The CSP baseline is now strict on `master` (`style-src 'self'`), so the inline-style audit and `unsafe-inline` removal are complete.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - The clickjacking/CSP reporting plan lives in `spec/csp-clickjacking-plan.md`.
