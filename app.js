@@ -1897,52 +1897,68 @@ function getSectionOverlayDismissalAction(dismissedEvent) {
   return dismissedEvent.advanceOnDismiss === false ? "suppressNextButton" : "advanceToNextMission";
 }
 
+function handleStoryOnlyOverlayDismissal(dismissedEvent) {
+  const storyOnlyDismissalAction = getStoryOnlyOverlayDismissalAction(dismissedEvent);
+
+  if (storyOnlyDismissalAction === "showMissionUpdate") {
+    gamificationController?.showMissionUpdate(dismissedEvent.sectionKey);
+    return true;
+  }
+
+  if (storyOnlyDismissalAction === "showMissionCompletion") {
+    gamificationController?.showMissionCompletion(dismissedEvent.sectionKey);
+    return true;
+  }
+
+  if (storyOnlyDismissalAction === "completeSection") {
+    completeSectionInStoryOnly(dismissedEvent.sectionKey);
+    advanceToNextMissionStep({ preferNextMission: true });
+    return true;
+  }
+
+  return false;
+}
+
+function handleStandardOverlayDismissal(dismissedEvent) {
+  const sectionDismissalAction = getSectionOverlayDismissalAction(dismissedEvent);
+
+  if (sectionDismissalAction === "advanceToNextMission") {
+    advanceToNextMissionStep({ preferNextMission: true });
+    return true;
+  }
+
+  if (sectionDismissalAction === "suppressNextButton") {
+    suppressNextButtonUntil = Date.now() + 300;
+    renderQuestion();
+    return true;
+  }
+
+  return false;
+}
+
+function shouldResumeDeferredAutoAdvance(hasBlockingOverlay) {
+  return (
+    !hasBlockingOverlay &&
+    deferredAdvanceQuestionIndex !== -1 &&
+    deferredAdvanceQuestionIndex === currentIndex &&
+    validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
+  );
+}
+
 function handleOverlayStateChange(overlayState) {
   const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
   const dismissedEvent = overlayState?.dismissedEvent || null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
 
-  if (!hasBlockingOverlay && isStoryOnlySession && !isSubmitted) {
-    const storyOnlyDismissalAction = getStoryOnlyOverlayDismissalAction(dismissedEvent);
-
-    if (storyOnlyDismissalAction === "showMissionUpdate") {
-      gamificationController?.showMissionUpdate(dismissedEvent.sectionKey);
-      return;
-    }
-
-    if (storyOnlyDismissalAction === "showMissionCompletion") {
-      gamificationController?.showMissionCompletion(dismissedEvent.sectionKey);
-      return;
-    }
-
-    if (storyOnlyDismissalAction === "completeSection") {
-      completeSectionInStoryOnly(dismissedEvent.sectionKey);
-      advanceToNextMissionStep({ preferNextMission: true });
-      return;
-    }
+  if (!hasBlockingOverlay && isStoryOnlySession && !isSubmitted && handleStoryOnlyOverlayDismissal(dismissedEvent)) {
+    return;
   }
 
-  if (!hasBlockingOverlay) {
-    const sectionDismissalAction = getSectionOverlayDismissalAction(dismissedEvent);
-
-    if (sectionDismissalAction === "advanceToNextMission") {
-      advanceToNextMissionStep({ preferNextMission: true });
-      return;
-    }
-
-    if (sectionDismissalAction === "suppressNextButton") {
-      suppressNextButtonUntil = Date.now() + 300;
-      renderQuestion();
-      return;
-    }
+  if (!hasBlockingOverlay && handleStandardOverlayDismissal(dismissedEvent)) {
+    return;
   }
 
-  if (
-    !hasBlockingOverlay &&
-    deferredAdvanceQuestionIndex !== -1 &&
-    deferredAdvanceQuestionIndex === currentIndex &&
-    validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
-  ) {
+  if (shouldResumeDeferredAutoAdvance(hasBlockingOverlay)) {
     scheduleAutoAdvance(currentIndex);
     renderQuestion();
   }

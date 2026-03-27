@@ -11,7 +11,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
 - The review-card innerHTML sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
 - Sonar quick wins landed (PR 28): `@types/*` moved to devDependencies, dead `savePlayerRecord` path removed, CSS contrast fixed, nested template literals and dead `escapeHtml` removed, `buildSectionButton` converted to DOM construction.
-- Progress note: the main mission progress bar is being moved off inline width writes and onto semantic progress markup with targeted frontend coverage.
+- Progress note: the last remaining Sonar critical is `handleOverlayStateChange()` in `app.js`, and the current slice is splitting its overlay-dismissal branches into focused helpers with targeted frontend coverage.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - Durable architecture and process details belong in:
@@ -37,7 +37,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: removing the remaining inline-style gamification renderers by moving progress sizing and artwork presentation into SVG/DOM structure, with targeted frontend coverage for those render paths.
+Current slice in progress: extracting focused overlay-dismissal helpers from `handleOverlayStateChange()` with targeted frontend coverage to clear the last Sonar critical.
 
 SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
 
@@ -57,7 +57,7 @@ SonarCloud currently reports 9 critical cognitive-complexity violations (S3776).
 - [ ] Refactor `buildNonverbalQuestions()` in `question-bank.js:742` — complexity 23.
 - [ ] Refactor `generateGridQuestions()` in `question-bank.js:938` — complexity 19.
   Progress: extracted grid-path validation and candidate assembly helpers, plus deterministic frontend coverage for representative 3x3, 4x4, and 5x5 grid questions.
-- [ ] Refactor `handleOverlayStateChange()` in `app.js:1714` — complexity 16.
+- [ ] Refactor `handleOverlayStateChange()` in `app.js:1900` — complexity 17.
 - [ ] Refactor `handleAnswerEvaluation()` in `app.js:1790` — complexity 16.
   Progress: this slice extracts hint/button resolution, overlay dismissal routing, and answer-evaluation fallback helpers in `app.js`, with targeted frontend tests covering the extracted branches.
 - [ ] Refactor `buildSpatialQuestions()` in `question-bank.js:1008` — complexity 16.
