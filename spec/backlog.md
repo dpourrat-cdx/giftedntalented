@@ -14,6 +14,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
+- Strict style CSP is now live on `master` (`style-src 'self'`), and the GitHub Pages header-security limitations are documented in `spec/frontend-header-security-plan.md`.
+- The remaining gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
@@ -33,11 +35,10 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Priority 2: Documentation And Repo Hygiene
 
 - [ ] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
-- [ ] Update `spec/backend-api-spec.md` reset-route section once the security model for `POST /api/v1/admin/scores/reset` is decided.
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: refreshing the backlog to match the live post-critical Sonar state and queue the remaining major issues by lowest-risk sweep order.
+Current slice in progress: optional-chaining and nested-ternary sweeps across the remaining Sonar major issues.
 
 SonarCloud currently reports 0 open critical issues and 15 open major issues. Current sweep order:
 
@@ -63,6 +64,8 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+- [ ] Add a short guard comment above `createStaticFragment()` in `gamification.js` clarifying that it must only receive compile-time constant markup.
+- [ ] Add a short readability comment in `RocketProgressVisual.render()` explaining the `rocket-copy` child-move pattern.
 
 ## Priority 4: Privacy And Parent Safety
 
