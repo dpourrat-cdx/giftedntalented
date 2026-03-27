@@ -35,7 +35,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: extracting focused helpers for buildQuantitativeQuestions() and buildNonverbalQuestions() with deterministic frontend coverage for representative generated questions.
+Current slice completed: extracting focused helpers for generateGridQuestions() and buildSpatialQuestions() with deterministic frontend coverage for representative generated questions.
 
 SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
 
@@ -54,10 +54,12 @@ SonarCloud currently reports 9 critical cognitive-complexity violations (S3776).
 - [ ] Refactor `buildQuantitativeQuestions()` in `question-bank.js:563` — complexity 23.
 - [ ] Refactor `buildNonverbalQuestions()` in `question-bank.js:742` — complexity 23.
 - [ ] Refactor `generateGridQuestions()` in `question-bank.js:938` — complexity 19.
+  Progress: extracted grid-path validation and candidate assembly helpers, plus deterministic frontend coverage for representative 3x3, 4x4, and 5x5 grid questions.
 - [ ] Refactor `handleOverlayStateChange()` in `app.js:1714` — complexity 16.
 - [ ] Refactor `handleAnswerEvaluation()` in `app.js:1790` — complexity 16.
   Progress: this slice extracts hint/button resolution, overlay dismissal routing, and answer-evaluation fallback helpers in `app.js`, with targeted frontend tests covering the extracted branches.
 - [ ] Refactor `buildSpatialQuestions()` in `question-bank.js:1008` — complexity 16.
+  Progress: extracted `buildSpatialTurnQuestions()` and locked down representative rocket-turn prompts with deterministic frontend coverage.
 
 Additional code quality items:
 
