@@ -13,7 +13,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 - Sonar critical cognitive-complexity issues are now cleared on `master`.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
-- Durable architecture and process details belong in:
+- The clickjacking/CSP reporting plan lives in `spec/csp-clickjacking-plan.md`.
+- Durable architecture and process details belong to:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
   - `spec/backend-api-spec.md`
@@ -22,10 +23,10 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Priority 1: Security Hardening
 
 - [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. See `spec/reset-security-decision-brief.md` for the current behavior, options, tradeoffs, and recommendation.
-- [ ] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`.
-- [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
-- [ ] Add clickjacking protection planning for the GitHub Pages frontend. GitHub Pages cannot enforce `frame-ancestors` from a meta CSP, so this likely requires a hosting decision or an explicit risk acceptance.
-- [ ] Add a CSP `report-to` or equivalent reporting endpoint after the stricter CSP is in place.
+- [x] Finish the inline style audit and convert any remaining inline style generation in frontend JS to class toggles or dedicated CSS before tightening CSP.
+- [x] Remove `'unsafe-inline'` from `style-src` once the audit is clear and the remaining style writes are either gone or explicitly accounted for.
+- [ ] Add clickjacking protection planning for the GitHub Pages frontend. See `spec/csp-clickjacking-plan.md` for the current recommendation and the hosting limitation.
+- [ ] Add a CSP `report-to` or equivalent reporting endpoint after the stricter CSP is in place and the frontend can emit response headers.
 - [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation - safe today but the natural next pass.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
@@ -90,7 +91,7 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 
 ## Next Recommended Delivery Slice
 
-1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
-2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
-3. **CSP tightening** - once the inline-style cleanup PRs are merged, remove `'unsafe-inline'` from `style-src` and run the frontend smoke pass.
-4. **Decide the reset route security model** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
+1. **Clickjacking and CSP reporting** - use `spec/csp-clickjacking-plan.md` to decide whether GitHub Pages stays or the frontend moves to a host that can enforce headers.
+2. **Reset route decision** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
+3. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
+4. **Nested ternary sweep** - clear the 5 remaining `S3358` issues in `app.js`, `scoreboard.js`, and `question-bank.js` after the optional-chaining pass.

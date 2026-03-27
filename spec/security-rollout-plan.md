@@ -31,11 +31,11 @@ This decision must be made before any auth change lands on that route. It also a
 ### 1. Inline Style Audit
 
 Goal:
-- identify every place in frontend JS that generates inline `style` attributes or sets `element.style.*`
-- determine whether each can be replaced with a CSS class toggle
+- confirm every remaining `element.style.*` write or inline `style` attribute source in frontend JS
+- decide whether each one is a class toggle, a CSS custom property, or a genuine inline style that should be removed before CSP tightening
 
 Output:
-- audit note in backlog or a dedicated PR
+- a short audit note in `spec/backlog.md` or a dedicated PR
 - prerequisite for removing `'unsafe-inline'` from `style-src`
 
 ### 2. CSP `unsafe-inline` Removal
@@ -44,11 +44,11 @@ Goal:
 - remove `'unsafe-inline'` from `style-src` in `index.html`
 
 Depends on:
-- inline style audit (step 1 above) showing no remaining inline style generation
+- inline style audit showing no remaining unaccounted-for inline style generation
 
 Validation:
 - browser console shows no CSP violations after removal
-- visual regression check on rocket scene, progress bar, and gamification panels (the most likely inline-style surfaces)
+- visual regression check on rocket scene, progress bar, and gamification panels
 
 ### 3. Remaining `innerHTML` Passes
 
@@ -56,25 +56,25 @@ Goal:
 - convert gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) from `innerHTML` to DOM construction
 
 Current risk:
-- these renderers use `innerHTML` with integer/constant-only interpolation — no user data flows in today
-- still worth eliminating as defence-in-depth before CSP tightening
+- these renderers use `innerHTML` with integer/constant-only interpolation today
+- still worth eliminating as defense in depth before or alongside CSP tightening
 
-### 4. CSP `report-to` Endpoint
-
-Goal:
-- add a `report-to` directive pointing at a reporting endpoint after the stricter CSP is in place
-
-Depends on:
-- `unsafe-inline` removal (step 2)
-
-### 5. Clickjacking / `frame-ancestors`
+### 4. Clickjacking / `frame-ancestors`
 
 Goal:
 - decide whether to accept the GitHub Pages `frame-ancestors` limitation or migrate hosting
 
 Notes:
 - GitHub Pages cannot enforce `frame-ancestors` from a meta CSP tag
-- options: explicit risk acceptance, move to a host that supports response headers, or add a JS frame-busting fallback
+- see `spec/csp-clickjacking-plan.md` for the concrete recommendation and rollout sequence
+
+### 5. CSP `report-to` Endpoint
+
+Goal:
+- add a `report-to` directive pointing at a reporting endpoint after the stricter CSP is in place and the frontend can emit response headers
+
+Depends on:
+- `'unsafe-inline'` removal and a hosting setup that can set response headers
 
 ## Coordination Notes
 
