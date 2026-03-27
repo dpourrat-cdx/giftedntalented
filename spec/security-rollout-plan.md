@@ -66,6 +66,7 @@ Goal:
 
 Depends on:
 - `unsafe-inline` removal (step 2)
+- a host or proxy that can emit real CSP response headers
 
 ### 5. Clickjacking / `frame-ancestors`
 
@@ -75,6 +76,7 @@ Goal:
 Notes:
 - GitHub Pages cannot enforce `frame-ancestors` from a meta CSP tag
 - options: explicit risk acceptance, move to a host that supports response headers, or add a JS frame-busting fallback
+- detailed planning now lives in `spec/frontend-header-security-plan.md`
 
 ## Coordination Notes
 
