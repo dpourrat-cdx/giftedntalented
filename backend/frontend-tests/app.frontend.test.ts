@@ -240,6 +240,10 @@ async function loadAppHelpers(question = attemptQuestion) {
   await loadFrontendScript("app.js");
 
   return {
+    renderRocketSceneMarkup: window.eval("renderRocketSceneMarkup") as (
+      stageCount: number,
+      boostCount: number,
+    ) => string,
     resolveNextHintText: window.eval("resolveNextHintText") as (
       state: Record<string, unknown>,
       allAnswered: boolean,
@@ -836,6 +840,21 @@ describe("app.js targeted coverage", () => {
         answer: 1,
       });
       expect(normalized?.options).toEqual(["Alpha", "22", "Gamma", "Delta"]);
+    });
+  });
+
+  describe("renderRocketSceneMarkup", () => {
+    it("uses discrete fuel level classes instead of inline styles", async () => {
+      const { renderRocketSceneMarkup } = await loadAppHelpers();
+
+      const markup = renderRocketSceneMarkup(4, 5);
+      const container = document.createElement("div");
+      container.innerHTML = markup;
+
+      const fuelFill = container.querySelector(".rocket-fuel-fill");
+
+      expect(fuelFill?.classList.contains("rocket-fuel-level-5")).toBe(true);
+      expect(fuelFill?.getAttribute("style")).toBeNull();
     });
   });
 

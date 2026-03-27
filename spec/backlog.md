@@ -22,8 +22,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Priority 1: Security Hardening
 
 - [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. See `spec/reset-security-decision-brief.md` for the current behavior, options, tradeoffs, and recommendation.
-- [ ] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`.
-- [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
+- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. Progress: the last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
+- [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
 - [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
 - [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation - safe today but the natural next pass.
@@ -92,6 +92,5 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 
 1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
 2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
-3. **CSP tightening** - once the inline-style cleanup PRs are merged, remove `'unsafe-inline'` from `style-src` and run the frontend smoke pass.
-4. **Gamification DOM hardening** - replace the remaining `innerHTML` renderers in `gamification.js` and pair the cleanup with targeted frontend coverage.
-5. **Decide the reset route security model** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
+3. **Gamification DOM hardening** - replace the remaining `innerHTML` renderers in `gamification.js` and pair the cleanup with targeted frontend coverage.
+4. **Reset route decision** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
