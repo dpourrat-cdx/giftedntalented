@@ -3,7 +3,7 @@
   const CACHE_KEY = "gifted-scoreboard-player-best-scores-v2";
   const LEGACY_CACHE_KEYS = ["gifted-scoreboard-player-best-scores"];
   function getScoreboardContent() {
-    const captainNovaContent = window.CaptainNovaContent || {};
+    const captainNovaContent = globalThis.CaptainNovaContent || {};
 
     return captainNovaContent.scoreboard || {
       awaitingName: "Type an explorer name",
@@ -498,11 +498,11 @@
 
       if (this.activeAttemptPromise) {
         const attemptResult = await this.activeAttemptPromise;
-        return attemptResult && attemptResult.attemptId ? attemptResult.attemptId : null;
+        return attemptResult?.attemptId ?? null;
       }
 
       const attemptResult = await this.beginAttempt(options);
-      return attemptResult && attemptResult.attemptId ? attemptResult.attemptId : null;
+      return attemptResult?.attemptId ?? null;
     }
 
     async recordValidatedAnswer({
@@ -541,7 +541,7 @@
               elapsedSeconds: normalizeElapsedSeconds(elapsedSeconds),
             });
 
-            if (result && result.record) {
+            if (result?.record) {
               this.renderTopScore(result.record, playerName);
               this.clearStatus();
             }
@@ -559,7 +559,7 @@
     async finalizeAttempt({ elapsedSeconds }) {
       await this.getAnswerQueue().catch(() => undefined);
       const inFlightAttempt = this.activeAttemptPromise ? await this.activeAttemptPromise : null;
-      const inFlightAttemptId = inFlightAttempt && inFlightAttempt.attemptId ? inFlightAttempt.attemptId : null;
+      const inFlightAttemptId = inFlightAttempt?.attemptId ?? null;
       const attemptId = this.activeAttemptId || inFlightAttemptId || null;
       if (!attemptId) {
         return null;
@@ -570,7 +570,7 @@
           elapsedSeconds: normalizeElapsedSeconds(elapsedSeconds),
         });
 
-        if (result && result.record) {
+        if (result?.record) {
           this.renderTopScore(result.record, this.activeAttemptPlayerName);
           this.clearStatus();
         }
