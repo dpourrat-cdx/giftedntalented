@@ -43,18 +43,11 @@ Current slice in progress: optional-chaining and nested-ternary sweeps across th
 SonarCloud currently reports 0 open critical issues and 15 open major issues. Current sweep order:
 
 - [ ] Replace the remaining optional-chaining opportunities (9 Sonar MAJOR `S6582`):
-  - `app.js:214`
-  - `app.js:326`
-  - `app.js:687`
-  - `app.js:723`
-  - `app.js:767`
-  - `app.js:1949`
-  - `app.js:2001`
+  - `app.js` optional-chaining cleanup is covered in the current PR (`normalizeAttemptQuestion`, attempt application, story artwork guards, results gallery mission guard, overlay handling, answer auto-advance guard).
   - `gamification.js:568`
   - `scoreboard.js:837`
 - [ ] Extract the remaining nested ternaries (5 Sonar MAJOR `S3358` issues):
-  - `app.js:1341`
-  - `app.js:1344`
+  - `app.js` start-screen hint ternaries are covered in the current PR via dedicated helpers.
   - `scoreboard.js:336`
   - `question-bank.js:344`
   - `question-bank.js:1000`

@@ -488,6 +488,19 @@ describe("app.js targeted coverage", () => {
       const nextHint = document.getElementById("nextHint") as HTMLElement;
       expect(nextHint.textContent).toBe("Press Enter to start Mission 1: Verbal Challenge.");
     });
+
+    it("shows the story-only ready hints when story mode is enabled and a name is entered", async () => {
+      await setupApp(attemptQuestion, { storyOnly: true });
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+
+      const nameHint = document.getElementById("nameHint") as HTMLElement;
+      const nextHint = document.getElementById("nextHint") as HTMLElement;
+      expect(nameHint.textContent).toBe("Press Enter to begin Story Only mode.");
+      expect(nextHint.textContent).toBe("Press Enter to play the story route.");
+    });
   });
 
   describe("renderStoryOnlyQuestion", () => {
