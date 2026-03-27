@@ -138,6 +138,52 @@
     return createElement("div", { className });
   }
 
+  function renderRootNode(root, node) {
+    clearNode(root);
+    root.append(node);
+  }
+
+  function createLinearGradientNode(id, x1, y1, x2, y2, stops) {
+    const gradient = createSvgElement("linearGradient", {
+      id,
+      x1,
+      y1,
+      x2,
+      y2,
+      gradientUnits: "userSpaceOnUse",
+    });
+    stops.forEach(({ offset, color }) => {
+      gradient.append(createSvgElement("stop", {
+        offset,
+        "stop-color": color,
+      }));
+    });
+    return gradient;
+  }
+
+  function appendSvgProgressParts(svg, gradientNode, trackAttributes, fillAttributes) {
+    const defs = createSvgElement("defs");
+    defs.append(gradientNode);
+    svg.append(
+      defs,
+      createSvgElement("rect", trackAttributes),
+      createSvgElement("rect", fillAttributes),
+    );
+  }
+
+  function createArtworkImageNode(className, src, alt, hidden = false) {
+    return createElement("img", {
+      className,
+      attributes: {
+        src,
+        alt,
+        "aria-hidden": hidden ? "true" : null,
+        loading: "lazy",
+        decoding: "async",
+      },
+    });
+  }
+
   function appendFormattedStoryInline(parent, value) {
     const segments = String(value || "").split(/(\*\*.+?\*\*)/g);
     segments.forEach((segment) => {
@@ -170,15 +216,7 @@
         "aria-label": "Open mission artwork",
       },
     });
-    const image = createElement("img", {
-      className: "celebration-artwork-thumb",
-      attributes: {
-        src: event.artwork.src,
-        alt,
-        loading: "lazy",
-        decoding: "async",
-      },
-    });
+    const image = createArtworkImageNode("celebration-artwork-thumb", event.artwork.src, alt);
     button.append(image);
     return button;
   }
@@ -220,16 +258,12 @@
         "aria-label": alt,
       },
     });
-    const image = createElement("img", {
-      className: "celebration-artwork-image",
-      attributes: {
-        src: event.artwork.src,
-        alt: "",
-        "aria-hidden": "true",
-        loading: "lazy",
-        decoding: "async",
-      },
-    });
+    const image = createArtworkImageNode(
+      "celebration-artwork-image",
+      event.artwork.src,
+      "",
+      true,
+    );
     canvas.append(image);
     figure.append(canvas);
     stage.append(backButton, figure);
@@ -357,31 +391,21 @@
       "aria-hidden": "true",
       focusable: "false",
     });
-    const defs = createSvgElement("defs");
-    const gradient = createSvgElement("linearGradient", {
-      id: "rocket-fuel-gradient",
-      x1: "0",
-      y1: "74",
-      x2: "0",
-      y2: "0",
-      gradientUnits: "userSpaceOnUse",
-    });
-    gradient.append(
-      createSvgElement("stop", { offset: "0%", "stop-color": "#f4b942" }),
-      createSvgElement("stop", { offset: "100%", "stop-color": "#e76f51" }),
-    );
-    defs.append(gradient);
-    fuelSvg.append(
-      defs,
-      createSvgElement("rect", {
+    appendSvgProgressParts(
+      fuelSvg,
+      createLinearGradientNode("rocket-fuel-gradient", "0", "74", "0", "0", [
+        { offset: "0%", color: "#f4b942" },
+        { offset: "100%", color: "#e76f51" },
+      ]),
+      {
         class: "rocket-fuel-track",
         x: "0",
         y: "0",
         width: "10",
         height: "74",
         rx: "5",
-      }),
-      createSvgElement("rect", {
+      },
+      {
         class: "rocket-fuel-fill",
         x: "0",
         y: String(fuelY),
@@ -389,7 +413,7 @@
         height: String(fuelHeight),
         rx: "5",
         "data-fuel-level": String(fuelLevel),
-      }),
+      },
     );
     fuel.append(fuelSvg);
 
@@ -570,8 +594,7 @@
       });
 
       article.append(dots);
-      clearNode(this.root);
-      this.root.append(article);
+      renderRootNode(this.root, article);
     }
   }
 
@@ -603,32 +626,22 @@
         "aria-hidden": "true",
         focusable: "false",
       });
-      const defs = createSvgElement("defs");
-      const gradient = createSvgElement("linearGradient", {
-        id: "overall-progress-gradient",
-        x1: "0",
-        y1: "0",
-        x2: "100",
-        y2: "0",
-        gradientUnits: "userSpaceOnUse",
-      });
-      gradient.append(
-        createSvgElement("stop", { offset: "0%", "stop-color": "#f4b942" }),
-        createSvgElement("stop", { offset: "50%", "stop-color": "#e76f51" }),
-        createSvgElement("stop", { offset: "100%", "stop-color": "#2a9d8f" }),
-      );
-      defs.append(gradient);
-      svg.append(
-        defs,
-        createSvgElement("rect", {
+      appendSvgProgressParts(
+        svg,
+        createLinearGradientNode("overall-progress-gradient", "0", "0", "100", "0", [
+          { offset: "0%", color: "#f4b942" },
+          { offset: "50%", color: "#e76f51" },
+          { offset: "100%", color: "#2a9d8f" },
+        ]),
+        {
           class: "overall-progress-track",
           x: "0",
           y: "0",
           width: "100",
           height: "12",
           rx: "6",
-        }),
-        createSvgElement("rect", {
+        },
+        {
           class: "overall-progress-fill",
           x: "0",
           y: "0",
@@ -636,7 +649,7 @@
           height: "12",
           rx: "6",
           "data-progress": String(state.overallPercent),
-        }),
+        },
       );
       rail.append(svg);
       article.append(
@@ -645,8 +658,7 @@
           textContent: `${state.totalQuestions - state.answeredTotal} mission steps left before launch`,
         }),
       );
-      clearNode(this.root);
-      this.root.append(article);
+      renderRootNode(this.root, article);
     }
   }
 
@@ -686,8 +698,7 @@
         copy,
         buildRocketSceneNode(stageCount, state.midpointBoosts, stageCount === this.theme.rewardStages.length),
       );
-      clearNode(this.root);
-      this.root.append(article);
+      renderRootNode(this.root, article);
     }
   }
 
@@ -799,8 +810,7 @@
           card.append(artwork);
         }
         overlay.append(card);
-        clearNode(this.root);
-        this.root.append(overlay);
+        renderRootNode(this.root, overlay);
         return;
       }
 
@@ -852,8 +862,7 @@
       }
 
       overlay.append(card);
-      clearNode(this.root);
-      this.root.append(overlay);
+      renderRootNode(this.root, overlay);
     }
 
     enqueue(event) {
