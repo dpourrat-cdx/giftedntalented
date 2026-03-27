@@ -81,6 +81,31 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.textContent).toBe("");
   });
 
+  it("computes a derived percentage when the remote score omits it", async () => {
+    await loadFrontendScript("scoreboard.js");
+
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockResolvedValue({
+        player_name: "Alex",
+        score: 4,
+        total_questions: 5,
+        elapsed_seconds: 61,
+      }),
+    };
+
+    const result = await controller.refreshTopScoreForPlayer("Alex");
+
+    expect(result).toEqual({
+      playerName: "Alex",
+      score: 4,
+      totalQuestions: 5,
+      percentage: 80,
+      elapsedSeconds: 61,
+    });
+    expect(controller.elements.score.innerHTML).toContain("80%");
+  });
+
   it("falls back to the cached score when the remote lookup returns nothing", async () => {
     await loadFrontendScript("scoreboard.js");
 
@@ -165,5 +190,102 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.name.textContent).toBe("Alex");
     expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
     expect(controller.elements.status.textContent).toBe("Remote lookup failed");
+  });
+
+  it("records a validated answer after starting an attempt and updates the score from the response", async () => {
+    await loadFrontendScript("scoreboard.js");
+
+    const controller = createController();
+    const startAttempt = vi.fn().mockResolvedValue({
+      attemptId: "attempt-123",
+      questions: [{ questionId: "q1" }],
+    });
+    const submitAttemptAnswer = vi.fn().mockResolvedValue({
+      record: {
+        player_name: "Alex",
+        score: 9,
+        total_questions: 10,
+        percentage: 90,
+        elapsed_seconds: 61,
+      },
+    });
+    controller.service = {
+      startAttempt,
+      submitAttemptAnswer,
+    };
+
+    const result = await controller.recordValidatedAnswer({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      sessionQuestions: [{ questionId: "q1" }],
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+
+    expect(startAttempt).toHaveBeenCalledWith({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [],
+    });
+    expect(submitAttemptAnswer).toHaveBeenCalledWith("attempt-123", {
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+    expect(result).toEqual({
+      record: {
+        player_name: "Alex",
+        score: 9,
+        total_questions: 10,
+        percentage: 90,
+        elapsed_seconds: 61,
+      },
+    });
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("9/10");
+    expect(controller.elements.score.innerHTML).toContain("90%");
+  });
+
+  it("finalizes an attempt using the in-flight attempt when the active id is not set yet", async () => {
+    await loadFrontendScript("scoreboard.js");
+
+    const controller = createController();
+    const finalizeAttempt = vi.fn().mockResolvedValue({
+      record: {
+        player_name: "Alex",
+        score: 10,
+        total_questions: 10,
+        percentage: 100,
+        elapsed_seconds: 90,
+      },
+    });
+    controller.service = {
+      finalizeAttempt,
+    };
+    controller.activeAttemptId = null;
+    controller.activeAttemptPromise = Promise.resolve({ attemptId: "attempt-456" });
+
+    const result = await controller.finalizeAttempt({ elapsedSeconds: 90 });
+
+    expect(finalizeAttempt).toHaveBeenCalledWith("attempt-456", {
+      elapsedSeconds: 90,
+    });
+    expect(result).toEqual({
+      record: {
+        player_name: "Alex",
+        score: 10,
+        total_questions: 10,
+        percentage: 100,
+        elapsed_seconds: 90,
+      },
+    });
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("10/10");
+    expect(controller.elements.score.innerHTML).toContain("100%");
   });
 });

@@ -2,21 +2,27 @@
   const BACKEND_BASE_URL = "https://giftedntalented.onrender.com/api/v1";
   const CACHE_KEY = "gifted-scoreboard-player-best-scores-v2";
   const LEGACY_CACHE_KEYS = ["gifted-scoreboard-player-best-scores"];
-  const scoreboardContent = window.CaptainNovaContent?.scoreboard || {
-    awaitingName: "Type an explorer name",
-    awaitingScore: "Enter the explorer name below to show only that explorer's best score.",
-    loading: "Checking this explorer's saved record.",
-    empty: "No saved record yet for this explorer.",
-    localSaveSuccess: "Explorer record saved on this device.",
-    deviceOnlyScore: "Showing a score saved only on this device.",
-    deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
-    deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
-    allResetSuccess: "Every saved explorer record has been cleared.",
-    resetPrompt: "Enter the admin PIN to clear saved explorer records.",
-    resetConfirm: "Clear every saved explorer record on this device? This cannot be undone.",
-    attemptStartWarning: "This mission can continue, but online score protection could not start right now.",
-    attemptSyncWarning: "This mission can continue, but the shared explorer record could not update right now.",
-  };
+  function getScoreboardContent() {
+    const captainNovaContent = globalThis.CaptainNovaContent || {};
+
+    return captainNovaContent.scoreboard || {
+      awaitingName: "Type an explorer name",
+      awaitingScore: "Enter the explorer name below to show only that explorer's best score.",
+      loading: "Checking this explorer's saved record.",
+      empty: "No saved record yet for this explorer.",
+      localSaveSuccess: "Explorer record saved on this device.",
+      deviceOnlyScore: "Showing a score saved only on this device.",
+      deviceOnlyWarning: "Explorer record saved on this device. Online sync could not update just now.",
+      deviceResetSuccess: "Every saved explorer record on this device has been cleared.",
+      allResetSuccess: "Every saved explorer record has been cleared.",
+      resetPrompt: "Enter the admin PIN to clear saved explorer records.",
+      resetConfirm: "Clear every saved explorer record on this device? This cannot be undone.",
+      attemptStartWarning: "This mission can continue, but online score protection could not start right now.",
+      attemptSyncWarning: "This mission can continue, but the shared explorer record could not update right now.",
+    };
+  }
+
+  const scoreboardContent = getScoreboardContent();
 
   function normalizePlayerName(name) {
     return String(name || "")
@@ -327,15 +333,18 @@
         return null;
       }
 
+      let normalizedPercentage = 0;
+      if (Number.isFinite(percentage)) {
+        normalizedPercentage = percentage;
+      } else if (totalQuestions > 0) {
+        normalizedPercentage = Math.round((score / totalQuestions) * 100);
+      }
+
       return {
         playerName,
         score,
         totalQuestions,
-        percentage: Number.isFinite(percentage)
-          ? percentage
-          : totalQuestions > 0
-            ? Math.round((score / totalQuestions) * 100)
-            : 0,
+        percentage: normalizedPercentage,
         elapsedSeconds,
       };
     }
@@ -461,8 +470,10 @@
           questions: effectiveQuestions,
         })
         .then((result) => {
-          this.activeAttemptId = result?.attemptId || null;
-          this.activeAttemptQuestions = Array.isArray(result?.questions) ? result.questions : [];
+          const attemptResult = result || {};
+          const attemptQuestions = attemptResult.questions;
+          this.activeAttemptId = attemptResult.attemptId || null;
+          this.activeAttemptQuestions = Array.isArray(attemptQuestions) ? attemptQuestions : [];
           this.activeAttemptUnavailableFingerprint = "";
           return result || null;
         })
@@ -487,11 +498,11 @@
 
       if (this.activeAttemptPromise) {
         const attemptResult = await this.activeAttemptPromise;
-        return attemptResult?.attemptId || null;
+        return attemptResult?.attemptId ?? null;
       }
 
       const attemptResult = await this.beginAttempt(options);
-      return attemptResult?.attemptId || null;
+      return attemptResult?.attemptId ?? null;
     }
 
     async recordValidatedAnswer({
@@ -548,7 +559,8 @@
     async finalizeAttempt({ elapsedSeconds }) {
       await this.getAnswerQueue().catch(() => undefined);
       const inFlightAttempt = this.activeAttemptPromise ? await this.activeAttemptPromise : null;
-      const attemptId = this.activeAttemptId || inFlightAttempt?.attemptId || null;
+      const inFlightAttemptId = inFlightAttempt?.attemptId ?? null;
+      const attemptId = this.activeAttemptId || inFlightAttemptId || null;
       if (!attemptId) {
         return null;
       }
