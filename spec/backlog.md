@@ -37,7 +37,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice completed: extracting focused helpers for generateGridQuestions() and buildSpatialQuestions() with deterministic frontend coverage for representative generated questions.
+Current slice in progress: removing the remaining inline-style gamification renderers by moving progress sizing and artwork presentation into SVG/DOM structure, with targeted frontend coverage for those render paths.
 
 SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
 

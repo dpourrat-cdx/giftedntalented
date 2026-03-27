@@ -122,8 +122,16 @@
             class="celebration-artwork-canvas"
             role="img"
             aria-label="${escapeHtml(alt)}"
-            style="background-image: url('${escapeHtml(event.artwork.src)}');"
-          ></div>
+          >
+            <img
+              class="celebration-artwork-image"
+              src="${escapeHtml(event.artwork.src)}"
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
         </figure>
       </div>
     `;
@@ -223,6 +231,9 @@
     const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
       return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
     }).join("");
+    const fuelLevel = clamp(boostCount, 0, 8);
+    const fuelHeight = Math.round((fuelLevel / 8) * 74);
+    const fuelY = 74 - fuelHeight;
 
     const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
 
@@ -230,7 +241,30 @@
       <div class="rocket-scene ${isLaunching ? "is-launching" : ""}">
         <div class="rocket-stars" aria-hidden="true">${stars}</div>
         <div class="rocket-fuel">
-          <span class="rocket-fuel-fill" style="height: ${Math.round((clamp(boostCount, 0, 8) / 8) * 100)}%"></span>
+          <svg
+            class="rocket-fuel-visual"
+            viewBox="0 0 10 74"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <linearGradient id="rocket-fuel-gradient" x1="0" y1="74" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#f4b942"></stop>
+                <stop offset="100%" stop-color="#e76f51"></stop>
+              </linearGradient>
+            </defs>
+            <rect class="rocket-fuel-track" x="0" y="0" width="10" height="74" rx="5"></rect>
+            <rect
+              class="rocket-fuel-fill"
+              x="0"
+              y="${fuelY}"
+              width="10"
+              height="${fuelHeight}"
+              rx="5"
+              data-fuel-level="${fuelLevel}"
+            ></rect>
+          </svg>
         </div>
         <div class="rocket-pad rocket-part ${partClass(stageCount >= 1)}"></div>
         <div class="rocket-body rocket-part ${partClass(stageCount >= 2)}"></div>
@@ -417,7 +451,31 @@
           <p class="gamification-kicker">${state.answeredTotal} of ${state.totalQuestions} mission steps</p>
           <strong>${state.completedSections} of ${state.totalSections} missions completed</strong>
           <div class="overall-progress-rail" aria-hidden="true">
-            <span class="overall-progress-fill" style="width: ${state.overallPercent}%"></span>
+            <svg
+              class="overall-progress-visual"
+              viewBox="0 0 100 12"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+            <defs>
+              <linearGradient id="overall-progress-gradient" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#f4b942"></stop>
+                <stop offset="50%" stop-color="#e76f51"></stop>
+                <stop offset="100%" stop-color="#2a9d8f"></stop>
+              </linearGradient>
+            </defs>
+              <rect class="overall-progress-track" x="0" y="0" width="100" height="12" rx="6"></rect>
+              <rect
+                class="overall-progress-fill"
+                x="0"
+                y="0"
+                width="${state.overallPercent}"
+                height="12"
+                rx="6"
+                data-progress="${state.overallPercent}"
+              ></rect>
+            </svg>
           </div>
           <span>${state.totalQuestions - state.answeredTotal} mission steps left before launch</span>
         </article>

@@ -53,6 +53,72 @@ describe("GiftedGamification", () => {
     };
   });
 
+  it("renders progress visuals without inline dimension styles", async () => {
+    await loadFrontendScript("gamification.js");
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([0, null]));
+
+    const overallFill = document.querySelector("#overallProgressRoot .overall-progress-fill") as SVGRectElement | null;
+    expect(overallFill).toBeTruthy();
+    expect(overallFill?.getAttribute("width")).toBe("50");
+    expect(overallFill?.getAttribute("height")).toBe("12");
+    expect(overallFill?.getAttribute("style")).toBeNull();
+
+    const rocketFill = document.querySelector("#rocketProgressRoot .rocket-fuel-fill") as SVGRectElement | null;
+    expect(rocketFill).toBeTruthy();
+    expect(rocketFill?.getAttribute("height")).toBe("9");
+    expect(rocketFill?.getAttribute("y")).toBe("65");
+    expect(rocketFill?.getAttribute("style")).toBeNull();
+  });
+
+  it("expands celebration artwork with an image node instead of a background style", async () => {
+    window.CaptainNovaContent = {
+      gamification: {
+        sectionCompleteButton: "Next mission",
+      },
+      story: {
+        missions: [
+          {
+            section: "Verbal",
+            title: "Signal Recovery",
+            completionArtwork: {
+              src: "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Crect width='8' height='8' fill='%232a9d8f'/%3E%3C/svg%3E",
+              alt: "Signal recovery artwork",
+            },
+          },
+        ],
+      },
+    };
+
+    await loadFrontendScript("gamification.js");
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.onAnswerEvaluated(buildSnapshot([0, 1]), {
+      isCorrect: true,
+      message: "Brilliant work",
+    });
+
+    const expandButton = document.querySelector("[data-expand-artwork]") as HTMLButtonElement | null;
+    expect(expandButton).toBeTruthy();
+    expandButton?.click();
+
+    const canvas = document.querySelector(".celebration-artwork-canvas") as HTMLElement | null;
+    const artworkImage = document.querySelector(".celebration-artwork-canvas img") as HTMLImageElement | null;
+    expect(canvas).toBeTruthy();
+    expect(canvas?.getAttribute("style")).toBeNull();
+    expect(artworkImage).toBeTruthy();
+    expect(artworkImage?.getAttribute("src")).toContain("data:image/svg+xml");
+  });
+
   it("keeps the mission completion overlay non-advancing after a wrong final answer", async () => {
     await loadFrontendScript("gamification.js");
 
