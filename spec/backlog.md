@@ -42,6 +42,8 @@ Current slice in progress: optional-chaining and nested-ternary sweeps across th
 
 SonarCloud currently reports 0 open critical issues and 15 open major issues. Current sweep order:
 
+- The scoreboard Sonar cleanup PR (PR 56) is in flight; it removes the remaining `scoreboard.js` optional-chaining and nested-ternary Sonar issues while keeping lookup/finalize behavior unchanged and adds targeted frontend coverage for derived percentages and in-flight finalize fallback.
+
 - [ ] Replace the remaining optional-chaining opportunities (9 Sonar MAJOR `S6582`):
   - `app.js` optional-chaining cleanup is covered in the current PR (`normalizeAttemptQuestion`, attempt application, story artwork guards, results gallery mission guard, overlay handling, answer auto-advance guard).
   - `gamification.js:568`
