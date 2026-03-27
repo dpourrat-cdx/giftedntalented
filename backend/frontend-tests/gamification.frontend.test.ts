@@ -76,6 +76,32 @@ describe("GiftedGamification", () => {
     expect(rocketFill?.getAttribute("style")).toBeNull();
   });
 
+  it("renders mission progress and feedback panels with DOM nodes", async () => {
+    await loadFrontendScript("gamification.js");
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([0, null]));
+
+    const missionPanel = document.querySelector("#sectionProgressRoot .mission-panel") as HTMLElement | null;
+    expect(missionPanel).toBeTruthy();
+    expect(missionPanel?.querySelector("strong")?.textContent).toBe("Mission step 2 of 2");
+    expect(missionPanel?.querySelectorAll(".mission-dot")).toHaveLength(2);
+
+    controller.onAnswerEvaluated(buildSnapshot([0, 1]), {
+      isCorrect: true,
+      message: "Brilliant work",
+    });
+
+    const toast = document.querySelector("#questionFeedbackRoot .question-feedback-toast") as HTMLElement | null;
+    expect(toast).toBeTruthy();
+    expect(toast?.querySelector(".question-feedback-effect")?.textContent).toBe("sparkle");
+    expect((toast?.querySelector("strong")?.textContent || "").length).toBeGreaterThan(0);
+  });
+
   it("expands celebration artwork with an image node instead of a background style", async () => {
     window.CaptainNovaContent = {
       gamification: {

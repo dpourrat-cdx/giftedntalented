@@ -34,23 +34,10 @@
     return Math.min(Math.max(value, min), max);
   }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
   function formatTemplate(template, values) {
     return String(template || "").replace(/\{(\w+)\}/g, (match, key) => {
       return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match;
     });
-  }
-
-  function formatStoryInline(value) {
-    return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   }
 
   function secureRandomIndex(length) {
@@ -72,88 +59,236 @@
     return values[0] % length;
   }
 
-  function buildCelebrationArtworkThumbnail(event) {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  function clearNode(node) {
+    node.replaceChildren();
+  }
+
+  function createElement(tagName, options = {}) {
+    const element = document.createElement(tagName);
+
+    if (options.className) {
+      element.className = options.className;
+    }
+
+    if (options.textContent !== undefined) {
+      element.textContent = options.textContent;
+    }
+
+    if (options.attributes) {
+      Object.entries(options.attributes).forEach(([name, value]) => {
+        if (value !== null && value !== undefined) {
+          element.setAttribute(name, String(value));
+        }
+      });
+    }
+
+    return element;
+  }
+
+  function createSvgElement(tagName, attributes = {}) {
+    const element = document.createElementNS(SVG_NS, tagName);
+    Object.entries(attributes).forEach(([name, value]) => {
+      if (value !== null && value !== undefined) {
+        element.setAttribute(name, String(value));
+      }
+    });
+    return element;
+  }
+
+  function createStaticFragment(markup) {
+    const template = document.createElement("template");
+    template.innerHTML = markup.trim();
+    return template.content;
+  }
+
+  function createPanelArticle(panelClass, kickerText, strongText, detailLines = []) {
+    const article = createElement("article", {
+      className: `gamification-panel ${panelClass}`,
+    });
+    article.append(
+      createElement("p", {
+        className: "gamification-kicker",
+        textContent: kickerText,
+      }),
+      createElement("strong", {
+        textContent: strongText,
+      }),
+    );
+
+    detailLines.forEach((line) => {
+      article.append(createElement("span", { textContent: line }));
+    });
+
+    return article;
+  }
+
+  function createCelebrationOverlayNode(variant) {
+    return createElement("div", {
+      className: `celebration-overlay is-${variant}`,
+      attributes: {
+        role: "dialog",
+        "aria-modal": "true",
+      },
+    });
+  }
+
+  function createCelebrationCardNode(className = "celebration-card") {
+    return createElement("div", { className });
+  }
+
+  function renderRootNode(root, node) {
+    clearNode(root);
+    root.append(node);
+  }
+
+  function createLinearGradientNode(id, x1, y1, x2, y2, stops) {
+    const gradient = createSvgElement("linearGradient", {
+      id,
+      x1,
+      y1,
+      x2,
+      y2,
+      gradientUnits: "userSpaceOnUse",
+    });
+    stops.forEach(({ offset, color }) => {
+      gradient.append(createSvgElement("stop", {
+        offset,
+        "stop-color": color,
+      }));
+    });
+    return gradient;
+  }
+
+  function appendSvgProgressParts(svg, gradientNode, trackAttributes, fillAttributes) {
+    const defs = createSvgElement("defs");
+    defs.append(gradientNode);
+    svg.append(
+      defs,
+      createSvgElement("rect", trackAttributes),
+      createSvgElement("rect", fillAttributes),
+    );
+  }
+
+  function createArtworkImageNode(className, src, alt, hidden = false) {
+    return createElement("img", {
+      className,
+      attributes: {
+        src,
+        alt,
+        "aria-hidden": hidden ? "true" : null,
+        loading: "lazy",
+        decoding: "async",
+      },
+    });
+  }
+
+  function appendFormattedStoryInline(parent, value) {
+    const segments = String(value || "").split(/(\*\*.+?\*\*)/g);
+    segments.forEach((segment) => {
+      if (!segment) {
+        return;
+      }
+
+      if (segment.startsWith("**") && segment.endsWith("**")) {
+        const strong = document.createElement("strong");
+        strong.textContent = segment.slice(2, -2);
+        parent.append(strong);
+        return;
+      }
+
+      parent.append(document.createTextNode(segment));
+    });
+  }
+
+  function buildCelebrationArtworkThumbnailNode(event) {
     if (!event?.artwork?.src) {
-      return "";
+      return null;
     }
 
     const alt = event.artwork.alt || event.title || "Mission artwork";
-    return `
-      <button
-        class="celebration-artwork-toggle"
-        type="button"
-        data-expand-artwork
-        aria-label="Open mission artwork"
-      >
-        <img
-          class="celebration-artwork-thumb"
-          src="${escapeHtml(event.artwork.src)}"
-          alt="${escapeHtml(alt)}"
-          loading="lazy"
-          decoding="async"
-        />
-      </button>
-    `;
+    const button = createElement("button", {
+      className: "celebration-artwork-toggle",
+      attributes: {
+        type: "button",
+        "data-expand-artwork": "",
+        "aria-label": "Open mission artwork",
+      },
+    });
+    const image = createArtworkImageNode("celebration-artwork-thumb", event.artwork.src, alt);
+    button.append(image);
+    return button;
   }
 
-  function buildCelebrationArtworkExpanded(event) {
+  function buildCelebrationArtworkExpandedNode(event) {
     if (!event?.artwork?.src) {
-      return "";
+      return null;
     }
 
     const alt = event.artwork.alt || event.title || "Mission artwork";
-    return `
-      <div class="celebration-artwork-stage">
-        <button
-          class="celebration-artwork-back"
-          type="button"
-          data-collapse-artwork
-          aria-label="Back to mission story"
-        >
-          <span class="celebration-artwork-back-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-              <path d="M15 5l-7 7 7 7"></path>
-            </svg>
-          </span>
-          <span>Back to story</span>
-        </button>
-        <figure class="celebration-artwork-figure">
-          <div
-            class="celebration-artwork-canvas"
-            role="img"
-            aria-label="${escapeHtml(alt)}"
-          >
-            <img
-              class="celebration-artwork-image"
-              src="${escapeHtml(event.artwork.src)}"
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        </figure>
-      </div>
-    `;
+    const stage = createElement("div", { className: "celebration-artwork-stage" });
+    const backButton = createElement("button", {
+      className: "celebration-artwork-back",
+      attributes: {
+        type: "button",
+        "data-collapse-artwork": "",
+        "aria-label": "Back to mission story",
+      },
+    });
+    const icon = createElement("span", {
+      className: "celebration-artwork-back-icon",
+      attributes: { "aria-hidden": "true" },
+    });
+    const iconSvg = createSvgElement("svg", {
+      viewBox: "0 0 24 24",
+      focusable: "false",
+      "aria-hidden": "true",
+    });
+    iconSvg.append(createSvgElement("path", { d: "M15 5l-7 7 7 7" }));
+    icon.append(iconSvg);
+    backButton.append(icon);
+    backButton.append(createElement("span", { textContent: "Back to story" }));
+
+    const figure = createElement("figure", { className: "celebration-artwork-figure" });
+    const canvas = createElement("div", {
+      className: "celebration-artwork-canvas",
+      attributes: {
+        role: "img",
+        "aria-label": alt,
+      },
+    });
+    const image = createArtworkImageNode(
+      "celebration-artwork-image",
+      event.artwork.src,
+      "",
+      true,
+    );
+    canvas.append(image);
+    figure.append(canvas);
+    stage.append(backButton, figure);
+    return stage;
   }
 
-  function celebrationBodyHtml(text) {
+  function buildCelebrationBodyNode(text) {
     const sentences = String(text || "")
       .trim()
       .split(/(?<=[.!?])\s+/u)
       .filter(Boolean);
 
     if (sentences.length === 0) {
-      return "";
+      return null;
     }
 
-    const paragraphs = [];
+    const body = createElement("div", { className: "celebration-body" });
     for (let index = 0; index < sentences.length; index += 2) {
       const paragraph = sentences.slice(index, index + 2).join(" ");
-      paragraphs.push(`<p>${formatStoryInline(paragraph)}</p>`);
+      const paragraphElement = document.createElement("p");
+      appendFormattedStoryInline(paragraphElement, paragraph);
+      body.append(paragraphElement);
     }
 
-    return `<div class="celebration-body">${paragraphs.join("")}</div>`;
+    return body;
   }
 
   function storyMissionForSection(sectionKey) {
@@ -227,55 +362,74 @@
     };
   }
 
-  function renderRocketScene(stageCount, boostCount, isLaunching) {
-    const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
-      return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
-    }).join("");
+  function createRocketPart(className, unlocked) {
+    return createElement("div", {
+      className: `${className} rocket-part${unlocked ? " is-unlocked" : ""}`,
+    });
+  }
+
+  function buildRocketSceneNode(stageCount, boostCount, isLaunching) {
     const fuelLevel = clamp(boostCount, 0, 8);
     const fuelHeight = Math.round((fuelLevel / 8) * 74);
     const fuelY = 74 - fuelHeight;
+    const scene = createElement("div", {
+      className: `rocket-scene${isLaunching ? " is-launching" : ""}`,
+    });
+    const stars = createElement("div", {
+      className: "rocket-stars",
+      attributes: { "aria-hidden": "true" },
+    });
+    for (let index = 0; index < fuelLevel; index += 1) {
+      stars.append(createElement("span", { className: `rocket-star rocket-star-${index + 1}` }));
+    }
 
-    const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
+    const fuel = createElement("div", { className: "rocket-fuel" });
+    const fuelSvg = createSvgElement("svg", {
+      class: "rocket-fuel-visual",
+      viewBox: "0 0 10 74",
+      preserveAspectRatio: "none",
+      "aria-hidden": "true",
+      focusable: "false",
+    });
+    appendSvgProgressParts(
+      fuelSvg,
+      createLinearGradientNode("rocket-fuel-gradient", "0", "74", "0", "0", [
+        { offset: "0%", color: "#f4b942" },
+        { offset: "100%", color: "#e76f51" },
+      ]),
+      {
+        class: "rocket-fuel-track",
+        x: "0",
+        y: "0",
+        width: "10",
+        height: "74",
+        rx: "5",
+      },
+      {
+        class: "rocket-fuel-fill",
+        x: "0",
+        y: String(fuelY),
+        width: "10",
+        height: String(fuelHeight),
+        rx: "5",
+        "data-fuel-level": String(fuelLevel),
+      },
+    );
+    fuel.append(fuelSvg);
 
-    return `
-      <div class="rocket-scene ${isLaunching ? "is-launching" : ""}">
-        <div class="rocket-stars" aria-hidden="true">${stars}</div>
-        <div class="rocket-fuel">
-          <svg
-            class="rocket-fuel-visual"
-            viewBox="0 0 10 74"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <defs>
-              <linearGradient id="rocket-fuel-gradient" x1="0" y1="74" x2="0" y2="0" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#f4b942"></stop>
-                <stop offset="100%" stop-color="#e76f51"></stop>
-              </linearGradient>
-            </defs>
-            <rect class="rocket-fuel-track" x="0" y="0" width="10" height="74" rx="5"></rect>
-            <rect
-              class="rocket-fuel-fill"
-              x="0"
-              y="${fuelY}"
-              width="10"
-              height="${fuelHeight}"
-              rx="5"
-              data-fuel-level="${fuelLevel}"
-            ></rect>
-          </svg>
-        </div>
-        <div class="rocket-pad rocket-part ${partClass(stageCount >= 1)}"></div>
-        <div class="rocket-body rocket-part ${partClass(stageCount >= 2)}"></div>
-        <div class="rocket-window rocket-part ${partClass(stageCount >= 3)}"></div>
-        <div class="rocket-wing rocket-wing-left rocket-part ${partClass(stageCount >= 4)}"></div>
-        <div class="rocket-wing rocket-wing-right rocket-part ${partClass(stageCount >= 4)}"></div>
-        <div class="rocket-engine rocket-part ${partClass(stageCount >= 5)}"></div>
-        <div class="rocket-astronaut rocket-part ${partClass(stageCount >= 6)}"></div>
-        <div class="rocket-flames rocket-part ${partClass(stageCount >= 7)}"></div>
-      </div>
-    `;
+    scene.append(
+      stars,
+      fuel,
+      createRocketPart("rocket-pad", stageCount >= 1),
+      createRocketPart("rocket-body", stageCount >= 2),
+      createRocketPart("rocket-window", stageCount >= 3),
+      createRocketPart("rocket-wing rocket-wing-left", stageCount >= 4),
+      createRocketPart("rocket-wing rocket-wing-right", stageCount >= 4),
+      createRocketPart("rocket-engine", stageCount >= 5),
+      createRocketPart("rocket-astronaut", stageCount >= 6),
+      createRocketPart("rocket-flames", stageCount >= 7),
+    );
+    return scene;
   }
 
   function missionRewardIconSvg(key) {
@@ -335,32 +489,39 @@
     return icons[key] || icons.base;
   }
 
-  function renderCelebrationVisual(event) {
+  function buildMissionRewardIconNode(key) {
+    const fragment = createStaticFragment(missionRewardIconSvg(key));
+    return fragment.firstElementChild;
+  }
+
+  function renderCelebrationVisualNode(event) {
     if (!event) {
-      return "";
+      return null;
     }
 
     if (event.variant === "section" && event.artwork?.src) {
-      return buildCelebrationArtworkThumbnail(event);
+      return buildCelebrationArtworkThumbnailNode(event);
     }
 
     if (event.variant === "section" && event.rewardKey) {
-      return `
-        <div class="celebration-reward-visual reward-${event.rewardKey}" aria-hidden="true">
-          ${missionRewardIconSvg(event.rewardKey)}
-        </div>
-      `;
+      const visual = createElement("div", {
+        className: `celebration-reward-visual reward-${event.rewardKey}`,
+        attributes: { "aria-hidden": "true" },
+      });
+      const icon = buildMissionRewardIconNode(event.rewardKey);
+      if (icon) {
+        visual.append(icon);
+      }
+      return visual;
     }
 
     if (event.variant === "final") {
-      return `
-        <div class="celebration-rocket-wrap">
-          ${renderRocketScene(event.stageCount, event.boostCount, true)}
-        </div>
-      `;
+      const wrap = createElement("div", { className: "celebration-rocket-wrap" });
+      wrap.append(buildRocketSceneNode(event.stageCount, event.boostCount, true));
+      return wrap;
     }
 
-    return "";
+    return null;
   }
 
   class EncouragementMessageManager {
@@ -398,39 +559,42 @@
 
     render(state) {
       if (!state.hasStarted || !state.currentSection) {
-        this.root.innerHTML = "";
+        clearNode(this.root);
         return;
       }
 
       const section = state.currentSection;
-      const dots = section.questions
-        .map((question) => {
-          const classes = [
+      const article = createPanelArticle(
+        "mission-panel",
+        `${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}`,
+        `Mission step ${state.currentQuestionNumber} of ${section.totalQuestions}`,
+        [`${section.answeredCount} of ${section.totalQuestions} rocket steps powered`],
+      );
+
+      const dots = createElement("div", {
+        className: "mission-dots",
+        attributes: {
+          role: "img",
+          "aria-label": `${section.answeredCount} of ${section.totalQuestions} questions finished in this mission`,
+        },
+      });
+      section.questions.forEach((question) => {
+        const dot = createElement("span", {
+          className: [
             "mission-dot",
             question.isAnswered ? "is-complete" : "",
             question.isCurrent ? "is-current" : "",
           ]
             .filter(Boolean)
-            .join(" ");
+            .join(" "),
+          attributes: { "aria-hidden": "true" },
+        });
+        dot.append(createElement("span", { className: "mission-dot-core" }));
+        dots.append(dot);
+      });
 
-          return `<span class="${classes}" aria-hidden="true"><span class="mission-dot-core"></span></span>`;
-        })
-        .join("");
-
-      this.root.innerHTML = `
-        <article class="gamification-panel mission-panel">
-          <p class="gamification-kicker">${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}</p>
-          <strong>Mission step ${state.currentQuestionNumber} of ${section.totalQuestions}</strong>
-          <span>${section.answeredCount} of ${section.totalQuestions} rocket steps powered</span>
-          <div
-            class="mission-dots"
-            role="img"
-            aria-label="${section.answeredCount} of ${section.totalQuestions} questions finished in this mission"
-          >
-            ${dots}
-          </div>
-        </article>
-      `;
+      article.append(dots);
+      renderRootNode(this.root, article);
     }
   }
 
@@ -442,44 +606,59 @@
 
     render(state) {
       if (!state.hasStarted) {
-        this.root.innerHTML = "";
+        clearNode(this.root);
         return;
       }
 
-      this.root.innerHTML = `
-        <article class="gamification-panel overall-panel">
-          <p class="gamification-kicker">${state.answeredTotal} of ${state.totalQuestions} mission steps</p>
-          <strong>${state.completedSections} of ${state.totalSections} missions completed</strong>
-          <div class="overall-progress-rail" aria-hidden="true">
-            <svg
-              class="overall-progress-visual"
-              viewBox="0 0 100 12"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-              focusable="false"
-            >
-            <defs>
-              <linearGradient id="overall-progress-gradient" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#f4b942"></stop>
-                <stop offset="50%" stop-color="#e76f51"></stop>
-                <stop offset="100%" stop-color="#2a9d8f"></stop>
-              </linearGradient>
-            </defs>
-              <rect class="overall-progress-track" x="0" y="0" width="100" height="12" rx="6"></rect>
-              <rect
-                class="overall-progress-fill"
-                x="0"
-                y="0"
-                width="${state.overallPercent}"
-                height="12"
-                rx="6"
-                data-progress="${state.overallPercent}"
-              ></rect>
-            </svg>
-          </div>
-          <span>${state.totalQuestions - state.answeredTotal} mission steps left before launch</span>
-        </article>
-      `;
+      const article = createPanelArticle(
+        "overall-panel",
+        `${state.answeredTotal} of ${state.totalQuestions} mission steps`,
+        `${state.completedSections} of ${state.totalSections} missions completed`,
+      );
+      const rail = createElement("div", {
+        className: "overall-progress-rail",
+        attributes: { "aria-hidden": "true" },
+      });
+      const svg = createSvgElement("svg", {
+        class: "overall-progress-visual",
+        viewBox: "0 0 100 12",
+        preserveAspectRatio: "none",
+        "aria-hidden": "true",
+        focusable: "false",
+      });
+      appendSvgProgressParts(
+        svg,
+        createLinearGradientNode("overall-progress-gradient", "0", "0", "100", "0", [
+          { offset: "0%", color: "#f4b942" },
+          { offset: "50%", color: "#e76f51" },
+          { offset: "100%", color: "#2a9d8f" },
+        ]),
+        {
+          class: "overall-progress-track",
+          x: "0",
+          y: "0",
+          width: "100",
+          height: "12",
+          rx: "6",
+        },
+        {
+          class: "overall-progress-fill",
+          x: "0",
+          y: "0",
+          width: String(state.overallPercent),
+          height: "12",
+          rx: "6",
+          "data-progress": String(state.overallPercent),
+        },
+      );
+      rail.append(svg);
+      article.append(
+        rail,
+        createElement("span", {
+          textContent: `${state.totalQuestions - state.answeredTotal} mission steps left before launch`,
+        }),
+      );
+      renderRootNode(this.root, article);
     }
   }
 
@@ -491,7 +670,7 @@
 
     render(state) {
       if (!state.hasStarted) {
-        this.root.innerHTML = "";
+        clearNode(this.root);
         return;
       }
 
@@ -506,17 +685,20 @@
           ? "Star boosts appear at each mission halfway point."
           : `${state.midpointBoosts} star boosts are lighting the rocket so far.`;
 
-      this.root.innerHTML = `
-        <article class="gamification-panel rocket-panel ${stageCount === this.theme.rewardStages.length ? "is-finished" : ""}">
-          <div class="rocket-copy">
-            <p class="gamification-kicker">Rocket build</p>
-            <strong>${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked</strong>
-            <span>${statusLine}</span>
-            <span>${rewardLine}</span>
-          </div>
-          ${renderRocketScene(stageCount, state.midpointBoosts, stageCount === this.theme.rewardStages.length)}
-        </article>
-      `;
+      const article = createPanelArticle(
+        `rocket-panel${stageCount === this.theme.rewardStages.length ? " is-finished" : ""}`,
+        "Rocket build",
+        `${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked`,
+        [statusLine, rewardLine],
+      );
+      const copy = createElement("div", { className: "rocket-copy" });
+      copy.append(...Array.from(article.childNodes));
+      clearNode(article);
+      article.append(
+        copy,
+        buildRocketSceneNode(stageCount, state.midpointBoosts, stageCount === this.theme.rewardStages.length),
+      );
+      renderRootNode(this.root, article);
     }
   }
 
@@ -528,7 +710,7 @@
     }
 
     clear() {
-      this.root.innerHTML = "";
+      clearNode(this.root);
       this.panelRoot.classList.remove("is-feedback-correct", "is-feedback-gentle");
     }
 
@@ -540,12 +722,19 @@
       const message = this.messageManager.pick(isCorrect ? "correct" : "gentle");
       const effectLabel = isCorrect ? "sparkle" : "boost";
 
-      this.root.innerHTML = `
-        <div class="question-feedback-toast is-${tone}" role="status">
-          <span class="question-feedback-effect" aria-hidden="true">${effectLabel}</span>
-          <strong>${escapeHtml(message)}</strong>
-        </div>
-      `;
+      const toast = createElement("div", {
+        className: `question-feedback-toast is-${tone}`,
+        attributes: { role: "status" },
+      });
+      toast.append(
+        createElement("span", {
+          className: "question-feedback-effect",
+          textContent: effectLabel,
+          attributes: { "aria-hidden": "true" },
+        }),
+        createElement("strong", { textContent: message }),
+      );
+      this.root.append(toast);
 
       this.panelRoot.classList.add(isCorrect ? "is-feedback-correct" : "is-feedback-gentle");
     }
@@ -609,50 +798,71 @@
 
     renderCurrent() {
       if (!this.current) {
-        this.root.innerHTML = "";
+        clearNode(this.root);
         return;
       }
 
       if (this.isArtworkExpanded && this.current.artwork?.src) {
-        this.root.innerHTML = `
-          <div class="celebration-overlay is-${this.current.variant}" role="dialog" aria-modal="true">
-            <div class="celebration-card is-artwork-expanded">
-              ${buildCelebrationArtworkExpanded(this.current)}
-            </div>
-          </div>
-        `;
+        const overlay = createCelebrationOverlayNode(this.current.variant);
+        const card = createCelebrationCardNode("celebration-card is-artwork-expanded");
+        const artwork = buildCelebrationArtworkExpandedNode(this.current);
+        if (artwork) {
+          card.append(artwork);
+        }
+        overlay.append(card);
+        renderRootNode(this.root, overlay);
         return;
       }
 
-      const confetti = this.current.variant === "final"
-        ? Array.from({ length: 10 }, (_, index) => {
-            return `<span class="celebration-confetti celebration-confetti-${index + 1}"></span>`;
-          }).join("")
-        : "";
+      const overlay = createCelebrationOverlayNode(this.current.variant);
+      if (this.current.variant === "final") {
+        for (let index = 0; index < 10; index += 1) {
+          overlay.append(createElement("span", {
+            className: `celebration-confetti celebration-confetti-${index + 1}`,
+          }));
+        }
+      }
 
-      this.root.innerHTML = `
-        <div class="celebration-overlay is-${this.current.variant}" role="dialog" aria-modal="true">
-          ${confetti}
-          <div class="celebration-card">
-            <div class="celebration-content">
-              <p class="celebration-kicker">${escapeHtml(this.current.kicker)}</p>
-              <h3>${escapeHtml(this.current.title)}</h3>
-              ${celebrationBodyHtml(this.current.body)}
-              ${this.current.reward ? `<div class="celebration-reward">${escapeHtml(this.current.reward)}</div>` : ""}
-              ${renderCelebrationVisual(this.current)}
-            </div>
-            ${
-              this.current.showButton
-                ? `<div class="celebration-actions">
-                    <button class="celebration-button" type="button" data-dismiss-celebration>${escapeHtml(
-                      this.current.buttonLabel || "Back to Mission",
-                    )}</button>
-                  </div>`
-                : ""
-            }
-          </div>
-        </div>
-      `;
+      const card = createCelebrationCardNode();
+      const contentNode = createElement("div", { className: "celebration-content" });
+      contentNode.append(
+        createElement("p", {
+          className: "celebration-kicker",
+          textContent: this.current.kicker,
+        }),
+        createElement("h3", { textContent: this.current.title }),
+      );
+      const body = buildCelebrationBodyNode(this.current.body);
+      if (body) {
+        contentNode.append(body);
+      }
+      if (this.current.reward) {
+        contentNode.append(createElement("div", {
+          className: "celebration-reward",
+          textContent: this.current.reward,
+        }));
+      }
+      const visual = renderCelebrationVisualNode(this.current);
+      if (visual) {
+        contentNode.append(visual);
+      }
+      card.append(contentNode);
+
+      if (this.current.showButton) {
+        const actions = createElement("div", { className: "celebration-actions" });
+        actions.append(createElement("button", {
+          className: "celebration-button",
+          textContent: this.current.buttonLabel || "Back to Mission",
+          attributes: {
+            type: "button",
+            "data-dismiss-celebration": "",
+          },
+        }));
+        card.append(actions);
+      }
+
+      overlay.append(card);
+      renderRootNode(this.root, overlay);
     }
 
     enqueue(event) {
@@ -685,7 +895,7 @@
       const dismissedEvent = this.current;
       this.current = null;
       this.isArtworkExpanded = false;
-      this.root.innerHTML = "";
+      clearNode(this.root);
       this.notifyStateChange({ dismissedEvent });
 
       if (this.queue.length > 0) {
@@ -702,7 +912,7 @@
       this.queue = [];
       this.current = null;
       this.isArtworkExpanded = false;
-      this.root.innerHTML = "";
+      clearNode(this.root);
       this.notifyStateChange();
     }
 
