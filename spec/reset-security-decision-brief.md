@@ -20,44 +20,19 @@ Observed adjacent behavior:
 - the reset route does not use `adminAuth`
 - the frontend still presents reset as a parent control, not a hidden admin-only action
 
-## Options
+## Current Repo Decision
 
-### Option A: Keep the public parent flow
+Keep `POST /api/v1/admin/scores/reset` on the current public parent flow for now.
 
-This keeps the current browser-facing reset path and continues using the reset PIN.
+The backend stays responsible for verifying the reset PIN server-side, and the browser keeps using the parent-facing prompt. The admin key does not enter the browser.
 
-Pros:
+Reason:
 
-- preserves the existing parent UX
-- avoids exposing the admin key to the browser
-- keeps reset available as a parent control instead of a separate admin workflow
-- matches the current product framing in the frontend and product docs
+- the current product still treats reset as a parent control
+- the backend already keeps the secret server-side
+- the existing PIN flow avoids putting `X-Admin-Key` into the browser
+- moving to owner-only `X-Admin-Key` would require a product/UI redesign, not just a backend auth tweak
 
-Cons:
+## What Would Change This
 
-- the route remains publicly reachable, even if protected by PIN verification
-- the reset PIN still has to be handled through a browser prompt
-- the endpoint stays distinct from the other admin-key-protected surface
-
-### Option B: Make reset owner-only with `X-Admin-Key`
-
-This would move reset into the same authorization model as admin push send.
-
-Pros:
-
-- stronger authorization model for a destructive operation
-- consistent with the existing `ADMIN_API_KEY` pattern
-- removes reset PIN handling from the browser path
-- reduces the chance that reset is treated like a normal parent-facing feature
-
-Cons:
-
-- breaks the current parent-facing reset flow
-- requires a product/UX change, because the browser cannot safely hold the admin key
-- would likely need a backend-mediated admin action or a separate owner-only control surface
-
-## Recommendation
-
-Keep the public parent flow for now.
-
-Reason: the current product still treats reset as a parent control, the backend already keeps the secret server-side, and the existing PIN flow avoids putting `X-Admin-Key` into the browser. Moving to owner-only `X-Admin-Key` is the right choice only if we are willing to reclassify reset as a true admin action and redesign the parent UI around that change.
+Revisit the route only if we decide to reclassify reset as a true admin action and are willing to redesign the parent UI around that change.
