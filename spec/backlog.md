@@ -1,6 +1,6 @@
 # Next Implementation Todo
 
-This file is the live backlog only. Completed work should not stay here unless it is still needed to explain an open decision or dependency.
+This file is the live backlog only. Completed work should not stay here unless it still explains an open dependency or decision.
 
 ## Current Context
 
@@ -9,9 +9,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 - CI, SonarCloud, Dependabot, branch protection, and the live smoke runner are already in place.
 - Backend schema is hardened: SECURITY DEFINER function lockdown (PR 21) and RLS with service-role-only policies (PR 22) are both live.
 - The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
-- The review-card innerHTML sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
-- Sonar quick wins landed (PR 28): `@types/*` moved to devDependencies, dead `savePlayerRecord` path removed, CSS contrast fixed, nested template literals and dead `escapeHtml` removed, `buildSectionButton` converted to DOM construction.
-- Progress note: the last remaining Sonar critical is `handleOverlayStateChange()` in `app.js`, and the current slice is splitting its overlay-dismissal branches into focused helpers with targeted frontend coverage.
+- The review-card `innerHTML` sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
+- Sonar critical cognitive-complexity issues are now cleared on `master`.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - Durable architecture and process details belong in:
@@ -27,7 +26,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [ ] Add clickjacking protection planning for the GitHub Pages frontend. GitHub Pages cannot enforce `frame-ancestors` from a meta CSP, so this likely requires a hosting decision or an explicit risk acceptance.
 - [ ] Add a CSP `report-to` or equivalent reporting endpoint after the stricter CSP is in place.
-- [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation — safe today but the natural next pass.
+- [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation - safe today but the natural next pass.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
 ## Priority 2: Documentation And Repo Hygiene
@@ -37,37 +36,28 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: extracting focused overlay-dismissal helpers from `handleOverlayStateChange()` with targeted frontend coverage to clear the last Sonar critical.
+Current slice in progress: refreshing the backlog to match the live post-critical Sonar state and queue the remaining major issues by lowest-risk sweep order.
 
-SonarCloud currently reports 9 critical cognitive-complexity violations (S3776). Highest severity first:
+SonarCloud currently reports 0 open critical issues and 15 open major issues. Current sweep order:
 
-- [ ] Refactor `renderQuestion()` in `app.js:1243` — complexity 56, worst function in the codebase. Split into question-render, option-render, feedback-render, and state-sync helpers.
-  Progress: PR 32 extracts `renderStartScreen`, `renderStoryOnlyQuestion`, `renderOptions` (DOM construction, removes last user-data innerHTML), and `renderHintAndButton`. 12 new frontend tests, 156 → 168 passing.
-- [ ] Refactor `normalizeAttemptQuestion()` in `app.js:196` — complexity 39.
-  Progress: PR 34 extracts option resolution, canonical-answer lookup, answer fallback, id fallback, and text-field normalization into focused helpers. Adds direct frontend coverage for canonical fallback and shuffled-option answer derivation.
-- [ ] Refactor `buildLogicChallengeQuestions()` in `question-bank.js:2221` — complexity 39.
-  Progress: PR 33 extracts the activity-order, speed-order, and attribute-chain question families into focused helpers and adds frontend tests that lock down one generated prompt from each family.
-- [ ] Refactor `buildLogicalQuestions()` in `question-bank.js:1444` — complexity 28.
-  Progress: PR 37 extracts event-order, height-order, attribute-truth, and line-order families into focused helpers and adds frontend tests that lock down one generated question from each family.
-- [ ] Split `saveAuthoritativeScore()` in `backend/src/services/attempt.service.ts:560` — complexity 25. Aligns with the broader `attempt.service.ts` split into question-selection, attempt-state, and score-persistence helpers.
-  Progress: PR 31 extracts `fetchOldBest`, `persistScoreLegacyFallback`, and `persistScorePrimary`; `saveAuthoritativeScore` becomes a thin orchestrator. 14 new unit tests, 147 → 161 passing.
-- [ ] Refactor `refreshTopScoreForPlayer()` in `scoreboard.js:639` — complexity 22.
-  Progress: PR 38 extracts lookup-result helpers from `refreshTopScoreForPlayer()` and adds targeted remote, cached, and error frontend coverage.
-- [ ] Refactor `buildQuantitativeQuestions()` in `question-bank.js:563` — complexity 23.
-- [ ] Refactor `buildNonverbalQuestions()` in `question-bank.js:742` — complexity 23.
-- [ ] Refactor `generateGridQuestions()` in `question-bank.js:938` — complexity 19.
-  Progress: extracted grid-path validation and candidate assembly helpers, plus deterministic frontend coverage for representative 3x3, 4x4, and 5x5 grid questions.
-- [ ] Refactor `handleOverlayStateChange()` in `app.js:1900` — complexity 17.
-- [ ] Refactor `handleAnswerEvaluation()` in `app.js:1790` — complexity 16.
-  Progress: this slice extracts hint/button resolution, overlay dismissal routing, and answer-evaluation fallback helpers in `app.js`, with targeted frontend tests covering the extracted branches.
-- [ ] Refactor `buildSpatialQuestions()` in `question-bank.js:1008` — complexity 16.
-  Progress: extracted `buildSpatialTurnQuestions()` and locked down representative rocket-turn prompts with deterministic frontend coverage.
-
-Additional code quality items:
-
-- [ ] Sweep nested ternaries (28 Sonar MAJOR S3358 issues) across `app.js` and `question-bank.js`.
-- [ ] Replace remaining nested template literals — `app.js:1177` and `scoreboard.js:625–626` resolved in PR 28; confirm via Sonar whether any remain.
-- [ ] Replace optional-chaining opportunities (9 Sonar MAJOR S6582) across `app.js`, `scoreboard.js`, and `gamification.js`.
+- [ ] Replace the remaining optional-chaining opportunities (9 Sonar MAJOR `S6582`):
+  - `app.js:214`
+  - `app.js:326`
+  - `app.js:687`
+  - `app.js:723`
+  - `app.js:767`
+  - `app.js:1949`
+  - `app.js:2001`
+  - `gamification.js:568`
+  - `scoreboard.js:837`
+- [ ] Extract the remaining nested ternaries (5 Sonar MAJOR `S3358` issues):
+  - `app.js:1341`
+  - `app.js:1344`
+  - `scoreboard.js:336`
+  - `question-bank.js:344`
+  - `question-bank.js:1000`
+- [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`).
+- [ ] Replace remaining nested template literals - `app.js:1177` and `scoreboard.js:625-626` were resolved in PR 28; confirm via Sonar after the next scan that no more remain.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
@@ -100,7 +90,7 @@ Additional code quality items:
 
 ## Next Recommended Delivery Slice
 
-1. **Backend complexity** — split `saveAuthoritativeScore()` in `attempt.service.ts:560` (complexity 25) as the first step of the broader `attempt.service.ts` decomposition.
-2. **Frontend complexity** — refactor `renderQuestion()` in `app.js:1243` (complexity 56), the single largest Sonar issue in the codebase.
-3. **Optional chaining sweep** — replace the 9 S6582 optional-chaining opportunities across `app.js`, `scoreboard.js`, and `gamification.js`. Low risk, measurable Sonar improvement.
-4. **Decide the reset route security model** — unblocks the API spec update and any future auth change on that route.
+1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
+2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
+3. **CSP tightening** - once the inline-style cleanup PRs are merged, remove `'unsafe-inline'` from `style-src` and run the frontend smoke pass.
+4. **Decide the reset route security model** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
