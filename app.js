@@ -931,12 +931,13 @@ function renderRocketSceneMarkup(stageCount, boostCount) {
   }).join("");
 
   const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
+  const fuelLevel = clamp(boostCount, 0, 8);
 
   return `
     <div class="rocket-scene rocket-scene-mini" aria-hidden="true">
       <div class="rocket-stars">${stars}</div>
       <div class="rocket-fuel">
-        <span class="rocket-fuel-fill" style="height: ${Math.round((clamp(boostCount, 0, 8) / 8) * 100)}%"></span>
+        <span class="rocket-fuel-fill rocket-fuel-level-${fuelLevel}"></span>
       </div>
       <div class="rocket-pad rocket-part ${partClass(stageCount >= 1)}"></div>
       <div class="rocket-body rocket-part ${partClass(stageCount >= 2)}"></div>

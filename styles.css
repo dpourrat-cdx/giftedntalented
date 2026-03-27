@@ -742,6 +742,48 @@ h1 {
   height: 58px;
 }
 
+.rocket-scene-mini .rocket-fuel-fill {
+  display: block;
+  width: 100%;
+  height: 0;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-0 {
+  height: 0%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-1 {
+  height: 13%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-2 {
+  height: 25%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-3 {
+  height: 38%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-4 {
+  height: 50%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-5 {
+  height: 63%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-6 {
+  height: 75%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-7 {
+  height: 88%;
+}
+
+.rocket-scene-mini .rocket-fuel-fill.rocket-fuel-level-8 {
+  height: 100%;
+}
+
 .rocket-scene-mini .rocket-pad {
   left: 34px;
   bottom: 8px;
