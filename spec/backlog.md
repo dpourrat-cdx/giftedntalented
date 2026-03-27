@@ -22,8 +22,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 ## Priority 1: Security Hardening
 
 - [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. See `spec/reset-security-decision-brief.md` for the current behavior, options, tradeoffs, and recommendation.
-- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. Progress: current frontend audit isolated the last app-side blocker to the mini rocket fuel fill renderer; this slice converts it from an inline `style` attribute to discrete CSS level classes.
-- [ ] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
+- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. Progress: the last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
+- [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
 - [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
 - [ ] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers (`MissionPanel`, `OverallProgressBar`, `RocketProgressVisual`, `CelebrationManager`) still use `innerHTML` with integer/constant-only interpolation - safe today but the natural next pass.
