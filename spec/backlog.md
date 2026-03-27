@@ -51,8 +51,8 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 - [ ] Extract the remaining nested ternaries (5 Sonar MAJOR `S3358` issues):
   - `app.js` start-screen hint ternaries are covered in the current PR via dedicated helpers.
   - `scoreboard.js:336`
-  - `question-bank.js:344`
-  - `question-bank.js:1000`
+  - `question-bank.js:344` (being handled in the current PR)
+  - `question-bank.js:1000` (being handled in the current PR)
 - [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`).
 - [ ] Replace remaining nested template literals - `app.js:1177` and `scoreboard.js:625-626` were resolved in PR 28; confirm via Sonar after the next scan that no more remain.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.

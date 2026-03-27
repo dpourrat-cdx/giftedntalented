@@ -338,10 +338,22 @@
     return `${item} belongs in the ${category} group, so ${category} is the correct category name.`;
   }
 
+  function turnOffset(turn) {
+    if (turn === "right") {
+      return 1;
+    }
+
+    if (turn === "left") {
+      return -1;
+    }
+
+    return 2;
+  }
+
   function rotateDirection(direction, turn) {
     const directions = ["north", "east", "south", "west"];
     const index = directions.indexOf(direction);
-    const offset = turn === "right" ? 1 : turn === "left" ? -1 : 2;
+    const offset = turnOffset(turn);
     return directions[(index + offset + directions.length) % directions.length];
   }
 
@@ -997,10 +1009,10 @@
     for (let index = 0; index < 25; index += 1) {
       const start = arrowDirections[index % arrowDirections.length];
       const next = arrowDirections[(index + 1) % arrowDirections.length];
-      const rule = index % 3 === 0 ? "right" : index % 3 === 1 ? "left" : "opposite";
+      const rule = arrowRuleForIndex(index);
       const changedStart = reverseArrowMap[rotateDirection(arrowMap[start], rule)];
       const changedNext = reverseArrowMap[rotateDirection(arrowMap[next], rule)];
-      const promptRule = rule === "opposite" ? "points the opposite way" : `turns ${rule}`;
+      const promptRule = describeArrowPromptRule(rule);
 
       questions.push(
         makeChoiceQuestion(
@@ -1016,6 +1028,22 @@
     }
 
     return questions;
+  }
+
+  function arrowRuleForIndex(index) {
+    if (index % 3 === 0) {
+      return "right";
+    }
+
+    if (index % 3 === 1) {
+      return "left";
+    }
+
+    return "opposite";
+  }
+
+  function describeArrowPromptRule(rule) {
+    return rule === "opposite" ? "points the opposite way" : `turns ${rule}`;
   }
 
   function buildNonverbalQuestions() {
