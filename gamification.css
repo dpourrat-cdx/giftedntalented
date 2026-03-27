@@ -229,6 +229,42 @@
   fill: url(#rocket-fuel-gradient);
 }
 
+.rocket-fuel-fill.fuel-level-0 {
+  height: 0%;
+}
+
+.rocket-fuel-fill.fuel-level-1 {
+  height: 13%;
+}
+
+.rocket-fuel-fill.fuel-level-2 {
+  height: 25%;
+}
+
+.rocket-fuel-fill.fuel-level-3 {
+  height: 38%;
+}
+
+.rocket-fuel-fill.fuel-level-4 {
+  height: 50%;
+}
+
+.rocket-fuel-fill.fuel-level-5 {
+  height: 63%;
+}
+
+.rocket-fuel-fill.fuel-level-6 {
+  height: 75%;
+}
+
+.rocket-fuel-fill.fuel-level-7 {
+  height: 88%;
+}
+
+.rocket-fuel-fill.fuel-level-8 {
+  height: 100%;
+}
+
 .rocket-part {
   opacity: 0.16;
   filter: saturate(0.5);
