@@ -211,7 +211,7 @@ function normalizeAttemptQuestion(question, index) {
   const explanation = resolveAttemptTextField(candidate.explanation, canonicalQuestion?.explanation);
   const stimulus = resolveAttemptStimulus(candidate.stimulus, canonicalQuestion?.stimulus);
 
-  if (!id || !bankId || !section || !prompt || !options || options.length !== 4 || answer === null) {
+  if (!id || !bankId || !section || !prompt || options?.length !== 4 || answer === null) {
     return null;
   }
 
@@ -323,7 +323,7 @@ function normalizeAttemptQuestions(questions) {
 
 function applyAttemptQuestions(questions) {
   const normalizedQuestions = normalizeAttemptQuestions(questions);
-  if (!normalizedQuestions || normalizedQuestions.length !== totalQuestions()) {
+  if (normalizedQuestions?.length !== totalQuestions()) {
     return false;
   }
 
@@ -684,7 +684,7 @@ function buildStoryParagraphs(lines) {
 }
 
 function buildStoryArtworkElement(artwork, options = {}) {
-  if (!artwork || !artwork.src) {
+  if (!artwork?.src) {
     return null;
   }
 
@@ -720,7 +720,7 @@ function buildStoryArtworkElement(artwork, options = {}) {
 }
 
 function buildStoryArtworkMarkup(artwork, options = {}) {
-  if (!artwork || !artwork.src) {
+  if (!artwork?.src) {
     return "";
   }
 
@@ -764,7 +764,7 @@ function resultsGalleryItems(percentage, sectionScores) {
 
   for (const section of sections) {
     const mission = missionStoryForSection(section);
-    if (!mission || !mission.completionArtwork) {
+    if (!mission?.completionArtwork) {
       continue;
     }
 
@@ -1324,6 +1324,22 @@ function renderFeedback(question, validatedAnswer) {
   dom.feedbackPanel.innerHTML = "";
 }
 
+function resolveStartScreenNameHint() {
+  if (!playerName) {
+    return startContent.emptyNameHint;
+  }
+
+  return storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint;
+}
+
+function resolveStartScreenNextHint() {
+  if (!playerName) {
+    return startContent.emptyNextHint;
+  }
+
+  return storyOnlyModeEnabled ? startContent.readyStoryOnlyNextHint : startContent.readyNextHint;
+}
+
 function renderStartScreen() {
   dom.questionPanel.classList.add("is-start-screen");
   dom.tipCard?.classList.remove("is-hidden");
@@ -1338,12 +1354,8 @@ function renderStartScreen() {
   dom.feedbackPanel.className = "feedback-panel is-hidden";
   dom.feedbackPanel.innerHTML = "";
   renderIntroductionStory();
-  dom.nameHint.textContent = playerName
-    ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNameHint : startContent.readyNameHint)
-    : startContent.emptyNameHint;
-  dom.nextHint.textContent = playerName
-    ? (storyOnlyModeEnabled ? startContent.readyStoryOnlyNextHint : startContent.readyNextHint)
-    : startContent.emptyNextHint;
+  dom.nameHint.textContent = resolveStartScreenNameHint();
+  dom.nextHint.textContent = resolveStartScreenNextHint();
   dom.nextHint.classList.remove("is-hidden");
   dom.nextButton.textContent = questionContent.buttons.check;
   dom.nextButton.disabled = true;
@@ -1947,7 +1959,7 @@ function shouldResumeDeferredAutoAdvance(hasBlockingOverlay) {
 }
 
 function handleOverlayStateChange(overlayState) {
-  const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
+  const hasBlockingOverlay = Boolean(overlayState?.hasBlocking);
   const dismissedEvent = overlayState?.dismissedEvent || null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
 
@@ -1999,7 +2011,7 @@ function syncAnswerEvaluation(questionIndex, question, selectedAnswer, result) {
   }
 
   if (isCorrect) {
-    if (gamificationController && gamificationController.hasBlockingOverlay()) {
+    if (gamificationController?.hasBlockingOverlay()) {
       deferredAdvanceQuestionIndex = questionIndex;
     } else {
       scheduleAutoAdvance(questionIndex);
