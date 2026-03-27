@@ -64,7 +64,7 @@ Current schema hardening in `backend/supabase/backend_schema.sql` includes:
 
 `POST /admin/push/send` requires `X-Admin-Key`.
 
-`POST /admin/scores/reset` currently remains parent-accessible by reset PIN rather than `X-Admin-Key`. The broader long-term security decision for that route is still tracked in `spec/backlog.md`.
+`POST /admin/scores/reset` currently remains parent-accessible by reset PIN rather than `X-Admin-Key`. That is the current repo decision and the browser-facing reset flow.
 
 ## CORS
 
@@ -376,6 +376,7 @@ Success response:
 
 Behavior:
 
+- this route stays on the current parent-facing PIN model
 - verifies `resetPin` against the stored hash in `app_admin_settings`
 - counts rows before deleting them
 - clears both `test_scores` and `score_attempts`
@@ -530,5 +531,4 @@ Operational checks:
 
 ## Known Open Decisions
 
-- whether `POST /admin/scores/reset` should remain public-parent reachable or become owner-only behind `X-Admin-Key`
 - whether the frontend should eventually stop shipping the question bank bundle entirely once UI rendering is fully decoupled from local bank data

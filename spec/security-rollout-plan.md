@@ -17,14 +17,11 @@ Reduce the remaining backend and frontend security risk without mixing unrelated
 | Review-card innerHTML hardening | PR 25 | Missed-question and perfect-score cards converted to DOM construction |
 | Frontend coverage for review cards | PR 26 | Targeted `app.js` frontend tests covering both card variants |
 
-## Open Decision Blocker
+## Current Reset Decision
 
-`POST /api/v1/admin/scores/reset` security model:
+`POST /api/v1/admin/scores/reset` stays on the current public parent flow for now.
 
-- **Option A:** keep it usable from the public parent flow (current behavior)
-- **Option B:** make it owner-only and require `X-Admin-Key`
-
-This decision must be made before any auth change lands on that route. It also affects the reset-route section of `spec/backend-api-spec.md`.
+The backend continues to verify the reset PIN server-side, and the browser keeps using the parent-facing prompt. The admin key does not enter the browser. If the product model changes later, this route can be revisited as a separate auth/UX effort.
 
 ## Remaining Execution Order
 
@@ -82,4 +79,4 @@ Notes:
 
 - Keep security/schema changes in separate PRs.
 - Update `spec/backlog.md` whenever one of these steps moves.
-- Do not combine the reset-route product decision with CSP or RLS changes.
+- The reset-route product decision is now codified in `spec/reset-security-decision-brief.md` and `spec/backend-api-spec.md`; do not re-open it in the security sequence unless the product model changes.

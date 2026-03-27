@@ -13,6 +13,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - Sonar critical cognitive-complexity issues are now cleared on `master`.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
+- The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
@@ -21,8 +22,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 1: Security Hardening
 
-- [ ] Decide whether `POST /api/v1/admin/scores/reset` should stay public-parent reachable or become owner-only with `X-Admin-Key`. See `spec/reset-security-decision-brief.md` for the current behavior, options, tradeoffs, and recommendation.
-- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. Progress: the last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
+- [x] Codify the reset endpoint decision as the current parent-facing PIN flow and update the API spec accordingly.
+- [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. The last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
 - [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
 - [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
@@ -93,4 +94,4 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
 2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
 3. **Gamification DOM hardening** - replace the remaining `innerHTML` renderers in `gamification.js` and pair the cleanup with targeted frontend coverage.
-4. **Reset route decision** - use `spec/reset-security-decision-brief.md` to choose the public-parent flow or owner-only `X-Admin-Key` path before coding the route change.
+4. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
