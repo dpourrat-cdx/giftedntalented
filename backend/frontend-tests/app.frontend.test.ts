@@ -257,6 +257,15 @@ async function loadAppHelpers(question = attemptQuestion) {
     getSectionOverlayDismissalAction: window.eval("getSectionOverlayDismissalAction") as (
       dismissedEvent: Record<string, unknown> | null,
     ) => string | null,
+    handleStoryOnlyOverlayDismissal: window.eval("handleStoryOnlyOverlayDismissal") as (
+      dismissedEvent: Record<string, unknown> | null,
+    ) => boolean,
+    handleStandardOverlayDismissal: window.eval("handleStandardOverlayDismissal") as (
+      dismissedEvent: Record<string, unknown> | null,
+    ) => boolean,
+    shouldResumeDeferredAutoAdvance: window.eval("shouldResumeDeferredAutoAdvance") as (
+      hasBlockingOverlay: boolean,
+    ) => boolean,
     resolveAuthoritativeCorrectAnswer: window.eval("resolveAuthoritativeCorrectAnswer") as (
       result: Record<string, unknown> | null,
       fallbackAnswer: number,
@@ -835,6 +844,9 @@ describe("app.js targeted coverage", () => {
       const {
         getStoryOnlyOverlayDismissalAction,
         getSectionOverlayDismissalAction,
+        handleStoryOnlyOverlayDismissal,
+        handleStandardOverlayDismissal,
+        shouldResumeDeferredAutoAdvance,
       } = await loadAppHelpers();
 
       expect(getStoryOnlyOverlayDismissalAction({ variant: "intro", sectionKey: "Verbal" })).toBe("showMissionUpdate");
@@ -845,6 +857,10 @@ describe("app.js targeted coverage", () => {
       expect(getSectionOverlayDismissalAction({ variant: "section", advanceOnDismiss: false })).toBe("suppressNextButton");
       expect(getSectionOverlayDismissalAction({ variant: "section", advanceOnDismiss: true })).toBe("advanceToNextMission");
       expect(getSectionOverlayDismissalAction({ variant: "intro" })).toBeNull();
+
+      expect(handleStoryOnlyOverlayDismissal({ variant: "other" })).toBe(false);
+      expect(handleStandardOverlayDismissal({ variant: "intro" })).toBe(false);
+      expect(shouldResumeDeferredAutoAdvance(true)).toBe(false);
     });
 
     it("prefers the scoreboard answer when it is valid and falls back cleanly otherwise", async () => {
