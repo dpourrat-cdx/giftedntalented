@@ -572,6 +572,39 @@ describe("app.js targeted coverage", () => {
     });
   });
 
+  describe("renderProgressFill", () => {
+    it("upgrades the mission progress bar to semantic markup without inline width styling", async () => {
+      await startApp();
+
+      const progressFill = document.getElementById("progressFill") as HTMLProgressElement;
+
+      expect(progressFill.tagName).toBe("PROGRESS");
+      expect(progressFill.max).toBe(100);
+      expect(progressFill.value).toBe(0);
+      expect(progressFill.getAttribute("style")).toBeNull();
+    });
+
+    it("updates the progress value when a question is validated", async () => {
+      await startApp();
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[attemptQuestion.answer].click();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      await Promise.resolve();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+      const progressFill = document.getElementById("progressFill") as HTMLProgressElement;
+      expect(progressFill.value).toBe(100);
+      expect(progressFill.getAttribute("style")).toBeNull();
+      expect(document.getElementById("answeredCount")?.textContent).toBe("1 of 1");
+    });
+  });
+
   describe("renderHintAndButton", () => {
     it("shows select hint and disables next button when no answer is selected", async () => {
       await startApp();

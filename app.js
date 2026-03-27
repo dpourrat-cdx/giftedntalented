@@ -585,6 +585,25 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function ensureSemanticProgressFill() {
+  if (!dom.progressFill) {
+    return;
+  }
+
+  if (dom.progressFill.tagName === "PROGRESS") {
+    dom.progressFill.max = 100;
+    return;
+  }
+
+  const progressFill = document.createElement("progress");
+  progressFill.id = dom.progressFill.id;
+  progressFill.className = dom.progressFill.className;
+  progressFill.max = 100;
+  progressFill.value = 0;
+  dom.progressFill.replaceWith(progressFill);
+  dom.progressFill = progressFill;
+}
+
 function applyStaticCopy() {
   document.title = content.hero.title;
   dom.heroEyebrow.textContent = content.hero.eyebrow;
@@ -1285,8 +1304,11 @@ function renderSectionStats() {
 
 function updateProgress() {
   const totalAnswered = answeredTotal();
+  const total = totalQuestions();
+  const progressPercent = total === 0 ? 0 : (totalAnswered / total) * 100;
   dom.answeredCount.textContent = `${totalAnswered} of ${totalQuestions()}`;
-  dom.progressFill.style.width = `${(totalAnswered / totalQuestions()) * 100}%`;
+  dom.progressFill.value = progressPercent;
+  dom.progressFill.max = 100;
   dom.scoreDisplay.textContent = formatScore(liveCorrectTotal());
   renderSectionStats();
   syncGamification();
@@ -2086,6 +2108,7 @@ if (window.GiftedScoreboard) {
   scoreboardController.setActivePlayerName(playerName);
 }
 
+ensureSemanticProgressFill();
 createNewSession();
 applyStaticCopy();
 dom.storyOnlyToggle.checked = storyOnlyModeEnabled;
