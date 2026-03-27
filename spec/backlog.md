@@ -27,7 +27,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
 - [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
 - [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
-- [x] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`.
+- [x] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`, and the shared panel/overlay helpers keep the safer path below Sonar's duplication gate.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
 ## Priority 2: Documentation And Repo Hygiene
@@ -93,6 +93,5 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 
 1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
 2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
-4. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
 4. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current gamification DOM branch is merged and stable.

@@ -103,6 +103,41 @@
     return template.content;
   }
 
+  function createPanelArticle(panelClass, kickerText, strongText, detailLines = []) {
+    const article = createElement("article", {
+      className: `gamification-panel ${panelClass}`,
+    });
+    article.append(
+      createElement("p", {
+        className: "gamification-kicker",
+        textContent: kickerText,
+      }),
+      createElement("strong", {
+        textContent: strongText,
+      }),
+    );
+
+    detailLines.forEach((line) => {
+      article.append(createElement("span", { textContent: line }));
+    });
+
+    return article;
+  }
+
+  function createCelebrationOverlayNode(variant) {
+    return createElement("div", {
+      className: `celebration-overlay is-${variant}`,
+      attributes: {
+        role: "dialog",
+        "aria-modal": "true",
+      },
+    });
+  }
+
+  function createCelebrationCardNode(className = "celebration-card") {
+    return createElement("div", { className });
+  }
+
   function appendFormattedStoryInline(parent, value) {
     const segments = String(value || "").split(/(\*\*.+?\*\*)/g);
     segments.forEach((segment) => {
@@ -505,20 +540,11 @@
       }
 
       const section = state.currentSection;
-      const article = createElement("article", {
-        className: "gamification-panel mission-panel",
-      });
-      article.append(
-        createElement("p", {
-          className: "gamification-kicker",
-          textContent: `${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}`,
-        }),
-        createElement("strong", {
-          textContent: `Mission step ${state.currentQuestionNumber} of ${section.totalQuestions}`,
-        }),
-        createElement("span", {
-          textContent: `${section.answeredCount} of ${section.totalQuestions} rocket steps powered`,
-        }),
+      const article = createPanelArticle(
+        "mission-panel",
+        `${this.theme.missionLabel} ${section.index + 1} of ${state.totalSections}`,
+        `Mission step ${state.currentQuestionNumber} of ${section.totalQuestions}`,
+        [`${section.answeredCount} of ${section.totalQuestions} rocket steps powered`],
       );
 
       const dots = createElement("div", {
@@ -561,17 +587,10 @@
         return;
       }
 
-      const article = createElement("article", {
-        className: "gamification-panel overall-panel",
-      });
-      article.append(
-        createElement("p", {
-          className: "gamification-kicker",
-          textContent: `${state.answeredTotal} of ${state.totalQuestions} mission steps`,
-        }),
-        createElement("strong", {
-          textContent: `${state.completedSections} of ${state.totalSections} missions completed`,
-        }),
+      const article = createPanelArticle(
+        "overall-panel",
+        `${state.answeredTotal} of ${state.totalQuestions} mission steps`,
+        `${state.completedSections} of ${state.totalSections} missions completed`,
       );
       const rail = createElement("div", {
         className: "overall-progress-rail",
@@ -654,21 +673,15 @@
           ? "Star boosts appear at each mission halfway point."
           : `${state.midpointBoosts} star boosts are lighting the rocket so far.`;
 
-      const article = createElement("article", {
-        className: `gamification-panel rocket-panel${stageCount === this.theme.rewardStages.length ? " is-finished" : ""}`,
-      });
-      const copy = createElement("div", { className: "rocket-copy" });
-      copy.append(
-        createElement("p", {
-          className: "gamification-kicker",
-          textContent: "Rocket build",
-        }),
-        createElement("strong", {
-          textContent: `${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked`,
-        }),
-        createElement("span", { textContent: statusLine }),
-        createElement("span", { textContent: rewardLine }),
+      const article = createPanelArticle(
+        `rocket-panel${stageCount === this.theme.rewardStages.length ? " is-finished" : ""}`,
+        "Rocket build",
+        `${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked`,
+        [statusLine, rewardLine],
       );
+      const copy = createElement("div", { className: "rocket-copy" });
+      copy.append(...Array.from(article.childNodes));
+      clearNode(article);
       article.append(
         copy,
         buildRocketSceneNode(stageCount, state.midpointBoosts, stageCount === this.theme.rewardStages.length),
@@ -779,16 +792,8 @@
       }
 
       if (this.isArtworkExpanded && this.current.artwork?.src) {
-        const overlay = createElement("div", {
-          className: `celebration-overlay is-${this.current.variant}`,
-          attributes: {
-            role: "dialog",
-            "aria-modal": "true",
-          },
-        });
-        const card = createElement("div", {
-          className: "celebration-card is-artwork-expanded",
-        });
+        const overlay = createCelebrationOverlayNode(this.current.variant);
+        const card = createCelebrationCardNode("celebration-card is-artwork-expanded");
         const artwork = buildCelebrationArtworkExpandedNode(this.current);
         if (artwork) {
           card.append(artwork);
@@ -799,13 +804,7 @@
         return;
       }
 
-      const overlay = createElement("div", {
-        className: `celebration-overlay is-${this.current.variant}`,
-        attributes: {
-          role: "dialog",
-          "aria-modal": "true",
-        },
-      });
+      const overlay = createCelebrationOverlayNode(this.current.variant);
       if (this.current.variant === "final") {
         for (let index = 0; index < 10; index += 1) {
           overlay.append(createElement("span", {
@@ -814,7 +813,7 @@
         }
       }
 
-      const card = createElement("div", { className: "celebration-card" });
+      const card = createCelebrationCardNode();
       const contentNode = createElement("div", { className: "celebration-content" });
       contentNode.append(
         createElement("p", {
