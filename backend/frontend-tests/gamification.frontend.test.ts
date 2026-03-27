@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
 
@@ -46,11 +46,17 @@ function buildSnapshot(validatedAnswers: Array<number | null>) {
 describe("GiftedGamification", () => {
   beforeEach(() => {
     resetFrontendGlobals();
+    (window as Window & typeof globalThis & Record<string, unknown>).__GiftedExposeTestUtils = true;
     window.CaptainNovaContent = {
       gamification: {
         sectionCompleteButton: "Next mission",
       },
     };
+  });
+
+  afterEach(() => {
+    delete (window as Window & typeof globalThis & Record<string, unknown>).__GiftedExposeTestUtils;
+    vi.unstubAllGlobals();
   });
 
   it("renders progress visuals without inline dimension styles", async () => {
@@ -74,6 +80,31 @@ describe("GiftedGamification", () => {
     expect(rocketFill?.getAttribute("height")).toBe("9");
     expect(rocketFill?.getAttribute("y")).toBe("65");
     expect(rocketFill?.getAttribute("style")).toBeNull();
+  });
+
+  it("detects reduced motion without optional chaining when matchMedia is missing", async () => {
+    vi.stubGlobal("matchMedia", undefined);
+    await loadFrontendScript("gamification.js");
+
+    expect(window.GiftedGamification.__testPrefersReducedMotion()).toBe(false);
+  });
+
+  it("detects reduced motion when matchMedia matches", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      addListener() {},
+      removeListener() {},
+      addEventListener() {},
+      removeEventListener() {},
+      dispatchEvent() {
+        return false;
+      },
+    }));
+    await loadFrontendScript("gamification.js");
+
+    expect(window.GiftedGamification.__testPrefersReducedMotion()).toBe(true);
   });
 
   it("renders mission progress and feedback panels with DOM nodes", async () => {

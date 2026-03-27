@@ -27,7 +27,8 @@
   };
 
   function prefersReducedMotion() {
-    return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+    const mediaQuery = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
+    return Boolean(mediaQuery?.matches);
   }
 
   function clamp(value, min, max) {
@@ -97,6 +98,7 @@
     return element;
   }
 
+  // Only pass compile-time constant markup into this helper.
   function createStaticFragment(markup) {
     const template = document.createElement("template");
     template.innerHTML = markup.trim();
@@ -691,6 +693,7 @@
         `${stageCount} of ${this.theme.rewardStages.length} rocket stages unlocked`,
         [statusLine, rewardLine],
       );
+      // Move the text into a wrapper so the rocket scene can sit beside it.
       const copy = createElement("div", { className: "rocket-copy" });
       copy.append(...Array.from(article.childNodes));
       clearNode(article);

@@ -46,7 +46,7 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 
 - [ ] Replace the remaining optional-chaining opportunities (9 Sonar MAJOR `S6582`):
   - `app.js` optional-chaining cleanup is covered in the current PR (`normalizeAttemptQuestion`, attempt application, story artwork guards, results gallery mission guard, overlay handling, answer auto-advance guard).
-  - `gamification.js:568`
+  - `gamification.js:568` (being handled in the current PR)
   - `scoreboard.js:837`
 - [ ] Extract the remaining nested ternaries (5 Sonar MAJOR `S3358` issues):
   - `app.js` start-screen hint ternaries are covered in the current PR via dedicated helpers.
@@ -59,9 +59,6 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
-- [ ] Add a short guard comment above `createStaticFragment()` in `gamification.js` clarifying that it must only receive compile-time constant markup.
-- [ ] Add a short readability comment in `RocketProgressVisual.render()` explaining the `rocket-copy` child-move pattern.
-
 ## Priority 4: Privacy And Parent Safety
 
 - [ ] Add a way to delete one child's record without clearing all saved records.
