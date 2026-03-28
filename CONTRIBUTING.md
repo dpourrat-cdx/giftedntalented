@@ -48,13 +48,16 @@ The reviewing agent must:
 - Leave a short summary comment on what was verified.
 - In PR comments, explicitly call in the other agent by name: Codex should ask Claude to review `codex/*` PRs, and Claude should ask Codex to review `claude/*` PRs.
 - When Codex asks Claude to review a PR, start the comment with `Claude, ` so the scheduled review hook can recognize it as a review handoff.
+- When Claude asks Codex to review a PR, start the comment with `Codex, ` so the scheduled review hook can recognize it as a review handoff.
 - Use that review to challenge assumptions, regressions, missing tests, and Sonar findings rather than just rubber-stamping the branch.
 - Never approve a PR that touches the same files as another open PR without explicit human sign-off.
 
 **Scheduled review hook behavior:**
-- The scheduled Claude review task runs every 10 minutes and only picks up non-draft `codex/*` PRs. Draft PRs are skipped until Codex marks them ready for review.
-- The same practical rule applies in reverse for `claude/*` PRs: if an automated or scheduled review flow is expected to run, the PR must be marked ready first.
+- The scheduled Claude triage task runs every 10 minutes and only reviews non-draft `codex/*` PRs after both `Backend` and `SonarCloud` are green.
+- The scheduled Codex triage task runs every 10 minutes and only reviews non-draft `claude/*` PRs after both `Backend` and `SonarCloud` are green.
+- Either agent may use its 10-minute triage pass to promote its own PR from draft to ready, but only after `Backend` and `SonarCloud` have both completed successfully.
 - If a PR is intentionally left in draft while work continues, do not expect the scheduled review task to review it yet.
+- Scheduled triage should flag stale branches and abandoned PR branches for cleanup, but it must not delete branches automatically.
 
 **Merge authority:**
 - Each agent merges its own PRs — **never the other agent's**.
