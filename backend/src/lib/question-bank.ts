@@ -43,9 +43,6 @@ async function loadQuestionBank() {
 }
 
 export async function getLoadedQuestionBank() {
-  if (!questionBankPromise) {
-    questionBankPromise = loadQuestionBank();
-  }
-
+  questionBankPromise ??= loadQuestionBank();
   return questionBankPromise;
 }

@@ -38,7 +38,7 @@ function normalizeOrigins(value: string) {
 }
 
 function normalizePrivateKey(value?: string) {
-  return value ? value.replace(/\\n/g, "\n") : undefined;
+  return value ? value.replaceAll(/\\n/g, "\n") : undefined;
 }
 
 const rawEnv = parsedEnv.data;

@@ -40,6 +40,6 @@ export function resetFrontendGlobals() {
   delete browserGlobal.GiftedGamification;
   delete browserGlobal.__GiftedFrameBust;
   delete browserGlobal.CaptainNovaContent;
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   document.body.innerHTML = "";
 }

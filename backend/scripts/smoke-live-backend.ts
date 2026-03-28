@@ -30,12 +30,12 @@ async function readJsonResponse(response: Response): Promise<JsonResponse> {
   };
 }
 
-async function requestJson(path: string, init: RequestInit = {}) {
+async function requestJson(path: string, init?: RequestInit) {
   const response = await fetch(buildUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(init.headers || {}),
+      ...(init?.headers ?? {}),
     },
   });
 
@@ -64,18 +64,18 @@ function expectObject(step: string, body: unknown): Record<string, unknown> {
 function expectRecordSnapshot(step: string, body: Record<string, unknown> | null) {
   assert(body && typeof body === "object", `${step} failed: record payload was missing`);
   return {
-    playerName: String(body.playerName || ""),
+    playerName: String(body.playerName ?? ""),
     score: Number(body.score),
     percentage: Number(body.percentage),
     totalQuestions: Number(body.totalQuestions),
     elapsedSeconds: body.elapsedSeconds === null || body.elapsedSeconds === undefined ? null : Number(body.elapsedSeconds),
-    completedAt: String(body.completedAt || ""),
+    completedAt: String(body.completedAt ?? ""),
   };
 }
 
 function expectQuestionSnapshot(step: string, value: unknown) {
   const question = expectObject(step, value);
-  const options = Array.isArray(question.options) ? question.options.map((option) => String(option)) : [];
+  const options = Array.isArray(question.options) ? question.options.map(String) : [];
   assert(typeof question.bankId === "string", `${step} failed: question bankId was missing`);
   assert(typeof question.questionId === "number", `${step} failed: questionId was missing`);
   assert(options.length === 4, `${step} failed: question options were wrong`);
@@ -175,7 +175,7 @@ async function main() {
   });
   expectStatus("attempt start", start, 201);
   const startBody = expectObject("attempt start", start.body);
-  const attemptId = String(startBody.attemptId || "");
+  const attemptId = String(startBody.attemptId ?? "");
   assert(attemptId, "attempt start failed: attemptId was missing");
   assert(startBody.storyOnly === false, "attempt start failed: expected storyOnly to be false");
   const startQuestions = Array.isArray(startBody.questions) ? startBody.questions : [];
@@ -233,7 +233,7 @@ async function main() {
   });
   expectStatus("replay attempt start", replayStart, 201);
   const replayStartBody = expectObject("replay attempt start", replayStart.body);
-  const replayAttemptId = String(replayStartBody.attemptId || "");
+  const replayAttemptId = String(replayStartBody.attemptId ?? "");
   assert(replayAttemptId, "replay attempt start failed: attemptId was missing");
   const replayQuestions = Array.isArray(replayStartBody.questions) ? replayStartBody.questions : [];
   assert(Number(replayStartBody.totalQuestions) === expectedQuestionCount, "replay attempt start failed: totalQuestions was wrong");
