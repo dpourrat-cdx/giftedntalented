@@ -1,6 +1,6 @@
 # Documentation Index
 
-This folder holds the durable project documentation for Captain Nova.
+This `docs/` directory holds the durable project documentation for Captain Nova.
 
 Use these files as the current sources of truth:
 
@@ -59,5 +59,7 @@ Add a new document here only if at least one is true:
 - it is a durable source of truth
 - it records a decision that may need to be revisited later
 - it coordinates a multi-PR effort that does not fit cleanly inside `backlog.md`
+
+For live planning and active work tracking, prefer `docs/backlog.md` over creating temporary planning files in this directory.
 
 If a file becomes only historical or duplicates the backlog, delete it or merge the still-useful parts into an existing doc.

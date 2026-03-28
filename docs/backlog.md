@@ -33,7 +33,7 @@ Use these docs as the durable sources of truth:
 ## Priority 2: Documentation And Repo Hygiene
 
 - [ ] Keep `docs/backend-api-spec.md`, `backend/README.md`, and `docs/decisions/frontend-header-security.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
-- [ ] Keep the docs in `docs/` purpose-specific and delete temporary planning files instead of letting them become stale history.
+- [ ] Keep the docs in `docs/` purpose-specific, use `docs/backlog.md` for live planning, and delete temporary planning files instead of letting them become stale history.
 
 ## Priority 3: Code Quality And Maintainability
 
