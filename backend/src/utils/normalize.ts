@@ -1,5 +1,5 @@
 export function normalizePlayerName(value: string) {
-  return value.trim().replace(/\s+/g, " ").slice(0, 40);
+  return value.trim().replaceAll(/\s+/g, " ").slice(0, 40);
 }
 
 export function normalizeElapsedSeconds(value: number | null | undefined) {

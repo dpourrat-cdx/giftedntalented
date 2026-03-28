@@ -591,5 +591,5 @@
     },
   };
 
-  window.CaptainNovaContent = Object.freeze(content);
+  globalThis.CaptainNovaContent = Object.freeze(content);
 })();

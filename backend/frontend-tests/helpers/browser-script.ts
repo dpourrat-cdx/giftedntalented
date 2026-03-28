@@ -31,9 +31,9 @@ async function loadEvaluatedScript(relativePath: string) {
 export async function loadIndexHtml() {
   const htmlPath = path.resolve(repoRoot, "index.html");
   const html = await readFile(htmlPath, "utf8");
-  document.open();
-  document.write(html);
-  document.close();
+  const parsed = new DOMParser().parseFromString(html, "text/html");
+  document.head.replaceChildren(...Array.from(parsed.head.childNodes, (node) => document.importNode(node, true)));
+  document.body.replaceChildren(...Array.from(parsed.body.childNodes, (node) => document.importNode(node, true)));
 }
 
 export async function importBrowserScript(relativePath: string) {
@@ -59,6 +59,6 @@ export function resetBrowserGlobals() {
   delete browserGlobal.__GiftedFrameBust;
   delete browserGlobal.__GiftedExposeTestUtils;
   delete browserGlobal.CaptainNovaContent;
-  window.localStorage.clear();
+  globalThis.localStorage.clear();
   document.body.innerHTML = "";
 }

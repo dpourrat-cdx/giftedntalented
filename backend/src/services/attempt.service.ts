@@ -166,7 +166,7 @@ function parseQuestionKey(value: unknown, totalQuestions: number) {
     throw new AppError(500, "ATTEMPT_STATE_INVALID", "The saved attempt question key is invalid.");
   }
 
-  return value as AttemptQuestionKey[];
+  return value;
 }
 
 function parseAnswers(value: unknown, totalQuestions: number) {
