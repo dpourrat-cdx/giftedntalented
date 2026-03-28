@@ -38,27 +38,20 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: optional-chaining and nested-ternary sweeps across the remaining Sonar major issues.
+Current slice in progress: final Sonar major-issue cleanup after the merged optional-chaining and nested-ternary wave (PRs 54, 56, 58, and 59).
 
-SonarCloud currently reports 0 open critical issues and 15 open major issues. Current sweep order:
+SonarCloud currently reports 0 open critical issues and 3 open major issues:
 
-- The scoreboard Sonar cleanup PR (PR 56) is in flight; it removes the remaining `scoreboard.js` optional-chaining and nested-ternary Sonar issues while keeping lookup/finalize behavior unchanged and adds targeted frontend coverage for derived percentages and in-flight finalize fallback.
-
-- [ ] Replace the remaining optional-chaining opportunities (9 Sonar MAJOR `S6582`):
-  - `app.js` optional-chaining cleanup is covered in the current PR (`normalizeAttemptQuestion`, attempt application, story artwork guards, results gallery mission guard, overlay handling, answer auto-advance guard).
-  - `gamification.js:568` (being handled in the current PR)
-  - `scoreboard.js:837`
-- [ ] Extract the remaining nested ternaries (5 Sonar MAJOR `S3358` issues):
-  - `app.js` start-screen hint ternaries are covered in the current PR via dedicated helpers.
-  - `scoreboard.js:336`
-  - `question-bank.js:344` (being handled in the current PR)
-  - `question-bank.js:1000` (being handled in the current PR)
+- [ ] Replace the remaining optional-chaining opportunities (2 Sonar MAJOR `S6582` issues):
+  - `gamification.js:760`
+  - `scoreboard.js:849`
 - [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`).
 - [ ] Replace remaining nested template literals - `app.js:1177` and `scoreboard.js:625-626` were resolved in PR 28; confirm via Sonar after the next scan that no more remain.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+
 ## Priority 4: Privacy And Parent Safety
 
 - [ ] Add a way to delete one child's record without clearing all saved records.
@@ -86,7 +79,7 @@ SonarCloud currently reports 0 open critical issues and 15 open major issues. Cu
 
 ## Next Recommended Delivery Slice
 
-1. **Optional chaining sweep** - replace the 9 remaining `S6582` issues across `app.js`, `scoreboard.js`, and `gamification.js`. Lowest risk and easiest to parallelize.
-2. **Nested ternary sweep** - extract the 5 remaining `S3358` sites in `app.js`, `scoreboard.js`, and `question-bank.js`.
+1. **Final Sonar major sweep** - clear the last two `S6582` optional-chaining issues in `gamification.js` and `scoreboard.js`, plus the `S7785` top-level-await issue in `backend/scripts/smoke-live-backend.ts`.
+2. **Post-deploy smoke discipline** - add the lightweight post-release checklist or automation step that runs `npm run smoke:live` after backend releases.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
-4. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current gamification DOM branch is merged and stable.
+4. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
