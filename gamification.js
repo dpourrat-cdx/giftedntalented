@@ -1,5 +1,5 @@
 (function () {
-  const content = window.CaptainNovaContent || null;
+  const content = globalThis.CaptainNovaContent || null;
 
   const GAME_THEMES = {
     rocketAdventure: {
@@ -36,8 +36,8 @@
   }
 
   function formatTemplate(template, values) {
-    return String(template || "").replace(/\{(\w+)\}/g, (match, key) => {
-      return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match;
+    return String(template || "").replaceAll(/\{(\w+)\}/g, (match, key) => {
+      return Object.hasOwn(values, key) ? values[key] : match;
     });
   }
 
@@ -876,7 +876,7 @@
 
     dismiss() {
       if (this.timeoutId) {
-        window.clearTimeout(this.timeoutId);
+        globalThis.clearTimeout(this.timeoutId);
         this.timeoutId = null;
       }
 
@@ -887,13 +887,13 @@
       this.notifyStateChange({ dismissedEvent });
 
       if (this.queue.length > 0) {
-        window.setTimeout(() => this.showNext(), 80);
+        globalThis.setTimeout(() => this.showNext(), 80);
       }
     }
 
     clearAll() {
       if (this.timeoutId) {
-        window.clearTimeout(this.timeoutId);
+        globalThis.clearTimeout(this.timeoutId);
         this.timeoutId = null;
       }
 
@@ -1201,10 +1201,10 @@
     });
   }
 
-  window.GiftedGamification = Object.freeze({
+  globalThis.GiftedGamification = Object.freeze({
     themes: GAME_THEMES,
     createGamificationController,
-    ...(window.__GiftedExposeTestUtils
+    ...(globalThis.__GiftedExposeTestUtils
       ? {
           __testPrefersReducedMotion: prefersReducedMotion,
         }
