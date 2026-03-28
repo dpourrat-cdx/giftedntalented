@@ -7,13 +7,17 @@ type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
 
 const browserGlobal = globalThis as BrowserGlobal;
 
+function toFsPath(filePath: string) {
+  return filePath.replaceAll("\\", "/");
+}
+
 async function ensureSharedRandomIndex() {
-  const scriptPath = path.resolve(repoRoot, "shared-random.js");
-  const fsPath = scriptPath.replaceAll("\\", "/");
   if (typeof browserGlobal.secureRandomIndex === "function") {
     return;
   }
 
+  const scriptPath = path.resolve(repoRoot, "shared-random.js");
+  const fsPath = toFsPath(scriptPath);
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
@@ -43,7 +47,7 @@ export async function importBrowserScript(relativePath: string) {
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  const fsPath = scriptPath.replaceAll("\\", "/");
+  const fsPath = toFsPath(scriptPath);
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
