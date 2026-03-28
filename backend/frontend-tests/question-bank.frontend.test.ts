@@ -1,21 +1,12 @@
 // @vitest-environment jsdom
 
-import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resetFrontendGlobals } from "./helpers/frontend-script";
-
-const repoRoot = path.resolve(import.meta.dirname, "..", "..");
-let scriptLoadVersion = 0;
-
-async function importFreshScript(relativePath: string) {
-  const scriptPath = path.resolve(repoRoot, relativePath).replaceAll("\\", "/");
-  await import(/* @vite-ignore */ `/@fs/${scriptPath}?v=${scriptLoadVersion++}`);
-}
+import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
 
 async function loadQuestionBankScript() {
-  await importFreshScript("shared-random.js");
-  await importFreshScript("question-bank.js");
+  await loadFrontendScript("shared-random.js");
+  await loadFrontendScript("question-bank.js");
 }
 
 describe("GiftedQuestionBank", () => {
