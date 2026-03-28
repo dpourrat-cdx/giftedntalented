@@ -645,7 +645,8 @@ export class AttemptService {
     },
   ): Promise<AttemptSaveResult> {
     const { score, percentage, elapsedSeconds, targetPlayerName, savedAt } = computed;
-    const oldBest = computed.oldBest !== undefined ? computed.oldBest : await this.fetchOldBest(targetPlayerName);
+    const oldBest =
+      computed.oldBest === undefined ? await this.fetchOldBest(targetPlayerName) : computed.oldBest;
 
     const legacySave = await supabase.rpc("save_player_score", {
       target_player_name: targetPlayerName,
