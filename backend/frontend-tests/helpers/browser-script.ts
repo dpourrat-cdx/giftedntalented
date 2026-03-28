@@ -3,11 +3,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
+const browserGlobal = globalThis as Window & typeof globalThis & Record<string, unknown>;
 
 async function ensureSharedRandomIndex() {
   const scriptPath = path.resolve(repoRoot, "shared-random.js");
-  const fsPath = scriptPath.replace(/\\/g, "/");
-  if (typeof window.secureRandomIndex === "function") {
+  const fsPath = scriptPath.replaceAll("\\", "/");
+  if (typeof browserGlobal.secureRandomIndex === "function") {
     return;
   }
 
@@ -28,7 +29,7 @@ export async function importBrowserScript(relativePath: string) {
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  const fsPath = scriptPath.replace(/\\/g, "/");
+  const fsPath = scriptPath.replaceAll("\\", "/");
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
