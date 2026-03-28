@@ -37,6 +37,7 @@ Use these docs as the durable sources of truth:
   - `javascript:S7781` replaceAll opportunities
   - `javascript:S2486` and `javascript:S7723` array-construction cleanup
   - smaller helper readability and typing rules in frontend helpers and backend utilities
+  - low-priority follow-up: consolidate the remaining test-local `importFreshScript` path normalization in `frame-bust.frontend.test.ts` and `question-bank.frontend.test.ts` once the helper-sweep and coverage-attribution branches have both landed
 
 ## Priority 4: Privacy And Parent Safety
 

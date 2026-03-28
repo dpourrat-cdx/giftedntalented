@@ -6,6 +6,10 @@ type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
 
 const browserGlobal = globalThis as BrowserGlobal;
 
+function toFsPath(filePath: string) {
+  return filePath.replaceAll("\\", "/");
+}
+
 async function ensureSharedRandomIndex() {
   if (typeof browserGlobal.secureRandomIndex === "function") {
     return;
@@ -13,7 +17,7 @@ async function ensureSharedRandomIndex() {
 
   const sharedPath = path.resolve(repoRoot, "shared-random.js");
   const sharedContents = await readFile(sharedPath, "utf8");
-  const sourcePath = sharedPath.replaceAll("\\", "/");
+  const sourcePath = toFsPath(sharedPath);
   browserGlobal.eval(`${sharedContents}\n//# sourceURL=${sourcePath}`);
 }
 
@@ -24,7 +28,7 @@ export async function loadFrontendScript(relativePath: string) {
 
   const scriptPath = path.resolve(repoRoot, relativePath);
   const scriptContents = await readFile(scriptPath, "utf8");
-  const sourcePath = scriptPath.replaceAll("\\", "/");
+  const sourcePath = toFsPath(scriptPath);
   browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
 }
 
