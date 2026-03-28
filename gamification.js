@@ -756,10 +756,7 @@
     }
 
     hasBlockingEvent() {
-      return Boolean(
-        (this.current && this.current.blocksMission) ||
-          this.queue.some((event) => event.blocksMission),
-      );
+      return Boolean(this.current?.blocksMission || this.queue.some((event) => event.blocksMission));
     }
 
     notifyStateChange(extraState = {}) {
