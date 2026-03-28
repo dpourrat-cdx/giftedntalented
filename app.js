@@ -3,10 +3,10 @@ const {
   QUESTIONS_PER_TEST_SECTION,
   buildTestSession,
   getQuestionPool,
-} = window.GiftedQuestionBank;
+} = globalThis.GiftedQuestionBank;
 
 const missionRewards =
-  window.GiftedGamification?.themes?.rocketAdventure?.rewardStages || [
+  globalThis.GiftedGamification?.themes?.rocketAdventure?.rewardStages || [
     { key: "base", label: "rocket base" },
     { key: "body", label: "rocket body" },
     { key: "window", label: "rocket window" },
@@ -17,7 +17,7 @@ const missionRewards =
     { key: "launch", label: "launch glow" },
   ];
 
-const content = window.CaptainNovaContent;
+const content = globalThis.CaptainNovaContent;
 const storyContent = content.story;
 const scoreboardContent = content.scoreboard;
 const parentAreaContent = content.parentArea;
@@ -125,7 +125,7 @@ function totalQuestions() {
 }
 
 function createBlankAnswers() {
-  return Array(totalQuestions()).fill(null);
+  return new Array(totalQuestions()).fill(null);
 }
 
 function buildGamificationSnapshot() {
@@ -373,14 +373,14 @@ function updateTimerDisplay() {
 
 function clearTimer() {
   if (timerId) {
-    window.clearInterval(timerId);
+    globalThis.clearInterval(timerId);
     timerId = null;
   }
 }
 
 function clearPendingAutoAdvance() {
   if (autoAdvanceTimeoutId) {
-    window.clearTimeout(autoAdvanceTimeoutId);
+    globalThis.clearTimeout(autoAdvanceTimeoutId);
     autoAdvanceTimeoutId = null;
   }
 
@@ -435,7 +435,7 @@ function advanceToNextMissionStep(options = {}) {
 function scheduleAutoAdvance(questionIndex) {
   clearPendingAutoAdvance();
   autoAdvanceQuestionIndex = questionIndex;
-  autoAdvanceTimeoutId = window.setTimeout(() => {
+  autoAdvanceTimeoutId = globalThis.setTimeout(() => {
     if (isSubmitted || currentIndex !== questionIndex || validatedAnswers[questionIndex] === null) {
       clearPendingAutoAdvance();
       return;
@@ -447,7 +447,7 @@ function scheduleAutoAdvance(questionIndex) {
 
 function startTimer() {
   clearTimer();
-  timerId = window.setInterval(() => {
+  timerId = globalThis.setInterval(() => {
     if (isSubmitted) {
       clearTimer();
       return;
@@ -563,7 +563,7 @@ function completeSectionInStoryOnly(section) {
 }
 
 function titleCase(value) {
-  return String(value || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return String(value || "").replaceAll(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function escapeHtml(value) {
@@ -576,8 +576,8 @@ function escapeHtml(value) {
 }
 
 function formatTemplate(template, values) {
-  return String(template || "").replace(/\{(\w+)\}/g, (match, key) => {
-    return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match;
+  return String(template || "").replaceAll(/\{(\w+)\}/g, (match, key) => {
+    return Object.hasOwn(values, key) ? values[key] : match;
   });
 }
 
@@ -680,7 +680,7 @@ function storyLines(value) {
 }
 
 function formatStoryInline(value) {
-  return escapeHtml(value).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return escapeHtml(value).replaceAll(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
 
 function buildStoryParagraphs(lines) {
@@ -1420,7 +1420,7 @@ function renderOptions(question, selectedAnswer, validatedAnswer, isLocked) {
       }
     }
 
-    const letter = String.fromCharCode(65 + optionIndex);
+    const letter = String.fromCodePoint(65 + optionIndex);
     const shouldShowRationale =
       validatedAnswer !== null &&
       validatedAnswer !== question.answer &&
@@ -2100,7 +2100,7 @@ dom.storyOnlyToggle.addEventListener("change", () => {
   renderQuestion();
 });
 dom.childNameInput.addEventListener("input", () => {
-  playerName = dom.childNameInput.value.trim().replace(/\s+/g, " ");
+  playerName = dom.childNameInput.value.trim().replaceAll(/\s+/g, " ");
   if (scoreboardController) {
     scoreboardController.setActivePlayerName(playerName);
   }
@@ -2119,8 +2119,8 @@ dom.backToQuestionsButton.addEventListener("click", () => {
   dom.questionPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-if (window.GiftedGamification) {
-  gamificationController = window.GiftedGamification.createGamificationController({
+if (globalThis.GiftedGamification) {
+  gamificationController = globalThis.GiftedGamification.createGamificationController({
     themeId: "rocketAdventure",
     roots: {
       hudRoot: dom.gamificationHud,
@@ -2137,8 +2137,8 @@ if (window.GiftedGamification) {
   });
 }
 
-if (window.GiftedScoreboard) {
-  scoreboardController = window.GiftedScoreboard.createScoreboardController({
+if (globalThis.GiftedScoreboard) {
+  scoreboardController = globalThis.GiftedScoreboard.createScoreboardController({
     elements: {
       name: dom.leaderboardName,
       score: dom.leaderboardScore,
