@@ -41,10 +41,7 @@ describe("frame-bust.js", () => {
     const bustFrame = window.__GiftedFrameBust as (
       frameWindow: {
         top: { location: { replace: (href: string) => void } };
-        location: { replace: (href: string) => void };
-      },
-      selfWindow: {
-        location: { href: string };
+        location: { replace: (href: string) => void; origin: string };
       },
     ) => boolean;
 
@@ -54,10 +51,7 @@ describe("frame-bust.js", () => {
       bustFrame(
         {
           top: { location: { replace: topReplace } },
-          location: { replace: fallbackReplace },
-        },
-        {
-          location: { origin: "https://example.test" },
+          location: { replace: fallbackReplace, origin: "https://example.test" },
         },
       ),
     ).toBe(true);
@@ -72,10 +66,7 @@ describe("frame-bust.js", () => {
       bustFrame(
         {
           top: { location: { replace: blockedTopReplace } },
-          location: { replace: blockedFallbackReplace },
-        },
-        {
-          location: { origin: "https://example.test" },
+          location: { replace: blockedFallbackReplace, origin: "https://example.test" },
         },
       ),
     ).toBe(true);

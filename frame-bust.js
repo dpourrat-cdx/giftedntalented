@@ -1,14 +1,14 @@
 (function () {
-  function getSafeFrameBustTarget(selfWindow) {
-    return new URL("/giftedntalented/", selfWindow.location.origin).toString();
+  function getSafeFrameBustTarget(frameWindow) {
+    return new URL("/giftedntalented/", frameWindow.location.origin).toString();
   }
 
-  function bustFrame(frameWindow, selfWindow) {
-    if (!frameWindow || !selfWindow || frameWindow.top === selfWindow) {
+  function bustFrame(frameWindow) {
+    if (!frameWindow || frameWindow === frameWindow.top) {
       return false;
     }
 
-    const targetHref = getSafeFrameBustTarget(selfWindow);
+    const targetHref = getSafeFrameBustTarget(frameWindow);
 
     try {
       frameWindow.top.location.replace(targetHref);
@@ -23,5 +23,5 @@
     globalThis.__GiftedFrameBust = bustFrame;
   }
 
-  bustFrame(globalThis, globalThis.self ?? globalThis);
+  bustFrame(globalThis);
 })();
