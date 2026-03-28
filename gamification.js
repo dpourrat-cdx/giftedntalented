@@ -750,31 +750,38 @@
       }
     }
 
+    handleArtworkToggleClick(event) {
+      const expandArtworkButton = event.target.closest("[data-expand-artwork]");
+      if (expandArtworkButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.isArtworkExpanded = true;
+        this.renderCurrent();
+        return true;
+      }
+
+      const collapseArtworkButton = event.target.closest("[data-collapse-artwork]");
+      if (collapseArtworkButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.isArtworkExpanded = false;
+        this.renderCurrent();
+        return true;
+      }
+
+      return false;
+    }
+
     handleClick(event) {
       const dismissButton = event.target.closest("[data-dismiss-celebration]");
-      if (!dismissButton) {
-        const expandArtworkButton = event.target.closest("[data-expand-artwork]");
-        if (expandArtworkButton) {
-          event.preventDefault();
-          event.stopPropagation();
-          this.isArtworkExpanded = true;
-          this.renderCurrent();
-          return;
-        }
-
-        const collapseArtworkButton = event.target.closest("[data-collapse-artwork]");
-        if (collapseArtworkButton) {
-          event.preventDefault();
-          event.stopPropagation();
-          this.isArtworkExpanded = false;
-          this.renderCurrent();
-        }
+      if (dismissButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.dismiss();
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
-      this.dismiss();
+      this.handleArtworkToggleClick(event);
     }
 
     renderCurrent() {
