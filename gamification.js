@@ -676,7 +676,7 @@
       );
       // Move the text into a wrapper so the rocket scene can sit beside it.
       const copy = createElement("div", { className: "rocket-copy" });
-      copy.append(...Array.from(article.childNodes));
+      copy.append(...article.childNodes);
       clearNode(article);
       article.append(
         copy,

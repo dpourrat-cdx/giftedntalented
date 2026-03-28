@@ -1,10 +1,12 @@
 (function () {
+  const globalScope = globalThis;
+
   function secureRandomIndex(length) {
     if (length <= 0) {
       return 0;
     }
 
-    const cryptoApi = globalThis.crypto;
+    const cryptoApi = globalScope.crypto;
     if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
       throw new Error("Secure randomness is unavailable in this browser.");
     }
@@ -18,5 +20,5 @@
     return values[0] % length;
   }
 
-  globalThis.secureRandomIndex = globalThis.secureRandomIndex || secureRandomIndex;
+  globalScope.secureRandomIndex = globalScope.secureRandomIndex || secureRandomIndex;
 })();

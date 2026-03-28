@@ -1,9 +1,10 @@
 (function () {
+  const globalScope = globalThis;
   const BACKEND_BASE_URL = "https://giftedntalented.onrender.com/api/v1";
   const CACHE_KEY = "gifted-scoreboard-player-best-scores-v2";
   const LEGACY_CACHE_KEYS = ["gifted-scoreboard-player-best-scores"];
   function getScoreboardContent() {
-    const captainNovaContent = globalThis.CaptainNovaContent || {};
+    const captainNovaContent = globalScope.CaptainNovaContent || {};
 
     return captainNovaContent.scoreboard || {
       awaitingName: "Type an explorer name",
@@ -249,7 +250,7 @@
       return this.request("/admin/scores/reset", {
         method: "POST",
         body: JSON.stringify({
-          resetPin: resetPin,
+          resetPin,
         }),
       });
     }
@@ -889,7 +890,7 @@
     });
   }
 
-  window.GiftedScoreboard = Object.freeze({
+  globalScope.GiftedScoreboard = Object.freeze({
     createScoreboardController,
   });
 })();

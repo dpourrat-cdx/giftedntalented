@@ -1,4 +1,6 @@
 (function () {
+  const globalScope = globalThis;
+
   function getSafeFrameBustTarget(frameWindow) {
     return new URL("/giftedntalented/", frameWindow.location.origin).toString();
   }
@@ -19,9 +21,9 @@
     return true;
   }
 
-  if (globalThis.__GiftedExposeTestUtils) {
-    globalThis.__GiftedFrameBust = bustFrame;
+  if (globalScope.__GiftedExposeTestUtils) {
+    globalScope.__GiftedFrameBust = bustFrame;
   }
 
-  bustFrame(globalThis);
+  bustFrame(globalScope);
 })();
