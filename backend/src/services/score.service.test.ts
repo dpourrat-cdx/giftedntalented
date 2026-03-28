@@ -208,5 +208,195 @@ describe("ScoreService", () => {
         code: "INVALID_RESET_PIN",
       });
     });
+
+    it("throws 502 when counting existing scores fails", async () => {
+      const { supabase } = await import("../lib/supabase.js");
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(supabase.from).mockImplementation(((table: string) => {
+        if (table === "app_admin_settings") {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () =>
+                  Promise.resolve({
+                    data: { reset_pin_hash: "$2a$10$hashedvalue" },
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "test_scores") {
+          return {
+            select: () =>
+              Promise.resolve({
+                count: null,
+                error: { message: "count failed" },
+              }),
+          };
+        }
+
+        return {
+          select: () =>
+            Promise.resolve({
+              count: 0,
+              error: null,
+            }),
+        };
+      }) as typeof supabase.from);
+
+      await expect(service.resetScores("1234")).rejects.toMatchObject({
+        statusCode: 502,
+        code: "RESET_COUNT_FAILED",
+      });
+    });
+
+    it("throws 502 when counting attempts fails", async () => {
+      const { supabase } = await import("../lib/supabase.js");
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(supabase.from).mockImplementation(((table: string) => {
+        if (table === "app_admin_settings") {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () =>
+                  Promise.resolve({
+                    data: { reset_pin_hash: "$2a$10$hashedvalue" },
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "test_scores") {
+          return {
+            select: () =>
+              Promise.resolve({
+                count: 5,
+                error: null,
+              }),
+          };
+        }
+
+        return {
+          select: () =>
+            Promise.resolve({
+              count: null,
+              error: { message: "attempt count failed" },
+            }),
+        };
+      }) as typeof supabase.from);
+
+      await expect(service.resetScores("1234")).rejects.toMatchObject({
+        statusCode: 502,
+        code: "RESET_COUNT_FAILED",
+      });
+    });
+
+    it("throws 502 when deleting scores fails", async () => {
+      const { supabase } = await import("../lib/supabase.js");
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(supabase.from).mockImplementation(((table: string) => {
+        if (table === "app_admin_settings") {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () =>
+                  Promise.resolve({
+                    data: { reset_pin_hash: "$2a$10$hashedvalue" },
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "test_scores") {
+          return {
+            select: () =>
+              Promise.resolve({
+                count: 5,
+                error: null,
+              }),
+            delete: () => ({
+              not: () =>
+                Promise.resolve({
+                  error: { message: "delete scores failed" },
+                }),
+            }),
+          };
+        }
+
+        return {
+          select: () =>
+            Promise.resolve({
+              count: 3,
+              error: null,
+            }),
+          delete: () => ({
+            not: () => Promise.resolve({ error: null }),
+          }),
+        };
+      }) as typeof supabase.from);
+
+      await expect(service.resetScores("1234")).rejects.toMatchObject({
+        statusCode: 502,
+        code: "RESET_DELETE_FAILED",
+      });
+    });
+
+    it("throws 502 when deleting attempts fails", async () => {
+      const { supabase } = await import("../lib/supabase.js");
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(supabase.from).mockImplementation(((table: string) => {
+        if (table === "app_admin_settings") {
+          return {
+            select: () => ({
+              eq: () => ({
+                single: () =>
+                  Promise.resolve({
+                    data: { reset_pin_hash: "$2a$10$hashedvalue" },
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "test_scores") {
+          return {
+            select: () =>
+              Promise.resolve({
+                count: 5,
+                error: null,
+              }),
+            delete: () => ({
+              not: () => Promise.resolve({ error: null }),
+            }),
+          };
+        }
+
+        return {
+          select: () =>
+            Promise.resolve({
+              count: 3,
+              error: null,
+            }),
+          delete: () => ({
+            not: () =>
+              Promise.resolve({
+                error: { message: "delete attempts failed" },
+              }),
+          }),
+        };
+      }) as typeof supabase.from);
+
+      await expect(service.resetScores("1234")).rejects.toMatchObject({
+        statusCode: 502,
+        code: "RESET_DELETE_FAILED",
+      });
+    });
   });
 });
