@@ -1,8 +1,22 @@
 // @vitest-environment jsdom
 
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
+import { resetFrontendGlobals } from "./helpers/frontend-script";
+
+const repoRoot = path.resolve(import.meta.dirname, "..", "..");
+let scriptLoadVersion = 0;
+
+async function importFreshScript(relativePath: string) {
+  const scriptPath = path.resolve(repoRoot, relativePath).replaceAll("\\", "/");
+  await import(/* @vite-ignore */ `/@fs/${scriptPath}?v=${scriptLoadVersion++}`);
+}
+
+async function loadQuestionBankScript() {
+  await importFreshScript("shared-random.js");
+  await importFreshScript("question-bank.js");
+}
 
 describe("GiftedQuestionBank", () => {
   beforeEach(() => {
@@ -13,7 +27,7 @@ describe("GiftedQuestionBank", () => {
   it("builds a full test session and persists recent bank history", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0.25);
 
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const bank = window.GiftedQuestionBank;
     expect(bank).toBeDefined();
@@ -45,7 +59,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("returns defensive clones of the question pool", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const firstPool = window.GiftedQuestionBank.getQuestionPool();
     const originalPrompt = firstPool.Verbal[0].prompt;
@@ -58,7 +72,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds representative quantitative questions from each family", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const mathSection = window.GiftedQuestionBank.SECTIONS[1];
     const mathQuestions = window.GiftedQuestionBank.getQuestionPool()[mathSection];
@@ -111,7 +125,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds representative nonverbal questions from each family", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const nonverbalSection = window.GiftedQuestionBank.SECTIONS[2];
     const nonverbalQuestions = window.GiftedQuestionBank.getQuestionPool()[nonverbalSection];
@@ -158,7 +172,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds representative spatial questions from each generated family", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const spatialSection = window.GiftedQuestionBank.SECTIONS[3];
     const spatialQuestions = window.GiftedQuestionBank.getQuestionPool()[spatialSection];
@@ -213,7 +227,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logic challenge activity-order prompts with the expected reasoning text", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -231,7 +245,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logic challenge speed-order prompts with stable ranking answers", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -249,7 +263,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logic challenge attribute-chain prompts with the derived must-be-true answer", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -267,7 +281,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logical event-order prompts with the expected answer and explanation", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -281,7 +295,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logical height-order prompts with the expected tallest answer", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -297,7 +311,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logical attribute-truth prompts with the derived must-be-true answer", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];
@@ -311,7 +325,7 @@ describe("GiftedQuestionBank", () => {
   });
 
   it("builds the logical line-order prompts with the expected middle answer", async () => {
-    await loadFrontendScript("question-bank.js");
+    await loadQuestionBankScript();
 
     const logicalSection = window.GiftedQuestionBank.SECTIONS[7];
     const logicalQuestions = window.GiftedQuestionBank.getQuestionPool()[logicalSection];

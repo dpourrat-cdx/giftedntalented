@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
+import { importBrowserScript, resetBrowserGlobals } from "./helpers/browser-script";
 
 type ScoreboardController = ReturnType<typeof createController>;
 
@@ -29,9 +29,14 @@ function createController() {
   return controller;
 }
 
+async function loadScoreboardScript() {
+  await vi.resetModules();
+  await importBrowserScript("scoreboard.js");
+}
+
 describe("GiftedScoreboard", () => {
   beforeEach(() => {
-    resetFrontendGlobals();
+    resetBrowserGlobals();
     window.CaptainNovaContent = {
       scoreboard: {
         awaitingName: "Type an explorer name",
@@ -52,7 +57,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("renders the remote score when the lookup succeeds", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     const controller = createController();
     controller.service = {
@@ -82,7 +87,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("computes a derived percentage when the remote score omits it", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     const controller = createController();
     controller.service = {
@@ -107,7 +112,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("falls back to the cached score when the remote lookup returns nothing", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     window.localStorage.setItem(
       "gifted-scoreboard-player-best-scores-v2",
@@ -140,7 +145,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("falls back to the cached score when the remote lookup is unavailable", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     window.localStorage.setItem(
       "gifted-scoreboard-player-best-scores-v2",
@@ -177,7 +182,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("shows a friendly error when the remote lookup fails without a cached score", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     const controller = createController();
     controller.service = {
@@ -193,7 +198,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("records a validated answer after starting an attempt and updates the score from the response", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     const controller = createController();
     const startAttempt = vi.fn().mockResolvedValue({
@@ -252,7 +257,7 @@ describe("GiftedScoreboard", () => {
   });
 
   it("finalizes an attempt using the in-flight attempt when the active id is not set yet", async () => {
-    await loadFrontendScript("scoreboard.js");
+    await loadScoreboardScript();
 
     const controller = createController();
     const finalizeAttempt = vi.fn().mockResolvedValue({
