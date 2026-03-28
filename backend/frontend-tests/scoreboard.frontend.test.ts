@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { importBrowserScript, resetBrowserGlobals } from "./helpers/browser-script";
 
@@ -54,6 +54,12 @@ describe("GiftedScoreboard", () => {
         attemptSyncWarning: "This mission can continue, but the shared explorer record could not update just now.",
       },
     };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("renders the remote score when the lookup succeeds", async () => {
@@ -256,6 +262,33 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.score.innerHTML).toContain("90%");
   });
 
+  it("shows an online protection warning when an attempt cannot start", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn().mockRejectedValue(new TypeError("network")),
+      submitAttemptAnswer: vi.fn(),
+    };
+
+    const result = await controller.recordValidatedAnswer({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      sessionQuestions: [{ questionId: "q1" }],
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+
+    expect(result).toBeNull();
+    expect(controller.elements.status.textContent).toBe(
+      "This mission can continue, but online score protection could not start right now.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-info");
+  });
+
   it("finalizes an attempt using the in-flight attempt when the active id is not set yet", async () => {
     await loadScoreboardScript();
 
@@ -292,5 +325,138 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.name.textContent).toBe("Alex");
     expect(controller.elements.score.innerHTML).toContain("10/10");
     expect(controller.elements.score.innerHTML).toContain("100%");
+  });
+
+  it("does not open the reset dialog when confirmation is declined", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    vi.stubGlobal("prompt", vi.fn());
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn(),
+    };
+
+    await controller.handleResetClick();
+
+    expect(globalThis.confirm).toHaveBeenCalledWith(
+      "Clear every saved explorer record on this device? This cannot be undone.",
+    );
+    expect(globalThis.prompt).not.toHaveBeenCalled();
+    expect(controller.service.resetScores).not.toHaveBeenCalled();
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+  it("rejects a blank admin PIN before attempting a reset", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("   "));
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn(),
+    };
+
+    await controller.handleResetClick();
+
+    expect(globalThis.prompt).toHaveBeenCalledWith("Enter the admin PIN to clear saved explorer records.");
+    expect(controller.service.resetScores).not.toHaveBeenCalled();
+    expect(controller.elements.status.textContent).toBe("Please enter the admin PIN.");
+    expect(controller.elements.status.className).toBe("top-score-status is-error");
+  });
+
+  it("falls back to the device-only reset flow when the backend is unavailable", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue(" 1234 "));
+    window.localStorage.setItem(
+      "gifted-scoreboard-player-best-scores-v2",
+      JSON.stringify({
+        alex: {
+          playerName: "Alex",
+          score: 7,
+          totalQuestions: 8,
+          percentage: 88,
+          elapsedSeconds: 92,
+        },
+      }),
+    );
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      resetScores: vi.fn().mockRejectedValue(new TypeError("network")),
+    };
+
+    await controller.handleResetClick();
+
+    expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
+    expect(controller.elements.status.textContent).toBe(
+      "Every saved explorer record on this device has been cleared.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-success");
+    expect(window.localStorage.getItem("gifted-scoreboard-player-best-scores-v2")).toBeNull();
+  });
+
+  it("shows the device-only warning when saving a score cannot sync online", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      saveScore: vi.fn().mockRejectedValue(new TypeError("network")),
+    };
+
+    const result = await controller.recordScore({
+      playerName: "Alex",
+      score: 8,
+      totalQuestions: 10,
+      percentage: 80,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    });
+
+    expect(result).toBe(true);
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("8/10");
+    expect(controller.elements.score.innerHTML).toContain("80%");
+    expect(controller.elements.status.textContent).toBe(
+      "Explorer record saved on this device. Online sync could not update just now.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-info");
+  });
+
+  it("schedules a delayed lookup and cancels it when the player name is cleared", async () => {
+    await loadScoreboardScript();
+    vi.useFakeTimers();
+
+    const controller = createController();
+    const refreshTopScoreForPlayer = vi
+      .spyOn(controller, "refreshTopScoreForPlayer")
+      .mockResolvedValue(null);
+
+    controller.setActivePlayerName("  Alex  ");
+
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe(
+      "Checking this explorer's saved record.",
+    );
+
+    await vi.advanceTimersByTimeAsync(219);
+    expect(refreshTopScoreForPlayer).not.toHaveBeenCalled();
+
+    controller.setActivePlayerName("");
+
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe("");
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(refreshTopScoreForPlayer).not.toHaveBeenCalled();
   });
 });

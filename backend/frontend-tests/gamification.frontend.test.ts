@@ -60,6 +60,8 @@ describe("GiftedGamification", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     delete (window as Window & typeof globalThis & Record<string, unknown>).__GiftedExposeTestUtils;
     vi.unstubAllGlobals();
   });
@@ -136,6 +138,46 @@ describe("GiftedGamification", () => {
     expect(toast).toBeTruthy();
     expect(toast?.querySelector(".question-feedback-effect")?.textContent).toBe("sparkle");
     expect((toast?.querySelector("strong")?.textContent || "").length).toBeGreaterThan(0);
+  });
+
+  it("advances queued mission overlays after the current one is dismissed", async () => {
+    await loadGamificationScript();
+    vi.useFakeTimers();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([null, null]));
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-intro")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-kicker")?.textContent).toBe(
+      "Mission Introduction",
+    );
+
+    controller.onAnswerEvaluated(buildSnapshot([0, null]), {
+      isCorrect: true,
+      message: "Brilliant work",
+    });
+
+    const dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(79);
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-midpoint")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-kicker")?.textContent).toBe(
+      "Mission 1",
+    );
+    expect(document.querySelector("#overlayRoot .celebration-button")?.textContent).toBe(
+      "Continue mission",
+    );
   });
 
   it("expands celebration artwork with an image node instead of a background style", async () => {
@@ -221,5 +263,32 @@ describe("GiftedGamification", () => {
     const currentEvent = overlayStates.at(-1)?.currentEvent as Record<string, unknown>;
     expect(currentEvent.buttonLabel).toBe("Next mission");
     expect(currentEvent.advanceOnDismiss).toBe(true);
+  });
+
+  it("shows the final celebration after the section completion overlay is dismissed", async () => {
+    await loadGamificationScript();
+    vi.useFakeTimers();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.onTestCompleted(buildSnapshot([0, 1]));
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-section")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-button")?.textContent).toBe(
+      "Next mission",
+    );
+
+    const dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    await vi.advanceTimersByTimeAsync(80);
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-final")).toBeTruthy();
+    expect(document.querySelectorAll("#overlayRoot .celebration-confetti")).toHaveLength(10);
+    expect(controller.hasBlockingOverlay()).toBe(false);
   });
 });
