@@ -29,6 +29,10 @@
   }
 
   function cyclicWindow(items, startIndex, count) {
+    if (items.length === 0) {
+      return [];
+    }
+
     const result = [];
 
     for (let offset = 0; offset < count; offset += 1) {
