@@ -6,9 +6,16 @@ This file tracks open work only. Completed items should stay here only if they s
 
 - The live score flow is attempt-based and backend-owned.
 - The legacy `POST /players/:playerName/record` write path is intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
-- Sonar critical and major issues are cleared on `master`; the remaining Sonar work is minor-only.
+- The Sonar issue backlog is cleared on `master` after the March 27-28, 2026 cleanup wave.
 - GitHub Pages remains the frontend host for now, with a lightweight JS frame-busting fallback as defense in depth only.
 - Strict style CSP is live on `master` with `style-src 'self'`.
+- Sonar overall coverage on `master` is still below target at `57.6%` (`3148` lines to cover, `1293` uncovered lines as of March 28, 2026).
+
+Recent merged progress that still matters for planning:
+
+- March 27-28, 2026 PRs removed the remaining open Sonar issues across frontend runtime files, backend support files, and test helpers.
+- March 28, 2026 PRs added source-attributed frontend coverage and smoke coverage for page load, record lookup, and reset behavior.
+- March 27-28, 2026 PRs also aligned hosting/security docs and kept the GitHub Pages frame-busting fallback decision current.
 
 Use these docs as the durable sources of truth:
 
@@ -29,15 +36,10 @@ Use these docs as the durable sources of truth:
 
 ## Priority 3: Code Quality And Maintainability
 
-- [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
-  Remaining follow-up is to confirm Sonar coverage stays green as root-script attribution expands and to keep any future frontend test harness changes source-attributed rather than eval-driven.
-- [ ] Continue the minor Sonar sweep in the biggest remaining clusters first.
-  Current clusters already noted in repo work:
-  - `javascript:S7764` globalThis opportunities
-  - `javascript:S7781` replaceAll opportunities
-  - `javascript:S2486` and `javascript:S7723` array-construction cleanup
-  - smaller helper readability and typing rules in frontend helpers and backend utilities
-  - low-priority follow-up: consolidate the remaining test-local `importFreshScript` path normalization in `frame-bust.frontend.test.ts` and `question-bank.frontend.test.ts` once the helper-sweep and coverage-attribution branches have both landed
+- [ ] Raise overall trusted coverage toward and past `80%`, starting with the biggest user-facing frontend/runtime gaps instead of adding low-value test-only padding.
+  Current baseline on `master` is `57.6%` overall coverage as of March 28, 2026.
+- [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
+- [ ] Add a repeatable coverage reporting step so each PR wave can show which files moved the global coverage number and which high-risk files still lag.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -48,7 +50,8 @@ Use these docs as the durable sources of truth:
 
 ## Priority 5: Testing And Operations
 
-- [ ] Add broader frontend smoke coverage for page load, record lookup, story mode progression, and reset behavior.
+- [ ] Add the next frontend smoke and behavior coverage wave for story mode progression, score submission completion, and result-screen branches.
+- [ ] Add deeper unit-style coverage for the highest-traffic frontend runtime files, especially `app.js`, `scoreboard.js`, `question-bank.js`, and `gamification.js`.
 - [ ] Add browser-level verification for desktop and mobile layout and interaction paths.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
@@ -65,6 +68,6 @@ Use these docs as the durable sources of truth:
 
 ## Next Recommended Delivery Slice
 
-1. **Frontend coverage attribution** - replace the remaining eval-driven legacy suites so more root scripts can lose their coverage bridges honestly.
-2. **Minor Sonar sweep** - keep chipping away at the low-risk clusters in parallel.
-3. **Hosting and header decision follow-through** - if GitHub Pages stops being sufficient, use `doc/decisions/frontend-header-security.md` to drive the move to a header-capable host or proxy.
+1. **Coverage wave 1** - raise overall coverage by targeting story mode progression, score submission completion, and result-screen branches in `app.js` and adjacent runtime helpers.
+2. **Coverage wave 2** - deepen coverage on `scoreboard.js`, `question-bank.js`, and `gamification.js`, where the recent cleanup wave already made the code easier to test safely.
+3. **Browser verification** - add desktop/mobile browser-level checks for the main learner and parent flows once the higher-value runtime coverage is in place.
