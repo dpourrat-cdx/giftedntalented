@@ -28,7 +28,7 @@
   function normalizePlayerName(name) {
     return String(name || "")
       .trim()
-      .replace(/\s+/g, " ")
+      .replaceAll(/\s+/g, " ")
       .slice(0, 40);
   }
 
@@ -39,7 +39,7 @@
   function normalizeResetPin(pin) {
     return String(pin || "")
       .trim()
-      .replace(/\s+/g, " ")
+      .replaceAll(/\s+/g, " ")
       .slice(0, 80);
   }
 
@@ -98,14 +98,14 @@
     try {
       LEGACY_CACHE_KEYS.forEach((legacyKey) => {
         if (legacyKey !== CACHE_KEY) {
-          window.localStorage.removeItem(legacyKey);
+          globalThis.localStorage.removeItem(legacyKey);
         }
       });
 
-      const raw = window.localStorage.getItem(CACHE_KEY);
+      const raw = globalThis.localStorage.getItem(CACHE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
       return parsed && typeof parsed === "object" ? parsed : {};
-    } catch (error) {
+    } catch {
       return {};
     }
   }
@@ -114,12 +114,12 @@
     try {
       const safeScoreMap = scoreMap && typeof scoreMap === "object" ? scoreMap : {};
       if (Object.keys(safeScoreMap).length === 0) {
-        window.localStorage.removeItem(CACHE_KEY);
+        globalThis.localStorage.removeItem(CACHE_KEY);
         return;
       }
 
-      window.localStorage.setItem(CACHE_KEY, JSON.stringify(safeScoreMap));
-    } catch (error) {
+      globalThis.localStorage.setItem(CACHE_KEY, JSON.stringify(safeScoreMap));
+    } catch {
       // Ignore storage failures so the scoreboard still works without local persistence.
     }
   }
@@ -168,7 +168,7 @@
     }
 
     async request(path, options = {}) {
-      const response = await window.fetch(`${this.baseUrl}${path}`, {
+      const response = await globalThis.fetch(`${this.baseUrl}${path}`, {
         method: options.method || "GET",
         headers: this.headers(options.headers),
         body: options.body,
@@ -183,7 +183,7 @@
 
         try {
           details = await response.json();
-        } catch (error) {
+        } catch {
           details = {
             message: response.statusText || "Unexpected Supabase error.",
           };
@@ -293,7 +293,7 @@
     }
 
     setStatus(message, tone = "info", persist = false) {
-      window.clearTimeout(this.statusTimeoutId);
+      globalThis.clearTimeout(this.statusTimeoutId);
       this.elements.status.textContent = message;
       this.elements.status.className = `top-score-status is-${tone}`;
 
@@ -301,13 +301,13 @@
         return;
       }
 
-      this.statusTimeoutId = window.setTimeout(() => {
+      this.statusTimeoutId = globalThis.setTimeout(() => {
         this.clearStatus();
       }, 4500);
     }
 
     clearStatus() {
-      window.clearTimeout(this.statusTimeoutId);
+      globalThis.clearTimeout(this.statusTimeoutId);
       this.elements.status.textContent = "";
       this.elements.status.className = "top-score-status is-hidden";
     }
@@ -548,7 +548,7 @@
             }
 
             return result;
-          } catch (error) {
+          } catch {
             this.setStatus(scoreboardContent.attemptSyncWarning, "info", true);
             return null;
           }
@@ -577,14 +577,14 @@
         }
 
         return result;
-      } catch (error) {
+      } catch {
         this.setStatus(scoreboardContent.attemptSyncWarning, "info", true);
         return null;
       }
     }
 
     async authorizeReset() {
-      const resetPin = window.prompt(scoreboardContent.resetPrompt);
+      const resetPin = globalThis.prompt(scoreboardContent.resetPrompt);
       if (resetPin === null) {
         return null;
       }
@@ -701,10 +701,10 @@
       }
 
       this.activePlayerName = normalizedName;
-      if (options.showLoading !== false) {
-        this.renderLoadingState(normalizedName);
-      } else {
+      if (options.showLoading === false) {
         this.renderNoScoreState(normalizedName);
+      } else {
+        this.renderLoadingState(normalizedName);
       }
 
       try {
@@ -736,7 +736,7 @@
 
     setActivePlayerName(playerName) {
       const normalizedName = normalizePlayerName(playerName);
-      window.clearTimeout(this.lookupDelayId);
+      globalThis.clearTimeout(this.lookupDelayId);
       this.resetActiveAttempt();
 
       if (!normalizedName) {
@@ -751,7 +751,7 @@
       this.renderLoadingState(normalizedName);
       this.clearStatus();
 
-      this.lookupDelayId = window.setTimeout(() => {
+      this.lookupDelayId = globalThis.setTimeout(() => {
         this.refreshTopScoreForPlayer(normalizedName);
       }, 220);
     }
@@ -814,7 +814,7 @@
         }
 
         return true;
-      } catch (error) {
+      } catch {
         this.setStatus(scoreboardContent.deviceOnlyWarning, "info", true);
 
         return true;
@@ -822,7 +822,7 @@
     }
 
     async handleResetClick() {
-      const shouldReset = window.confirm(scoreboardContent.resetConfirm);
+      const shouldReset = globalThis.confirm(scoreboardContent.resetConfirm);
 
       if (!shouldReset) {
         return;
