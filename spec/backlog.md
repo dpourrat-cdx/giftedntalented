@@ -47,6 +47,11 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - `javascript:S2486` and `javascript:S7723` array-construction cleanup in `app.js`, `question-bank.js`, and helpers
 - `typescript:S6551`, `typescript:S7781`, `javascript:S6653`, `javascript:S7778`, and `typescript:S4323` smaller readability/typing cleanups in the frontend helpers and backend utilities
 - `javascript:S7758`, `javascript:S7786`, `javascript:S7735`, and `typescript:S4325` isolated one-off cleanups
+- [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
+- [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
+- [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
+- [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+- [x] Extract `secureRandomIndex` into a shared frontend utility and wire the browser scripts to use it.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -76,5 +81,5 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 ## Next Recommended Delivery Slice
 
 1. **Minor Sonar sweep** - tackle the remaining 99 minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
-2. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
+2. **Frontend coverage attribution** - keep improving source-attributed frontend coverage so legacy-root script PRs stay easy to merge without extra coverage bridges.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
