@@ -29,6 +29,8 @@ Current slice in progress: minor Sonar cleanup and frontend coverage attribution
 
 SonarCloud currently reports 0 open critical issues and 0 open major issues. The remaining work is 99 open minor issues, mostly grouped around:
 
+- [x] Clear the two remaining medium Sonar issues in `app.js`: the mission-state mapping block and the rocket-star builder.
+
 - `javascript:S7764` globalThis opportunities in `app.js`, `gamification.js`, `scoreboard.js`, and frontend test helpers
 - `javascript:S7781` replaceAll opportunities in `app.js` and frontend test helpers
 - `javascript:S2486` and `javascript:S7723` array-construction cleanup in `app.js`, `question-bank.js`, and helpers
