@@ -36,12 +36,12 @@ export async function importBrowserScript(relativePath: string) {
 }
 
 export function resetBrowserGlobals() {
-  delete (window as Window & typeof globalThis & Record<string, unknown>).secureRandomIndex;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBank;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedGamification;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedScoreboard;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).__GiftedExposeTestUtils;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).CaptainNovaContent;
+  delete browserGlobal.secureRandomIndex;
+  delete browserGlobal.GiftedQuestionBank;
+  delete browserGlobal.GiftedGamification;
+  delete browserGlobal.GiftedScoreboard;
+  delete browserGlobal.__GiftedExposeTestUtils;
+  delete browserGlobal.CaptainNovaContent;
   window.localStorage.clear();
   document.body.innerHTML = "";
 }

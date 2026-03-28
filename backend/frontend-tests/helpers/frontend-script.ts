@@ -29,12 +29,12 @@ export async function loadFrontendScript(relativePath: string) {
 }
 
 export function resetFrontendGlobals() {
-  delete (window as Window & typeof globalThis & Record<string, unknown>).secureRandomIndex;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBank;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBankError;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedScoreboard;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedGamification;
-  delete (window as Window & typeof globalThis & Record<string, unknown>).CaptainNovaContent;
+  delete browserGlobal.secureRandomIndex;
+  delete browserGlobal.GiftedQuestionBank;
+  delete browserGlobal.GiftedQuestionBankError;
+  delete browserGlobal.GiftedScoreboard;
+  delete browserGlobal.GiftedGamification;
+  delete browserGlobal.CaptainNovaContent;
   window.localStorage.clear();
   document.body.innerHTML = "";
 }
