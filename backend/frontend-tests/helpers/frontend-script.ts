@@ -34,6 +34,7 @@ export function resetFrontendGlobals() {
   delete browserGlobal.GiftedQuestionBankError;
   delete browserGlobal.GiftedScoreboard;
   delete browserGlobal.GiftedGamification;
+  delete browserGlobal.__GiftedFrameBust;
   delete browserGlobal.CaptainNovaContent;
   window.localStorage.clear();
   document.body.innerHTML = "";
