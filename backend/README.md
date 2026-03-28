@@ -19,6 +19,7 @@ Current hosting/security decision:
 
 - keep the frontend on GitHub Pages for now
 - accept the remaining response-header limits there until we move to a header-capable host or proxy
+- ship a lightweight browser-side frame-busting fallback as defense in depth only
 - use `spec/frontend-header-security-plan.md` as the source of truth for that decision and its future follow-up
 
 ## Stack

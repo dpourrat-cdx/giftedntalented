@@ -45,6 +45,8 @@ The public web app is hosted on GitHub Pages, so the backend treats the browser 
 
 The current repo decision is to keep the frontend on GitHub Pages for now and explicitly accept the remaining response-header limits there until we move to a header-capable host or proxy.
 
+As a defense-in-depth measure only, the frontend now includes a lightweight browser-side frame-busting fallback. It is not a security boundary and does not replace real response-header enforcement.
+
 The backend therefore owns:
 
 - attempt question selection for live web quiz runs
