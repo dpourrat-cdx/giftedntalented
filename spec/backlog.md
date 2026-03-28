@@ -14,7 +14,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
-- Strict style CSP is now live on `master` (`style-src 'self'`), and the GitHub Pages header-security limitations are documented in `spec/frontend-header-security-plan.md`.
+- Strict style CSP is now live on `master` (`style-src 'self'`), and the frontend header-security decision brief recommends staying on GitHub Pages unless we move to a header-capable host/proxy for real response-header enforcement.
 - The remaining gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
@@ -27,8 +27,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 - [x] Codify the reset endpoint decision as the current parent-facing PIN flow and update the API spec accordingly.
 - [x] Audit inline style generation in frontend JS as a prerequisite to removing `'unsafe-inline'` from `style-src`. The last app-side blocker was the mini rocket fuel fill renderer, now converted from an inline `style` attribute to discrete CSS level classes.
 - [x] Remove `'unsafe-inline'` from `style-src` once inline style generation is eliminated.
-- [x] Add clickjacking protection planning for the GitHub Pages frontend. Planning now lives in `spec/frontend-header-security-plan.md`, which records the GitHub Pages limitation and the options: explicit risk acceptance, JS frame-busting fallback, or a move to header-capable hosting.
-- [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same plan doc now records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
+- [x] Add clickjacking protection planning for the GitHub Pages frontend. The new decision brief in `spec/frontend-header-security-plan.md` recommends staying on GitHub Pages unless we move to a header-capable host/proxy.
+- [x] Add a CSP `report-to` or equivalent reporting endpoint plan. The same decision brief records that real CSP reporting should wait for a host or proxy that can emit CSP response headers.
 - [x] Continue replacing remaining `innerHTML` render paths with safer DOM construction. The gamification panel renderers now build DOM nodes directly instead of interpolated `innerHTML`, and the shared panel/overlay helpers keep the safer path below Sonar's duplication gate.
 - [ ] Extract `secureRandomIndex` into a shared frontend utility once the surrounding frontend scripts are ready for that cleanup.
 
@@ -78,7 +78,6 @@ SonarCloud currently reports 0 open critical issues and 3 open major issues. Thi
 
 ## Next Recommended Delivery Slice
 
-1. **Final Sonar major sweep** - clear the last two `S6582` optional-chaining issues in `gamification.js` and `scoreboard.js`, plus the `S7785` top-level-await issue in `backend/scripts/smoke-live-backend.ts`.
+1. **Frontend header security decision** - use `spec/frontend-header-security-plan.md` to either accept GitHub Pages' residual frame risk or move the frontend to a host/proxy that can enforce headers and CSP reporting.
 2. **Post-deploy smoke discipline** - add the lightweight post-release checklist or automation step that runs `npm run smoke:live` after backend releases.
-3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
-4. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
+3. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
