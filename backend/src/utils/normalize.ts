@@ -3,7 +3,7 @@ export function normalizePlayerName(value: string) {
 }
 
 export function normalizeElapsedSeconds(value: number | null | undefined) {
-  if (value === null || value === undefined) {
+  if (value == null) {
     return null;
   }
 
