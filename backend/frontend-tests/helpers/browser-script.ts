@@ -2,10 +2,19 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { loadFreshGlobalScript, type BrowserGlobal } from "./root-script-loader";
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
-type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
-
 const browserGlobal = globalThis as BrowserGlobal;
+const knownGlobals = [
+  "secureRandomIndex",
+  "GiftedQuestionBank",
+  "GiftedQuestionBankError",
+  "GiftedScoreboard",
+  "GiftedGamification",
+  "__GiftedFrameBust",
+  "__GiftedExposeTestUtils",
+  "CaptainNovaContent",
+] as const;
 
 function toFsPath(filePath: string) {
   return filePath.replaceAll("\\", "/");
@@ -21,13 +30,6 @@ async function ensureSharedRandomIndex() {
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
-async function loadEvaluatedScript(relativePath: string) {
-  const scriptPath = path.resolve(repoRoot, relativePath);
-  const scriptContents = await readFile(scriptPath, "utf8");
-  const sourcePath = scriptPath.replaceAll("\\", "/");
-  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
-}
-
 export async function loadIndexHtml() {
   const htmlPath = path.resolve(repoRoot, "index.html");
   const html = await readFile(htmlPath, "utf8");
@@ -38,7 +40,8 @@ export async function loadIndexHtml() {
 
 export async function importBrowserScript(relativePath: string) {
   if (relativePath === "frame-bust.js") {
-    await loadEvaluatedScript(relativePath);
+    const scriptPath = path.resolve(repoRoot, relativePath);
+    await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
     return;
   }
 

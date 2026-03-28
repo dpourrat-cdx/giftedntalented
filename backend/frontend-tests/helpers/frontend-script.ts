@@ -1,10 +1,18 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { loadFreshGlobalScript, type BrowserGlobal } from "./root-script-loader";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
-type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
-
 const browserGlobal = globalThis as BrowserGlobal;
+const knownGlobals = [
+  "secureRandomIndex",
+  "GiftedQuestionBank",
+  "GiftedQuestionBankError",
+  "GiftedScoreboard",
+  "GiftedGamification",
+  "__GiftedFrameBust",
+  "CaptainNovaContent",
+] as const;
 
 function toFsPath(filePath: string) {
   return filePath.replaceAll("\\", "/");
@@ -27,6 +35,12 @@ export async function loadFrontendScript(relativePath: string) {
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
+
+  if (relativePath === "question-bank.js") {
+    await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+    return;
+  }
+
   const scriptContents = await readFile(scriptPath, "utf8");
   const sourcePath = toFsPath(scriptPath);
   browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
