@@ -580,7 +580,7 @@ describe("AttemptService", () => {
       expect(result.progress.correctCount).toBe(4);
       expect(result.progress.percentage).toBe(100);
       expect(mockUpdateEq).toHaveBeenCalledOnce(); // sets completed_at
-      expect(mockRpc).toHaveBeenCalledTimes(2);
+      expect(mockRpc).toHaveBeenCalledTimes(1);
       expect(mockEventInsert).toHaveBeenCalledOnce();
     });
 
@@ -617,7 +617,6 @@ describe("AttemptService", () => {
     it("falls back to legacy score saving and persists structured metadata", async () => {
       mockSingle.mockResolvedValue(makeAttemptRow({ answers: [0, 1, 2, 3] }));
       mockRpc
-        .mockResolvedValueOnce({ data: [], error: null })
         .mockResolvedValueOnce({
           data: null,
           error: {
@@ -625,6 +624,7 @@ describe("AttemptService", () => {
             message: "Could not find the function public.save_attempt_score_from_attempt",
           },
         })
+        .mockResolvedValueOnce({ data: [], error: null })
         .mockResolvedValueOnce({
           data: makeSavedScoreRecord({
             score: 4,

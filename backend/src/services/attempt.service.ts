@@ -4,6 +4,7 @@ import { logger } from "../config/logger.js";
 import { supabase } from "../lib/supabase.js";
 import { AppError } from "../utils/errors.js";
 import { normalizeElapsedSeconds, normalizePlayerName } from "../utils/normalize.js";
+import { isPersistedScoreRow, mapPersistedScoreRow, type PersistedScoreRow } from "./score-row.js";
 
 const ATTEMPT_TTL_HOURS = 2;
 let randomIndexPicker = (max: number) => randomInt(max);
@@ -50,14 +51,7 @@ type SelectedAttemptQuestion = AttemptQuestionResponse & {
   correctAnswer: number;
 };
 
-type ScoreSaveComparableRow = {
-  player_name: string;
-  score: number;
-  percentage: number;
-  total_questions: number;
-  elapsed_seconds: number | null;
-  completed_at: string | null;
-};
+type ScoreSaveComparableRow = PersistedScoreRow;
 
 type ScoreAttemptRow = {
   id: string;
@@ -86,7 +80,7 @@ type SupabaseErrorLike = {
   message?: string;
 };
 type AttemptSaveResult = {
-  record: ReturnType<typeof mapScoreRow> | null;
+  record: ReturnType<typeof mapPersistedScoreRow> | null;
   audit: {
     attemptId: string;
     playerName: string;
@@ -112,17 +106,6 @@ function addHoursIso(hours: number) {
 
 function addHoursToIso(timestamp: string, hours: number) {
   return new Date(Date.parse(timestamp) + hours * 60 * 60 * 1000).toISOString();
-}
-
-function mapScoreRow(row: Record<string, unknown>) {
-  return {
-    playerName: row.player_name,
-    score: row.score,
-    percentage: row.percentage,
-    totalQuestions: row.total_questions,
-    elapsedSeconds: row.elapsed_seconds,
-    completedAt: row.completed_at,
-  };
 }
 
 function uniqueStrings(values: string[]) {
@@ -481,22 +464,6 @@ function isRecordLike(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isScoreSaveComparableRow(value: unknown): value is ScoreSaveComparableRow {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.player_name === "string" &&
-    typeof candidate.score === "number" &&
-    typeof candidate.percentage === "number" &&
-    typeof candidate.total_questions === "number" &&
-    (candidate.elapsed_seconds === null || typeof candidate.elapsed_seconds === "number") &&
-    (candidate.completed_at === null || typeof candidate.completed_at === "string")
-  );
-}
-
 function doesSaveReplaceBest(oldBest: ScoreSaveComparableRow | null, newBest: ScoreSaveComparableRow) {
   return (
     !oldBest ||
@@ -530,6 +497,95 @@ function isMissingFunctionSchema(error: SupabaseErrorLike | null | undefined, fu
 }
 
 export class AttemptService {
+  private async selectAttemptRowWithSchemaFallback(attemptId: string) {
+    let { data, error } = await supabase
+      .from("score_attempts")
+      .select(
+        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, selection_fingerprint, score_saved_at, score_saved_score, score_saved_percentage, score_saved_elapsed_seconds, score_saved_payload, last_elapsed_seconds",
+      )
+      .eq("id", attemptId)
+      .single();
+
+    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint", "score_saved_at", "score_saved_payload"])) {
+      const fallbackResponse = await supabase
+        .from("score_attempts")
+        .select(
+          "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, last_elapsed_seconds",
+        )
+        .eq("id", attemptId)
+        .single();
+
+      data = fallbackResponse.data
+        ? {
+            ...fallbackResponse.data,
+            expires_at: null,
+            selection_fingerprint: null,
+            score_saved_at: null,
+            score_saved_score: null,
+            score_saved_percentage: null,
+            score_saved_elapsed_seconds: null,
+            score_saved_payload: null,
+          }
+        : fallbackResponse.data;
+      error = fallbackResponse.error;
+    }
+
+    return { data, error };
+  }
+
+  private async insertAttemptRowWithSchemaFallback(args: {
+    playerName: string;
+    clientType: "web" | "android";
+    mode: "quiz" | "story";
+    questionKey: AttemptQuestionKey[];
+    answers: Array<number | null>;
+    expiresAt: string;
+    selectionFingerprint: string;
+  }) {
+    let { data, error } = await supabase
+      .from("score_attempts")
+      .insert({
+        player_name: args.playerName,
+        client_type: args.clientType,
+        mode: args.mode,
+        total_questions: args.questionKey.length,
+        question_key: args.questionKey,
+        answers: args.answers,
+        expires_at: args.expiresAt,
+        selection_fingerprint: args.selectionFingerprint,
+        last_elapsed_seconds: null,
+      })
+      .select("id, total_questions, expires_at, selection_fingerprint")
+      .single();
+
+    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint"])) {
+      const fallbackResponse = await supabase
+        .from("score_attempts")
+        .insert({
+          player_name: args.playerName,
+          client_type: args.clientType,
+          mode: args.mode,
+          total_questions: args.questionKey.length,
+          question_key: args.questionKey,
+          answers: args.answers,
+          last_elapsed_seconds: null,
+        })
+        .select("id, total_questions")
+        .single();
+
+      data = fallbackResponse.data
+        ? {
+            ...fallbackResponse.data,
+            expires_at: null,
+            selection_fingerprint: args.selectionFingerprint,
+          }
+        : fallbackResponse.data;
+      error = fallbackResponse.error;
+    }
+
+    return { data, error };
+  }
+
   private async recordAttemptEvent(args: {
     attemptId: string;
     eventType: AttemptEventType;
@@ -566,7 +622,7 @@ export class AttemptService {
       throw new AppError(502, "SUPABASE_READ_FAILED", "The score record could not be loaded.", response.error);
     }
 
-    return response.data && response.data.length > 0 && isScoreSaveComparableRow(response.data[0])
+    return response.data && response.data.length > 0 && isPersistedScoreRow(response.data[0])
       ? response.data[0]
       : null;
   }
@@ -585,10 +641,12 @@ export class AttemptService {
       elapsedSeconds: number | null;
       targetPlayerName: string;
       savedAt: string;
-      oldBest: ScoreSaveComparableRow | null;
+      oldBest?: ScoreSaveComparableRow | null;
     },
   ): Promise<AttemptSaveResult> {
-    const { score, percentage, elapsedSeconds, targetPlayerName, savedAt, oldBest } = computed;
+    const { score, percentage, elapsedSeconds, targetPlayerName, savedAt } = computed;
+    const oldBest =
+      computed.oldBest === undefined ? await this.fetchOldBest(targetPlayerName) : computed.oldBest;
 
     const legacySave = await supabase.rpc("save_player_score", {
       target_player_name: targetPlayerName,
@@ -602,7 +660,7 @@ export class AttemptService {
       throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error);
     }
 
-    const fallbackRecord = legacySave.data && isScoreSaveComparableRow(legacySave.data) ? legacySave.data : null;
+    const fallbackRecord = legacySave.data && isPersistedScoreRow(legacySave.data) ? legacySave.data : null;
     if (!fallbackRecord) {
       throw new AppError(502, "SUPABASE_WRITE_FAILED", "The score record could not be saved.", legacySave.error ?? null);
     }
@@ -668,7 +726,7 @@ export class AttemptService {
     });
 
     return {
-      record: mapScoreRow(fallbackRecord),
+      record: mapPersistedScoreRow(fallbackRecord),
       audit: fallbackAudit,
     };
   }
@@ -687,7 +745,7 @@ export class AttemptService {
       elapsedSeconds: number | null;
       targetPlayerName: string;
       savedAt: string;
-      oldBest: ScoreSaveComparableRow | null;
+      oldBest?: ScoreSaveComparableRow | null;
     },
   ) {
     const { score, percentage, elapsedSeconds, targetPlayerName, savedAt } = computed;
@@ -717,8 +775,8 @@ export class AttemptService {
 
     const payload = data as AttemptSavePayload;
 
-    return isRecordLike(payload.record)
-      ? { record: mapScoreRow(payload.record), audit: isScoreSavePayload(payload) ? payload.audit ?? null : null }
+    return isPersistedScoreRow(payload.record)
+      ? { record: mapPersistedScoreRow(payload.record), audit: isScoreSavePayload(payload) ? payload.audit ?? null : null }
       : null;
   }
 
@@ -740,7 +798,6 @@ export class AttemptService {
     const elapsedSeconds = normalizeElapsedSeconds(args.elapsedSeconds);
     const savedAt = new Date().toISOString();
     const targetPlayerName = normalizePlayerName(args.playerName);
-    const oldBest = await this.fetchOldBest(args.playerName);
 
     return this.persistScorePrimary(
       {
@@ -750,42 +807,12 @@ export class AttemptService {
         selectionFingerprint: args.selectionFingerprint,
         totalQuestions: args.totalQuestions,
       },
-      { score, percentage, elapsedSeconds, targetPlayerName, savedAt, oldBest },
+      { score, percentage, elapsedSeconds, targetPlayerName, savedAt },
     );
   }
 
   private async getAttemptRow(attemptId: string) {
-    let { data, error } = await supabase
-      .from("score_attempts")
-      .select(
-        "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, expires_at, selection_fingerprint, score_saved_at, score_saved_score, score_saved_percentage, score_saved_elapsed_seconds, score_saved_payload, last_elapsed_seconds",
-      )
-      .eq("id", attemptId)
-      .single();
-
-    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint", "score_saved_at", "score_saved_payload"])) {
-      const fallbackResponse = await supabase
-        .from("score_attempts")
-        .select(
-          "id, player_name, client_type, mode, total_questions, question_key, answers, started_at, updated_at, completed_at, last_elapsed_seconds",
-        )
-        .eq("id", attemptId)
-        .single();
-
-      data = fallbackResponse.data
-        ? {
-            ...fallbackResponse.data,
-            expires_at: null,
-            selection_fingerprint: null,
-            score_saved_at: null,
-            score_saved_score: null,
-            score_saved_percentage: null,
-            score_saved_elapsed_seconds: null,
-            score_saved_payload: null,
-          }
-        : fallbackResponse.data;
-      error = fallbackResponse.error;
-    }
+    const { data, error } = await this.selectAttemptRowWithSchemaFallback(attemptId);
 
     if (error) {
       if (error.code === "PGRST116") {
@@ -835,46 +862,15 @@ export class AttemptService {
     const emptyAnswers = questionKey.map(() => null);
     const expiresAt = addHoursIso(ATTEMPT_TTL_HOURS);
     const selectionFingerprint = buildSelectionFingerprint(questionKey);
-    let { data, error } = await supabase
-      .from("score_attempts")
-      .insert({
-        player_name: normalizedName,
-        client_type: input.clientType,
-        mode: input.mode,
-        total_questions: questionKey.length,
-        question_key: questionKey,
-        answers: emptyAnswers,
-        expires_at: expiresAt,
-        selection_fingerprint: selectionFingerprint,
-        last_elapsed_seconds: null,
-      })
-      .select("id, total_questions, expires_at, selection_fingerprint")
-      .single();
-
-    if (isMissingColumnSchema(error, ["expires_at", "selection_fingerprint"])) {
-      const fallbackResponse = await supabase
-        .from("score_attempts")
-        .insert({
-          player_name: normalizedName,
-          client_type: input.clientType,
-          mode: input.mode,
-          total_questions: questionKey.length,
-          question_key: questionKey,
-          answers: emptyAnswers,
-          last_elapsed_seconds: null,
-        })
-        .select("id, total_questions")
-        .single();
-
-      data = fallbackResponse.data
-        ? {
-            ...fallbackResponse.data,
-            expires_at: null,
-            selection_fingerprint: selectionFingerprint,
-          }
-        : fallbackResponse.data;
-      error = fallbackResponse.error;
-    }
+    const { data, error } = await this.insertAttemptRowWithSchemaFallback({
+      playerName: normalizedName,
+      clientType: input.clientType,
+      mode: input.mode,
+      questionKey,
+      answers: emptyAnswers,
+      expiresAt,
+      selectionFingerprint,
+    });
 
     if (error) {
       throw new AppError(502, "ATTEMPT_CREATE_FAILED", "The score attempt could not be created.", error);
@@ -1012,7 +1008,7 @@ export class AttemptService {
       return {
         finalized: true,
         progress,
-        record: savedPayload.record ? mapScoreRow(savedPayload.record) : null,
+        record: isPersistedScoreRow(savedPayload.record) ? mapPersistedScoreRow(savedPayload.record) : null,
       };
     }
 

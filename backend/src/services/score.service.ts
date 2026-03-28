@@ -2,17 +2,7 @@ import bcrypt from "bcryptjs";
 import { supabase } from "../lib/supabase.js";
 import { AppError } from "../utils/errors.js";
 import { normalizePlayerName } from "../utils/normalize.js";
-
-function mapScoreRow(row: Record<string, unknown>) {
-  return {
-    playerName: row.player_name,
-    score: row.score,
-    percentage: row.percentage,
-    totalQuestions: row.total_questions,
-    elapsedSeconds: row.elapsed_seconds,
-    completedAt: row.completed_at,
-  };
-}
+import { mapPersistedScoreRow } from "./score-row.js";
 
 export class ScoreService {
   async getPlayerRecord(playerName: string) {
@@ -29,7 +19,7 @@ export class ScoreService {
       return null;
     }
 
-    return mapScoreRow(data[0]);
+    return mapPersistedScoreRow(data[0]);
   }
   async resetScores(resetPin: string) {
     const { data, error } = await supabase

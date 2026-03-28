@@ -41,9 +41,9 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - `javascript:S2486` and `javascript:S7723` array-construction cleanup in `app.js`, `question-bank.js`, and helpers
 - `typescript:S6551`, `typescript:S7781`, `javascript:S6653`, `javascript:S7778`, and `typescript:S4323` smaller readability/typing cleanups in the frontend helpers and backend utilities
 - `javascript:S7758`, `javascript:S7786`, `javascript:S7735`, and `typescript:S4325` isolated one-off cleanups
-- [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
-- [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
-- [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
+- [x] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts` by moving the persisted-score mapper into a shared backend service helper.
+- [x] Simplify and centralize attempt schema-cache fallback handling inside `AttemptService` so the stale-column fallback path is defined once for load/insert flows.
+- [x] Review the double "old best" lookup path in score persistence and keep the old-best fetch only for the legacy score-save fallback path.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
   Current bridge still includes `frame-bust.js`, because the classic pre-app browser script does not yet attribute coverage truthfully through the current Vitest frontend harness.
 
@@ -73,6 +73,6 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 
 ## Next Recommended Delivery Slice
 
-1. **Minor Sonar sweep** - tackle the remaining 99 minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
-2. **Frontend coverage attribution** - extend the source-attributed pattern beyond `shared-random.js` so more legacy-root script PRs can shed coverage bridges over time.
+1. **Frontend coverage attribution** - extend the source-attributed pattern beyond `shared-random.js` so more legacy-root script PRs can shed coverage bridges over time.
+2. **Minor Sonar sweep** - tackle the remaining minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
