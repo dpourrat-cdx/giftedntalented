@@ -4,6 +4,16 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
 
+async function ensureSharedRandomIndex() {
+  const scriptPath = path.resolve(repoRoot, "shared-random.js");
+  const fsPath = scriptPath.replace(/\\/g, "/");
+  if (typeof window.secureRandomIndex === "function") {
+    return;
+  }
+
+  await import(/* @vite-ignore */ `/@fs/${fsPath}`);
+}
+
 export async function loadIndexHtml() {
   const htmlPath = path.resolve(repoRoot, "index.html");
   const html = await readFile(htmlPath, "utf8");
@@ -13,6 +23,10 @@ export async function loadIndexHtml() {
 }
 
 export async function importBrowserScript(relativePath: string) {
+  if (relativePath !== "shared-random.js") {
+    await ensureSharedRandomIndex();
+  }
+
   const scriptPath = path.resolve(repoRoot, relativePath);
   const fsPath = scriptPath.replace(/\\/g, "/");
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
