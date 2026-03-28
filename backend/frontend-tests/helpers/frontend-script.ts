@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadFreshGlobalScript, type BrowserGlobal } from "./root-script-loader";
 
@@ -13,13 +14,19 @@ const knownGlobals = [
   "CaptainNovaContent",
 ] as const;
 
+function toFsPath(filePath: string) {
+  return filePath.replaceAll("\\", "/");
+}
+
 async function ensureSharedRandomIndex() {
   if (typeof browserGlobal.secureRandomIndex === "function") {
     return;
   }
 
   const sharedPath = path.resolve(repoRoot, "shared-random.js");
-  await loadFreshGlobalScript(sharedPath, browserGlobal, knownGlobals);
+  const sharedContents = await readFile(sharedPath, "utf8");
+  const sourcePath = toFsPath(sharedPath);
+  browserGlobal.eval(`${sharedContents}\n//# sourceURL=${sourcePath}`);
 }
 
 export async function loadFrontendScript(relativePath: string) {
@@ -28,7 +35,15 @@ export async function loadFrontendScript(relativePath: string) {
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+
+  if (relativePath === "question-bank.js") {
+    await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+    return;
+  }
+
+  const scriptContents = await readFile(scriptPath, "utf8");
+  const sourcePath = toFsPath(scriptPath);
+  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
 }
 
 export function resetFrontendGlobals() {

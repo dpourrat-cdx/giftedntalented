@@ -16,13 +16,18 @@ const knownGlobals = [
   "CaptainNovaContent",
 ] as const;
 
+function toFsPath(filePath: string) {
+  return filePath.replaceAll("\\", "/");
+}
+
 async function ensureSharedRandomIndex() {
   if (typeof browserGlobal.secureRandomIndex === "function") {
     return;
   }
 
   const scriptPath = path.resolve(repoRoot, "shared-random.js");
-  await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+  const fsPath = toFsPath(scriptPath);
+  await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
 export async function loadIndexHtml() {
@@ -34,12 +39,19 @@ export async function loadIndexHtml() {
 }
 
 export async function importBrowserScript(relativePath: string) {
+  if (relativePath === "frame-bust.js") {
+    const scriptPath = path.resolve(repoRoot, relativePath);
+    await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+    return;
+  }
+
   if (relativePath !== "shared-random.js") {
     await ensureSharedRandomIndex();
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
+  const fsPath = toFsPath(scriptPath);
+  await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
 export function resetBrowserGlobals() {
