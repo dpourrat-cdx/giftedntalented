@@ -9,13 +9,14 @@ This file tracks open work only. Completed items should stay here only if they s
 - The Sonar issue backlog is cleared on `master` after the March 27-28, 2026 cleanup wave.
 - GitHub Pages remains the frontend host for now, with a lightweight JS frame-busting fallback as defense in depth only.
 - Strict style CSP is live on `master` with `style-src 'self'`.
-- Sonar overall coverage on `master` is still below target at `57.6%` (`3148` lines to cover, `1293` uncovered lines as of March 28, 2026).
+- Local trusted coverage on `master` is now above target at `86.85%` overall lines (`246` tests passing under `npm.cmd run test:coverage` on March 28, 2026).
 
 Recent merged progress that still matters for planning:
 
-- March 27-28, 2026 PRs removed the remaining open Sonar issues across frontend runtime files, backend support files, and test helpers.
-- March 28, 2026 PRs added source-attributed frontend coverage and smoke coverage for page load, record lookup, and reset behavior.
+- March 27-28, 2026 PRs removed the remaining open Sonar issues across frontend runtime files, backend support files, test helpers, and the live smoke script.
+- March 28, 2026 PRs added source-attributed frontend coverage for `question-bank.js` and `frame-bust.js`, plus smoke/behavior coverage for page load, record lookup, reset behavior, runtime helpers, and `app.js`.
 - March 27-28, 2026 PRs also aligned hosting/security docs and kept the GitHub Pages frame-busting fallback decision current.
+- March 28, 2026 docs updates also captured the current PR review automation, comment-prefix convention, and remote branch hygiene workflow in `CONTRIBUTING.md`.
 
 Use these docs as the durable sources of truth:
 
@@ -36,10 +37,12 @@ Use these docs as the durable sources of truth:
 
 ## Priority 3: Code Quality And Maintainability
 
-- [ ] Raise overall trusted coverage toward and past `80%`, starting with the biggest user-facing frontend/runtime gaps instead of adding low-value test-only padding.
-  Current baseline on `master` is `57.6%` overall coverage as of March 28, 2026.
+- [ ] Keep overall trusted coverage above `80%` and spend new test work on the highest-risk remaining behavior gaps rather than low-value padding.
+  Current local baseline on `master` is `86.85%` overall line coverage as of March 28, 2026.
+- [ ] Target the biggest remaining runtime coverage gaps first: `scoreboard.js` (`78.03%` lines / `59.17%` branches), `app.js` (`82.12%` lines / `63.85%` branches), and `gamification.js` (`82.18%` lines / `72.79%` branches).
 - [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
 - [ ] Add a repeatable coverage reporting step so each PR wave can show which files moved the global coverage number and which high-risk files still lag.
+- [ ] Decide whether the thin infra wrappers (`firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, `not-found.ts`, `express.d.ts`) should get direct tests, explicit exclusions, or remain accepted low-value gaps.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -50,8 +53,8 @@ Use these docs as the durable sources of truth:
 
 ## Priority 5: Testing And Operations
 
-- [ ] Add the next frontend smoke and behavior coverage wave for story mode progression, score submission completion, and result-screen branches.
-- [ ] Add deeper unit-style coverage for the highest-traffic frontend runtime files, especially `app.js`, `scoreboard.js`, `question-bank.js`, and `gamification.js`.
+- [ ] Add the next frontend behavior coverage wave for the remaining `scoreboard.js` parent/reset/replay branches and the highest-value `app.js` timer/result-transition branches.
+- [ ] Add deeper branch-focused coverage for `gamification.js`, especially queue/celebration transitions that still lag the rest of the frontend runtime.
 - [ ] Add browser-level verification for desktop and mobile layout and interaction paths.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
@@ -68,6 +71,7 @@ Use these docs as the durable sources of truth:
 
 ## Next Recommended Delivery Slice
 
-1. **Coverage wave 1** - raise overall coverage by targeting story mode progression, score submission completion, and result-screen branches in `app.js` and adjacent runtime helpers.
-2. **Coverage wave 2** - deepen coverage on `scoreboard.js`, `question-bank.js`, and `gamification.js`, where the recent cleanup wave already made the code easier to test safely.
-3. **Browser verification** - add desktop/mobile browser-level checks for the main learner and parent flows once the higher-value runtime coverage is in place.
+1. **Coverage wave 1** - deepen `scoreboard.js` coverage first, especially the remaining parent/reset/replay and status-message branches where the file still trails the rest of the frontend runtime.
+2. **Coverage wave 2** - add targeted `app.js` and `gamification.js` branch coverage for timer expiry, result transitions, overlay queue advancement, and finale paths that still sit below the new master baseline.
+3. **Infra coverage decision** - decide whether `firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, `not-found.ts`, and `express.d.ts` deserve direct tests or should simply remain accepted thin-wrapper gaps.
+4. **Browser verification** - add desktop/mobile browser-level checks for the main learner and parent flows once the higher-value runtime coverage is in place.
