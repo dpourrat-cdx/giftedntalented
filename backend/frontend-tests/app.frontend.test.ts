@@ -16,18 +16,18 @@ const attemptQuestion = {
   stimulus: "",
 };
 
-function buildGamificationStub() {
+function buildGamificationStub(hasBlockingOverlay = true) {
   return {
-    sync() {},
-    onAnswerEvaluated() {},
-    onTestCompleted() {},
+    sync: vi.fn(),
+    onAnswerEvaluated: vi.fn(),
+    onTestCompleted: vi.fn(),
     hasBlockingOverlay() {
-      return true;
+      return hasBlockingOverlay;
     },
-    showMissionUpdate() {},
-    showMissionCompletion() {},
-    reset() {},
-    clearTransientFeedback() {},
+    showMissionUpdate: vi.fn(),
+    showMissionCompletion: vi.fn(),
+    reset: vi.fn(),
+    clearTransientFeedback: vi.fn(),
   };
 }
 
@@ -113,14 +113,21 @@ async function completeSingleQuestionFlow(selectedOptionIndex: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 0));
 }
 
-async function setupApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
+async function setupApp(
+  question = attemptQuestion,
+  options: { storyOnly?: boolean; scoreboard?: boolean; blockingOverlay?: boolean } = {},
+) {
   await loadIndexHtml();
   await importBrowserScript("content.js");
 
   window.GiftedQuestionBank = buildQuestionBankStub(question);
+  let gamificationController = buildGamificationStub();
+  let overlayStateChange: ((overlayState: Record<string, unknown> | null) => void) | null = null;
   window.GiftedGamification = {
-    createGamificationController() {
-      return buildGamificationStub();
+    createGamificationController(config: { callbacks?: { onOverlayStateChange?: typeof overlayStateChange } } = {}) {
+      overlayStateChange = config.callbacks?.onOverlayStateChange ?? null;
+      gamificationController = buildGamificationStub(options.blockingOverlay !== false);
+      return gamificationController;
     },
   };
 
@@ -141,18 +148,20 @@ async function setupApp(question = attemptQuestion, options: { storyOnly?: boole
   });
   const finalizeAttempt = vi.fn().mockResolvedValue(null);
 
-  window.GiftedScoreboard = {
-    createScoreboardController() {
-      return {
-        init() {},
-        setActivePlayerName() {},
-        resetActiveAttempt() {},
-        beginAttempt,
-        recordValidatedAnswer,
-        finalizeAttempt,
-      };
-    },
-  };
+  if (options.scoreboard !== false) {
+    window.GiftedScoreboard = {
+      createScoreboardController() {
+        return {
+          init() {},
+          setActivePlayerName() {},
+          resetActiveAttempt() {},
+          beginAttempt,
+          recordValidatedAnswer,
+          finalizeAttempt,
+        };
+      },
+    };
+  }
 
   await importBrowserScript("app.js");
 
@@ -164,7 +173,7 @@ async function setupApp(question = attemptQuestion, options: { storyOnly?: boole
     }
   }
 
-  return { beginAttempt, recordValidatedAnswer, finalizeAttempt };
+  return { beginAttempt, recordValidatedAnswer, finalizeAttempt, gamificationController, overlayStateChange };
 }
 
 async function startApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
@@ -504,7 +513,7 @@ describe("app.js targeted coverage", () => {
   });
 
   describe("renderStoryOnlyQuestion", () => {
-    it("renders the story-only prompt with button disabled after starting in story-only mode", async () => {
+  it("renders the story-only prompt with button disabled after starting in story-only mode", async () => {
       await startApp(attemptQuestion, { storyOnly: true });
 
       const questionCounter = document.getElementById("questionCounter") as HTMLElement;
@@ -520,6 +529,41 @@ describe("app.js targeted coverage", () => {
       expect(optionsList.children).toHaveLength(0);
       expect(nextButton.disabled).toBe(true);
       expect(nextHint.textContent).toBe("Use the modal button to continue the story.");
+    });
+  });
+
+  describe("story progression", () => {
+    it("advances the story overlays and finishes in the story-only results view", async () => {
+      const { gamificationController, overlayStateChange } = await startApp(attemptQuestion, { storyOnly: true });
+
+      expect(overlayStateChange).toBeTypeOf("function");
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "intro", sectionKey: "Verbal" },
+      });
+      expect(gamificationController.showMissionUpdate).toHaveBeenCalledWith("Verbal");
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "midpoint", sectionKey: "Verbal" },
+      });
+      expect(gamificationController.showMissionCompletion).toHaveBeenCalledWith("Verbal");
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "section", sectionKey: "Verbal" },
+      });
+
+      expect(gamificationController.onTestCompleted).toHaveBeenCalled();
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+      expect(document.getElementById("scoreHeadline")?.textContent).toBe(
+        "Alex completed Captain Nova's full story route.",
+      );
+      expect(document.getElementById("timeSummary")?.textContent).toBe(
+        "Story Only mode keeps the focus on the adventure, so mission timing is turned off.",
+      );
+      expect(document.querySelector("#reviewList .review-card h4")?.textContent).toBe("Legendary Launch");
     });
   });
 
@@ -715,6 +759,130 @@ describe("app.js targeted coverage", () => {
       expect(nextHint.classList.contains("is-hidden")).toBe(true);
     });
 
+    it("still allows answering without a scoreboard controller and finishes the attempt", async () => {
+      await setupApp(attemptQuestion, { scoreboard: false });
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+      nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+      await Promise.resolve();
+
+      await completeSingleQuestionFlow(attemptQuestion.answer);
+
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+      expect(document.querySelector("#reviewList .review-card h4")?.textContent).toBe("Legendary Launch");
+    });
+
+    it("still finishes the attempt when scoreboard answer sync fails", async () => {
+      const { recordValidatedAnswer } = await startApp();
+      recordValidatedAnswer.mockRejectedValueOnce(new Error("sync failed"));
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await completeSingleQuestionFlow(attemptQuestion.answer);
+
+      expect(errorSpy).toHaveBeenCalledWith("[CaptainNova] Attempt answer sync failed.", expect.any(Error));
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+      expect(document.querySelector("#reviewList .review-card h4")?.textContent).toBe("Legendary Launch");
+    });
+
+    it("ignores non-Enter keys in the child name input", async () => {
+      const mocks = await setupApp();
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+      nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+
+      await Promise.resolve();
+
+      expect(mocks.beginAttempt).not.toHaveBeenCalled();
+      expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(true);
+    });
+
+    it("scrolls back to the question panel when the back button is pressed", async () => {
+      await startApp();
+
+      const backButton = document.getElementById("backToQuestionsButton") as HTMLButtonElement;
+      backButton.click();
+
+      expect(window.Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(window.Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    });
+
+    it("suppresses the next-button advance briefly after a section overlay dismissal", async () => {
+      const { overlayStateChange, recordValidatedAnswer } = await startApp();
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[attemptQuestion.answer].click();
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: {
+          variant: "section",
+          advanceOnDismiss: false,
+          sectionKey: "Verbal",
+        },
+      });
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      expect(recordValidatedAnswer).not.toHaveBeenCalled();
+    });
+
+    it("auto-advances after a correct answer when no blocking overlay is active", async () => {
+      vi.useFakeTimers();
+      try {
+        const { recordValidatedAnswer } = await setupApp(attemptQuestion, { blockingOverlay: false });
+        recordValidatedAnswer.mockResolvedValue({
+          accepted: true,
+          correctAnswer: attemptQuestion.answer,
+          isCorrect: true,
+          progress: {
+            answeredCount: 1,
+            correctCount: 1,
+            totalQuestions: 1,
+            percentage: 100,
+          },
+          record: {
+            playerName: "Alex",
+            score: 1,
+            totalQuestions: 1,
+            percentage: 100,
+            elapsedSeconds: 10,
+          },
+        });
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const buttons = Array.from(
+          document.querySelectorAll("#optionsList button"),
+        ) as HTMLButtonElement[];
+        buttons[attemptQuestion.answer].click();
+
+        const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+        nextButton.click();
+
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(1000);
+        await Promise.resolve();
+
+        expect(recordValidatedAnswer).toHaveBeenCalledTimes(1);
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+        expect(document.querySelector("#reviewList .review-card h4")?.textContent).toBe("Legendary Launch");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("resolves the selected-answer and mission-transition hint and button states", async () => {
       const { resolveNextHintText, resolveNextButtonText, shouldDisableNextButton } = await loadAppHelpers();
 
@@ -773,6 +941,32 @@ describe("app.js targeted coverage", () => {
           isAwaitingAnswerSync: false,
         }),
       ).toBe(true);
+    });
+  });
+
+  describe("timer handling", () => {
+    it("submits the attempt when the mission timer expires", async () => {
+      vi.useFakeTimers();
+      try {
+        const { finalizeAttempt } = await setupApp();
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        await vi.advanceTimersByTimeAsync(30000);
+        await Promise.resolve();
+
+        expect(finalizeAttempt).toHaveBeenCalledTimes(1);
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+        expect(document.getElementById("scoreHeadline")?.textContent).toContain("Alex powered 0/1 mission steps (0%)");
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
