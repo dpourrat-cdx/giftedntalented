@@ -45,7 +45,7 @@ SonarCloud currently reports 0 open critical issues and 3 open major issues. Thi
 - [ ] Replace the remaining optional-chaining opportunities (2 Sonar MAJOR `S6582` issues):
   - `gamification.js:760`
   - `scoreboard.js:849`
-- [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`).
+- [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`). Being handled in the current PR.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.

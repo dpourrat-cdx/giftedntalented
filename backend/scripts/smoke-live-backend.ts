@@ -348,7 +348,9 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
+try {
+  await main();
+} catch (error: unknown) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
-});
+}
