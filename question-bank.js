@@ -125,31 +125,31 @@
   }
 
   function loadQuestionHistory() {
-    if (!window.localStorage) {
+    if (!globalThis.localStorage) {
       return {};
     }
 
     try {
-      const rawValue = window.localStorage.getItem(QUESTION_HISTORY_STORAGE_KEY);
+      const rawValue = globalThis.localStorage.getItem(QUESTION_HISTORY_STORAGE_KEY);
       if (!rawValue) {
         return {};
       }
 
       const parsed = JSON.parse(rawValue);
       return parsed && typeof parsed === "object" ? parsed : {};
-    } catch (error) {
+    } catch {
       return {};
     }
   }
 
   function saveQuestionHistory(history) {
-    if (!window.localStorage) {
+    if (!globalThis.localStorage) {
       return;
     }
 
     try {
-      window.localStorage.setItem(QUESTION_HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (error) {
+      globalThis.localStorage.setItem(QUESTION_HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } catch {
       // Ignore storage failures and keep question selection working.
     }
   }
@@ -422,20 +422,6 @@
         questions.push(question);
       }
     }
-  }
-
-  function validMovesFor(grid, position) {
-    const moves = [
-      { name: "up", row: -1, col: 0 },
-      { name: "down", row: 1, col: 0 },
-      { name: "left", row: 0, col: -1 },
-      { name: "right", row: 0, col: 1 },
-    ];
-
-    return moves.filter((move) => {
-      const next = moveOnGrid(position, move);
-      return next.row >= 0 && next.row < grid.length && next.col >= 0 && next.col < grid.length;
-    });
   }
 
   function buildVerbalQuestions() {
@@ -1466,9 +1452,6 @@
             "",
             8000 + familyIndex * 100 + index,
           ),
-        );
-
-        questions.push(
           makeChoiceQuestion(
             section,
             `${left[1]} is to ${left[0]} as ${right[1]} is to ...`,
@@ -2475,7 +2458,7 @@
       const questions = pool[section];
 
       if (!Array.isArray(questions)) {
-        throw new Error(`Missing question array for ${section}`);
+        throw new TypeError(`Missing question array for ${section}`);
       }
 
       if (questions.length !== QUESTIONS_PER_SECTION) {
@@ -2554,7 +2537,7 @@
       return clone;
     }
 
-    window.GiftedQuestionBank = Object.freeze({
+    globalThis.GiftedQuestionBank = Object.freeze({
       SECTIONS,
       QUESTIONS_PER_SECTION,
       QUESTIONS_PER_TEST_SECTION,
@@ -2564,6 +2547,6 @@
       },
     });
   } catch (error) {
-    window.GiftedQuestionBankError = error.message;
+    globalThis.GiftedQuestionBankError = error.message;
   }
 })();
