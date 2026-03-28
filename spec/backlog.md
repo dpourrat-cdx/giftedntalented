@@ -36,6 +36,7 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - `javascript:S2486` and `javascript:S7723` array-construction cleanup in `app.js`, `question-bank.js`, and helpers
 - `typescript:S6551`, `typescript:S7781`, `javascript:S6653`, `javascript:S7778`, and `typescript:S4323` smaller readability/typing cleanups in the frontend helpers and backend utilities
 - `javascript:S7758`, `javascript:S7786`, `javascript:S7735`, and `typescript:S4325` isolated one-off cleanups
+- [x] Clear a low-risk `app.js` Sonar batch: remove optional chaining from the question-pool lookup, attempt normalization, artwork builders, overlay handling, and answer-evaluation guards.
 - [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.

@@ -178,12 +178,13 @@ function canonicalQuestionByBankId(bankId) {
     questionBankLookup = new Map();
     const questionPool = getQuestionPool();
     for (const section of sections) {
-      if (!Array.isArray(questionPool?.[section])) {
+      const sectionQuestions = questionPool[section];
+      if (!Array.isArray(sectionQuestions)) {
         continue;
       }
 
-      questionPool[section].forEach((question) => {
-        if (question?.bankId) {
+      sectionQuestions.forEach((question) => {
+        if (question && typeof question.bankId === "string" && question.bankId) {
           questionBankLookup.set(question.bankId, question);
         }
       });
@@ -206,10 +207,14 @@ function normalizeAttemptQuestion(question, index) {
   const derivedAnswerIndex = deriveAttemptAnswerIndex(options, canonicalCorrectOption);
   const answer = resolveAttemptAnswer(candidate, derivedAnswerIndex);
   const id = resolveAttemptQuestionId(candidate, index);
-  const section = resolveAttemptTextField(candidate.section, canonicalQuestion?.section);
-  const prompt = resolveAttemptTextField(candidate.prompt, canonicalQuestion?.prompt);
-  const explanation = resolveAttemptTextField(candidate.explanation, canonicalQuestion?.explanation);
-  const stimulus = resolveAttemptStimulus(candidate.stimulus, canonicalQuestion?.stimulus);
+  const canonicalSection = canonicalQuestion ? canonicalQuestion.section : undefined;
+  const canonicalPrompt = canonicalQuestion ? canonicalQuestion.prompt : undefined;
+  const canonicalExplanation = canonicalQuestion ? canonicalQuestion.explanation : undefined;
+  const canonicalStimulus = canonicalQuestion ? canonicalQuestion.stimulus : undefined;
+  const section = resolveAttemptTextField(candidate.section, canonicalSection);
+  const prompt = resolveAttemptTextField(candidate.prompt, canonicalPrompt);
+  const explanation = resolveAttemptTextField(candidate.explanation, canonicalExplanation);
+  const stimulus = resolveAttemptStimulus(candidate.stimulus, canonicalStimulus);
 
   if (!id || !bankId || !section || !prompt || options?.length !== 4 || answer === null) {
     return null;
@@ -233,15 +238,17 @@ function resolveAttemptOptions(candidate, canonicalQuestion) {
     return candidate.options.map(String);
   }
 
-  if (Array.isArray(canonicalQuestion?.options)) {
-    return canonicalQuestion.options.map(String);
+  const canonicalOptions = canonicalQuestion && canonicalQuestion.options;
+  if (Array.isArray(canonicalOptions)) {
+    return canonicalOptions.map(String);
   }
 
   return null;
 }
 
 function resolveCanonicalCorrectOption(canonicalQuestion) {
-  if (!Array.isArray(canonicalQuestion?.options)) {
+  const canonicalOptions = canonicalQuestion && canonicalQuestion.options;
+  if (!Array.isArray(canonicalOptions)) {
     return null;
   }
 
@@ -249,11 +256,11 @@ function resolveCanonicalCorrectOption(canonicalQuestion) {
     return null;
   }
 
-  if (canonicalQuestion.answer < 0 || canonicalQuestion.answer >= canonicalQuestion.options.length) {
+  if (canonicalQuestion.answer < 0 || canonicalQuestion.answer >= canonicalOptions.length) {
     return null;
   }
 
-  return String(canonicalQuestion.options[canonicalQuestion.answer]);
+  return String(canonicalOptions[canonicalQuestion.answer]);
 }
 
 function deriveAttemptAnswerIndex(options, canonicalCorrectOption) {
@@ -323,7 +330,7 @@ function normalizeAttemptQuestions(questions) {
 
 function applyAttemptQuestions(questions) {
   const normalizedQuestions = normalizeAttemptQuestions(questions);
-  if (normalizedQuestions?.length !== totalQuestions()) {
+  if (!normalizedQuestions || normalizedQuestions.length !== totalQuestions()) {
     return false;
   }
 
@@ -684,7 +691,7 @@ function buildStoryParagraphs(lines) {
 }
 
 function buildStoryArtworkElement(artwork, options = {}) {
-  if (!artwork?.src) {
+  if (!artwork || !artwork.src) {
     return null;
   }
 
@@ -720,7 +727,7 @@ function buildStoryArtworkElement(artwork, options = {}) {
 }
 
 function buildStoryArtworkMarkup(artwork, options = {}) {
-  if (!artwork?.src) {
+  if (!artwork || !artwork.src) {
     return "";
   }
 
@@ -764,7 +771,7 @@ function resultsGalleryItems(percentage, sectionScores) {
 
   for (const section of sections) {
     const mission = missionStoryForSection(section);
-    if (!mission?.completionArtwork) {
+    if (!mission || !mission.completionArtwork) {
       continue;
     }
 
@@ -1959,17 +1966,19 @@ function handleStandardOverlayDismissal(dismissedEvent) {
 }
 
 function shouldResumeDeferredAutoAdvance(hasBlockingOverlay) {
+  const currentQuestion = questionAt(currentIndex);
   return (
     !hasBlockingOverlay &&
     deferredAdvanceQuestionIndex !== -1 &&
     deferredAdvanceQuestionIndex === currentIndex &&
-    validatedAnswers[currentIndex] === questionAt(currentIndex)?.answer
+    currentQuestion &&
+    validatedAnswers[currentIndex] === currentQuestion.answer
   );
 }
 
 function handleOverlayStateChange(overlayState) {
-  const hasBlockingOverlay = Boolean(overlayState?.hasBlocking);
-  const dismissedEvent = overlayState?.dismissedEvent || null;
+  const hasBlockingOverlay = Boolean(overlayState && overlayState.hasBlocking);
+  const dismissedEvent = overlayState && overlayState.dismissedEvent ? overlayState.dismissedEvent : null;
   setTimerPaused(hasBlockingOverlay && hasStarted && !isSubmitted);
 
   if (!hasBlockingOverlay && isStoryOnlySession && !isSubmitted && handleStoryOnlyOverlayDismissal(dismissedEvent)) {
@@ -1987,7 +1996,7 @@ function handleOverlayStateChange(overlayState) {
 }
 
 function resolveAuthoritativeCorrectAnswer(result, fallbackAnswer) {
-  if (Number.isInteger(result?.correctAnswer) && result.correctAnswer >= 0 && result.correctAnswer <= 3) {
+  if (result && Number.isInteger(result.correctAnswer) && result.correctAnswer >= 0 && result.correctAnswer <= 3) {
     return result.correctAnswer;
   }
 
@@ -1995,7 +2004,7 @@ function resolveAuthoritativeCorrectAnswer(result, fallbackAnswer) {
 }
 
 function resolveAnswerEvaluationIsCorrect(result, selectedAnswer, authoritativeCorrectAnswer) {
-  if (typeof result?.isCorrect === "boolean") {
+  if (result && typeof result.isCorrect === "boolean") {
     return result.isCorrect;
   }
 
