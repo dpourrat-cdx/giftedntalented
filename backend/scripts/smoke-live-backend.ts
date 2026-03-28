@@ -98,7 +98,7 @@ function resolveCorrectAnswerIndex(args: {
     | undefined;
   assert(Boolean(canonicalQuestion), `${args.step} failed: canonical question was not found`);
   const correctOption = canonicalQuestion?.options[canonicalQuestion.answer ?? 0];
-  const correctAnswerIndex = args.options.findIndex((option) => option === correctOption);
+  const correctAnswerIndex = args.options.indexOf(correctOption);
   assert(correctAnswerIndex !== -1, `${args.step} failed: correct option was not present in returned options`);
   return correctAnswerIndex;
 }
