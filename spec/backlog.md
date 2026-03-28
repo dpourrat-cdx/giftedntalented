@@ -31,6 +31,7 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 
 - [x] Clear the medium Sonar cleanup in `gamification.js` and `scoreboard.js`: split the celebration click handler and the scoreboard reset-mode flow into focused helpers.
 - [x] Clear a low-risk `app.js` `replaceAll` batch in `escapeHtml()` so the fixed-string character escapes stop using repeated global regex replacements.
+- [x] Clear the remaining medium `.indexOf()` follow-ups in `app.js` and `backend/scripts/smoke-live-backend.ts`.
 - [x] Clear the question-bank array-construction cleanup in the logical question builders by replacing the rotating slice/concat windows with a small shared helper.
 
 - `javascript:S7764` globalThis opportunities in `app.js`, `gamification.js`, `scoreboard.js`, and frontend test helpers

@@ -473,7 +473,7 @@ function sectionQuestions(section) {
 }
 
 function firstUnansweredIndex() {
-  return validatedAnswers.findIndex((answer) => answer === null);
+  return validatedAnswers.indexOf(null);
 }
 
 function firstUnansweredIndexForSection(section) {
