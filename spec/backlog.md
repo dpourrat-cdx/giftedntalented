@@ -44,6 +44,7 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+  Current bridge still includes `frame-bust.js`, because the classic pre-app browser script does not yet attribute coverage truthfully through the current Vitest frontend harness.
 
 ## Priority 4: Privacy And Parent Safety
 
