@@ -45,7 +45,7 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - [x] Simplify and centralize attempt schema-cache fallback handling inside `AttemptService` so the stale-column fallback path is defined once for load/insert flows.
 - [x] Review the double "old best" lookup path in score persistence and keep the old-best fetch only for the legacy score-save fallback path.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
-  Current bridge still includes `frame-bust.js`, because the classic pre-app browser script does not yet attribute coverage truthfully through the current Vitest frontend harness.
+  Current harness progress: `backend/vitest.config.ts` now includes the real root browser files in coverage (`app.js`, `content.js`, and `shared-random.js`), so those paths are source-attributed instead of bridged. The remaining bridge still includes `frame-bust.js`, and the eval-driven suites for `gamification.js`, `question-bank.js`, and `scoreboard.js` still need a separate harness slice before their exclusions can be removed.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -73,6 +73,6 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 
 ## Next Recommended Delivery Slice
 
-1. **Frontend coverage attribution** - extend the source-attributed pattern beyond `shared-random.js` so more legacy-root script PRs can shed coverage bridges over time.
-2. **Minor Sonar sweep** - tackle the remaining minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
+1. **Frontend coverage attribution** - continue extending the source-attributed pattern beyond `app.js`, `content.js`, and `shared-random.js` by replacing the remaining eval-driven legacy suites.
+2. **Minor Sonar sweep** - tackle the remaining 99 minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.

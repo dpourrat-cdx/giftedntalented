@@ -1,6 +1,10 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 
+const repoRoot = path.resolve(import.meta.dirname, "..");
+
 export default defineConfig({
+  root: repoRoot,
   server: {
     fs: {
       allow: [".."],
@@ -9,17 +13,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts", "frontend-tests/**/*.test.ts"],
-    setupFiles: ["src/test/setup.ts"],
+    include: ["backend/src/**/*.test.ts", "backend/frontend-tests/**/*.test.ts"],
+    setupFiles: ["backend/src/test/setup.ts"],
     mockReset: true,
     typecheck: {
-      tsconfig: "./tsconfig.test.json",
+      tsconfig: "backend/tsconfig.test.json",
     },
     coverage: {
       provider: "v8",
       reporter: ["lcov", "text"],
-      reportsDirectory: "coverage",
-      include: ["src/**/*.ts", "../app.js", "../gamification.js", "../question-bank.js", "../scoreboard.js"],
+      reportsDirectory: "backend/coverage",
+      allowExternal: true,
+      include: ["backend/src/**/*.ts", "app.js", "content.js", "shared-random.js"],
       exclude: ["**/*.test.ts", "**/test/**", "**/scripts/**", "**/frontend-tests/**"],
     },
   },
