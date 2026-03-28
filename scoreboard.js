@@ -846,7 +846,7 @@
           } else {
             this.setStatus(
               buildFriendlyError(error),
-              error && error.code === "P0001" ? "error" : "info",
+              error?.code === "P0001" ? "error" : "info",
               true,
             );
             return;

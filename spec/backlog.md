@@ -40,7 +40,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 Current slice in progress: final Sonar major-issue cleanup after the merged optional-chaining and nested-ternary wave (PRs 54, 56, 58, and 59).
 
-SonarCloud currently reports 0 open critical issues and 3 open major issues:
+SonarCloud currently reports 0 open critical issues and 3 open major issues. This PR covers the two remaining `S6582` optional-chaining findings:
 
 - [ ] Replace the remaining optional-chaining opportunities (2 Sonar MAJOR `S6582` issues):
   - `gamification.js:760`
