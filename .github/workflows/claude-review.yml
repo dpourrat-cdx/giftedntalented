@@ -1,23 +1,20 @@
 name: Claude PR Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
-    branches: [master]
-
-concurrency:
-  group: claude-review-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
 
 jobs:
   review:
     name: Claude Review
     runs-on: ubuntu-latest
-    # Only review Codex PRs from this repo; skip drafts and fork PRs
+    # Only review Codex PRs from this repo after CI succeeds
     if: |
-      startsWith(github.head_ref, 'codex/') &&
-      !github.event.pull_request.draft &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'codex/') &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     permissions:
       contents: read
       pull-requests: write
@@ -25,19 +22,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+
+      - name: Generate claude-reviewer token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
 
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
           claude_args: "--max-turns 8 --model claude-sonnet-4-6"
           prompt: |
             You are Claude reviewing a Codex PR for the Captain Nova project.
             Start your review comment with "Codex, " so it is clear who posted it.
 
             Review checklist (from CONTRIBUTING.md):
-            1. CI — confirm the Backend job and SonarCloud gate both pass (green checks).
+            1. CI — Backend and SonarCloud gates both passed (this review only runs after CI succeeds).
             2. Tests — all new service logic has unit tests in *.test.ts; no real Supabase/Firebase imports in tests.
             3. Coverage — new-code coverage ≥80%; any temporary exclusions are documented in doc/backlog.md.
             4. Sonar — 0 new issues; if any are deferred, they must be noted in doc/backlog.md and the PR description.
@@ -48,4 +53,4 @@ jobs:
 
             If all checks pass: approve the PR with a short summary of what was verified.
             If issues are found: request changes with specific, actionable feedback per finding.
-            Never rubber-stamp — always verify CI is green before approving.
+            Never rubber-stamp — CI is already confirmed green by the time this runs.
