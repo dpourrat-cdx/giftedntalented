@@ -2,7 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
+import { importBrowserScript, resetBrowserGlobals } from "./helpers/browser-script";
 
 function buildRoots() {
   document.body.innerHTML = `
@@ -43,9 +43,14 @@ function buildSnapshot(validatedAnswers: Array<number | null>) {
   };
 }
 
+async function loadGamificationScript() {
+  await vi.resetModules();
+  await importBrowserScript("gamification.js");
+}
+
 describe("GiftedGamification", () => {
   beforeEach(() => {
-    resetFrontendGlobals();
+    resetBrowserGlobals();
     (window as Window & typeof globalThis & Record<string, unknown>).__GiftedExposeTestUtils = true;
     window.CaptainNovaContent = {
       gamification: {
@@ -60,7 +65,7 @@ describe("GiftedGamification", () => {
   });
 
   it("renders progress visuals without inline dimension styles", async () => {
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     const controller = window.GiftedGamification.createGamificationController({
       themeId: "rocket-adventure",
@@ -84,7 +89,7 @@ describe("GiftedGamification", () => {
 
   it("detects reduced motion without optional chaining when matchMedia is missing", async () => {
     vi.stubGlobal("matchMedia", undefined);
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     expect(window.GiftedGamification.__testPrefersReducedMotion()).toBe(false);
   });
@@ -102,13 +107,13 @@ describe("GiftedGamification", () => {
         return false;
       },
     }));
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     expect(window.GiftedGamification.__testPrefersReducedMotion()).toBe(true);
   });
 
   it("renders mission progress and feedback panels with DOM nodes", async () => {
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     const controller = window.GiftedGamification.createGamificationController({
       themeId: "rocket-adventure",
@@ -152,7 +157,7 @@ describe("GiftedGamification", () => {
       },
     };
 
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     const controller = window.GiftedGamification.createGamificationController({
       themeId: "rocket-adventure",
@@ -177,7 +182,7 @@ describe("GiftedGamification", () => {
   });
 
   it("keeps the mission completion overlay non-advancing after a wrong final answer", async () => {
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     const overlayStates: Array<Record<string, unknown>> = [];
     const controller = window.GiftedGamification.createGamificationController({
@@ -198,7 +203,7 @@ describe("GiftedGamification", () => {
   });
 
   it("keeps the mission completion overlay advancing after a correct final answer", async () => {
-    await loadFrontendScript("gamification.js");
+    await loadGamificationScript();
 
     const overlayStates: Array<Record<string, unknown>> = [];
     const controller = window.GiftedGamification.createGamificationController({
