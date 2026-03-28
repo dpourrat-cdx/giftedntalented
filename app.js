@@ -124,6 +124,10 @@ function totalQuestions() {
   return sessionQuestions.length;
 }
 
+function createBlankAnswers() {
+  return Array(totalQuestions()).fill(null);
+}
+
 function buildGamificationSnapshot() {
   return {
     sections,
@@ -160,8 +164,8 @@ function createNewSession() {
     scoreboardController.resetActiveAttempt();
   }
   sessionQuestions = buildTestSession();
-  selectedAnswers = Array(totalQuestions()).fill(null);
-  validatedAnswers = Array(totalQuestions()).fill(null);
+  selectedAnswers = createBlankAnswers();
+  validatedAnswers = createBlankAnswers();
   currentIndex = 0;
   timeRemaining = testDurationSeconds();
   isSubmitted = false;
@@ -328,8 +332,8 @@ function applyAttemptQuestions(questions) {
   }
 
   sessionQuestions = normalizedQuestions;
-  selectedAnswers = Array(totalQuestions()).fill(null);
-  validatedAnswers = Array(totalQuestions()).fill(null);
+  selectedAnswers = createBlankAnswers();
+  validatedAnswers = createBlankAnswers();
   currentIndex = 0;
   timeRemaining = testDurationSeconds();
   lastRenderedQuestionIndex = -1;
