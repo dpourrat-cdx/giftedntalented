@@ -1,42 +1,17 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { loadFreshGlobalScript, type BrowserGlobal } from "./root-script-loader";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
-type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
-
 const browserGlobal = globalThis as BrowserGlobal;
-let importNonce = 0;
-
-async function importScript(scriptPath: string) {
-  importNonce += 1;
-  const fileUrl = pathToFileURL(scriptPath).href;
-  await import(/* @vite-ignore */ `${fileUrl}?gifted-test-import=${importNonce}`);
-}
-
-async function evalScript(scriptPath: string) {
-  const scriptContents = await readFile(scriptPath, "utf8");
-  const sourcePath = pathToFileURL(scriptPath).href;
-  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
-}
-
-function syncBrowserGlobals() {
-  const knownGlobals = [
-    "secureRandomIndex",
-    "GiftedQuestionBank",
-    "GiftedQuestionBankError",
-    "GiftedScoreboard",
-    "GiftedGamification",
-    "__GiftedFrameBust",
-    "CaptainNovaContent",
-  ] as const;
-
-  for (const key of knownGlobals) {
-    if (Object.prototype.hasOwnProperty.call(globalThis, key)) {
-      browserGlobal[key] = globalThis[key];
-    }
-  }
-}
+const knownGlobals = [
+  "secureRandomIndex",
+  "GiftedQuestionBank",
+  "GiftedQuestionBankError",
+  "GiftedScoreboard",
+  "GiftedGamification",
+  "__GiftedFrameBust",
+  "CaptainNovaContent",
+] as const;
 
 async function ensureSharedRandomIndex() {
   if (typeof browserGlobal.secureRandomIndex === "function") {
@@ -44,8 +19,7 @@ async function ensureSharedRandomIndex() {
   }
 
   const sharedPath = path.resolve(repoRoot, "shared-random.js");
-  await evalScript(sharedPath);
-  await importScript(sharedPath);
+  await loadFreshGlobalScript(sharedPath, browserGlobal, knownGlobals);
 }
 
 export async function loadFrontendScript(relativePath: string) {
@@ -54,9 +28,7 @@ export async function loadFrontendScript(relativePath: string) {
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  await evalScript(scriptPath);
-  await importScript(scriptPath);
-  syncBrowserGlobals();
+  await loadFreshGlobalScript(scriptPath, browserGlobal, knownGlobals);
 }
 
 export function resetFrontendGlobals() {
