@@ -63,13 +63,15 @@ function expectObject(step: string, body: unknown): Record<string, unknown> {
 
 function expectRecordSnapshot(step: string, body: Record<string, unknown> | null) {
   assert(body && typeof body === "object", `${step} failed: record payload was missing`);
+  const playerName = typeof body.playerName === "string" ? body.playerName : "";
+  const completedAt = typeof body.completedAt === "string" ? body.completedAt : "";
   return {
-    playerName: String(body.playerName ?? ""),
+    playerName,
     score: Number(body.score),
     percentage: Number(body.percentage),
     totalQuestions: Number(body.totalQuestions),
     elapsedSeconds: body.elapsedSeconds === null || body.elapsedSeconds === undefined ? null : Number(body.elapsedSeconds),
-    completedAt: String(body.completedAt ?? ""),
+    completedAt,
   };
 }
 
@@ -175,7 +177,7 @@ async function main() {
   });
   expectStatus("attempt start", start, 201);
   const startBody = expectObject("attempt start", start.body);
-  const attemptId = String(startBody.attemptId ?? "");
+  const attemptId = typeof startBody.attemptId === "string" ? startBody.attemptId : "";
   assert(attemptId, "attempt start failed: attemptId was missing");
   assert(startBody.storyOnly === false, "attempt start failed: expected storyOnly to be false");
   const startQuestions = Array.isArray(startBody.questions) ? startBody.questions : [];
@@ -233,7 +235,7 @@ async function main() {
   });
   expectStatus("replay attempt start", replayStart, 201);
   const replayStartBody = expectObject("replay attempt start", replayStart.body);
-  const replayAttemptId = String(replayStartBody.attemptId ?? "");
+  const replayAttemptId = typeof replayStartBody.attemptId === "string" ? replayStartBody.attemptId : "";
   assert(replayAttemptId, "replay attempt start failed: attemptId was missing");
   const replayQuestions = Array.isArray(replayStartBody.questions) ? replayStartBody.questions : [];
   assert(Number(replayStartBody.totalQuestions) === expectedQuestionCount, "replay attempt start failed: totalQuestions was wrong");
