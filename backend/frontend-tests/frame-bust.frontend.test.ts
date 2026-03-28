@@ -1,20 +1,11 @@
 // @vitest-environment jsdom
 
-import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
-
-const repoRoot = path.resolve(import.meta.dirname, "..", "..");
-let scriptLoadVersion = 0;
-
-async function importFreshScript(relativePath: string) {
-  const scriptPath = path.resolve(repoRoot, relativePath).replaceAll("\\", "/");
-  await import(/* @vite-ignore */ `/@fs/${scriptPath}?v=${scriptLoadVersion++}`);
-}
+import { importBrowserScript, loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
 
 async function loadFrameBustScript() {
-  await importFreshScript("frame-bust.js");
+  await importBrowserScript("frame-bust.js");
 }
 
 describe("frame-bust.js", () => {
