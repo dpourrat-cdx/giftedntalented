@@ -10,7 +10,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - Backend schema is hardened: SECURITY DEFINER function lockdown (PR 21) and RLS with service-role-only policies (PR 22) are both live.
 - The live API contract is documented in `spec/backend-api-spec.md` (PR 23) and `backend/README.md` (PR 24).
 - The review-card `innerHTML` sinks have been replaced with DOM construction (PR 25), covered by targeted frontend tests (PR 26).
-- Sonar critical cognitive-complexity issues are now cleared on `master`.
+- Sonar critical and major issues are now cleared on `master`; the remaining Sonar work is minor-only.
 - The remaining security sequence is tracked in `spec/security-rollout-plan.md`.
 - The reset-endpoint decision brief lives in `spec/reset-security-decision-brief.md`.
 - The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
@@ -34,22 +34,19 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 2: Documentation And Repo Hygiene
 
-- [ ] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases.
+- [x] Add a lightweight post-deploy checklist or automation step that runs `npm run smoke:live` after backend releases. The checklist now lives in `backend/README.md`.
 
 ## Priority 3: Code Quality And Maintainability
 
-Current slice in progress: final Sonar major-issue cleanup after the merged optional-chaining and nested-ternary wave (PRs 54, 56, 58, and 59).
+Current slice in progress: minor Sonar cleanup after the merged optional-chaining, nested-ternary, and smoke-runner wave (PRs 54, 56, 58, 59, 61, and 62).
 
-SonarCloud currently reports 0 open critical issues and 3 open major issues. This PR covers the two remaining `S6582` optional-chaining findings:
+SonarCloud currently reports 0 open critical issues and 0 open major issues. The remaining work is 99 open minor issues, mostly grouped around:
 
-- [ ] Replace the remaining optional-chaining opportunities (2 Sonar MAJOR `S6582` issues):
-  - `gamification.js:760`
-  - `scoreboard.js:849`
-- [ ] Modernize `backend/scripts/smoke-live-backend.ts:351` to use top-level await instead of a promise chain (Sonar MAJOR `typescript:S7785`). Being handled in the current PR.
-- [ ] Deduplicate shared score-row mapping logic between `attempt.service.ts` and `score.service.ts`.
-- [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
-- [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
-- [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+- `javascript:S7764` globalThis opportunities in `app.js`, `gamification.js`, `scoreboard.js`, and frontend test helpers
+- `javascript:S7781` replaceAll opportunities in `app.js` and frontend test helpers
+- `javascript:S2486` and `javascript:S7723` array-construction cleanup in `app.js`, `question-bank.js`, and helpers
+- `typescript:S6551`, `typescript:S7781`, `javascript:S6653`, `javascript:S7778`, and `typescript:S4323` smaller readability/typing cleanups in the frontend helpers and backend utilities
+- `javascript:S7758`, `javascript:S7786`, `javascript:S7735`, and `typescript:S4325` isolated one-off cleanups
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -78,6 +75,6 @@ SonarCloud currently reports 0 open critical issues and 3 open major issues. Thi
 
 ## Next Recommended Delivery Slice
 
-1. **Frontend header security decision** - use `spec/frontend-header-security-plan.md` to either accept GitHub Pages' residual frame risk or move the frontend to a host/proxy that can enforce headers and CSP reporting.
-2. **Post-deploy smoke discipline** - add the lightweight post-release checklist or automation step that runs `npm run smoke:live` after backend releases.
-3. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
+1. **Minor Sonar sweep** - tackle the remaining 99 minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
+2. **secureRandomIndex cleanup** - extract the shared frontend randomness helper once the current frontend helper surface is stable.
+3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.
