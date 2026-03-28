@@ -3,7 +3,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
-const browserGlobal = globalThis as Window & typeof globalThis & Record<string, unknown>;
+type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
+
+const browserGlobal = globalThis as BrowserGlobal;
 
 async function ensureSharedRandomIndex() {
   const scriptPath = path.resolve(repoRoot, "shared-random.js");
