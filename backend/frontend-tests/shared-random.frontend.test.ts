@@ -2,32 +2,27 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadFrontendScript, resetFrontendGlobals } from "./helpers/frontend-script";
+import { importBrowserScript, resetBrowserGlobals } from "./helpers/browser-script";
 
-describe("shared-random.js", () => {
+describe("sharedRandomIndex", () => {
   beforeEach(() => {
-    resetFrontendGlobals();
+    resetBrowserGlobals();
     vi.restoreAllMocks();
   });
 
-  it("exposes secureRandomIndex and uses crypto-backed randomness", async () => {
-    const getRandomValues = vi
-      .spyOn(globalThis.crypto, "getRandomValues")
-      .mockImplementation((values) => {
-        values[0] = 7;
-        return values;
-      });
+  it("returns a bounded random index and stops on zero-length input", async () => {
+    const values = [4294967295, 1];
+    const getRandomValues = vi.fn((target: Uint32Array) => {
+      target[0] = values.shift() ?? 0;
+      return target;
+    });
 
-    await loadFrontendScript("shared-random.js");
+    vi.stubGlobal("crypto", { getRandomValues });
 
-    expect(typeof window.secureRandomIndex).toBe("function");
-    expect(window.secureRandomIndex(5)).toBe(2);
-    expect(getRandomValues).toHaveBeenCalled();
-  });
+    await importBrowserScript("shared-random.js");
 
-  it("returns 0 when asked for a non-positive range", async () => {
-    await loadFrontendScript("shared-random.js");
-
+    expect(window.secureRandomIndex(3)).toBe(1);
     expect(window.secureRandomIndex(0)).toBe(0);
+    expect(getRandomValues).toHaveBeenCalledTimes(2);
   });
 });
