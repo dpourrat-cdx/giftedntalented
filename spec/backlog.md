@@ -23,6 +23,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 2: Documentation And Repo Hygiene
 - [ ] Keep `spec/backend-api-spec.md`, `backend/README.md`, and `spec/frontend-header-security-plan.md` aligned when the reset flow, hosting model, or smoke process changes.
+- [x] Refresh `spec/backend-api-spec.md` and `backend/README.md` to match the current Render build command and the GitHub Pages hosting decision now documented in `spec/frontend-header-security-plan.md`.
 
 ## Priority 3: Code Quality And Maintainability
 

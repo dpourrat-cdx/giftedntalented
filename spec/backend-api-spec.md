@@ -43,6 +43,8 @@ The browser is not trusted for answer correctness, reset authorization, or direc
 
 The public web app is hosted on GitHub Pages, so the backend treats the browser as untrusted.
 
+The current repo decision is to keep the frontend on GitHub Pages for now and explicitly accept the remaining response-header limits there until we move to a header-capable host or proxy.
+
 The backend therefore owns:
 
 - attempt question selection for live web quiz runs
@@ -519,7 +521,7 @@ Optional tuning:
 Render service:
 
 - root directory: `backend`
-- build command: `npm install && npm run build`
+- build command: `npm install --include=dev && npm run build`
 - start command: `npm run start`
 - health path: `/api/v1/health`
 

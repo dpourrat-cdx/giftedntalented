@@ -15,6 +15,12 @@ It owns:
 
 The web app on GitHub Pages calls this backend instead of talking directly to Supabase for score actions.
 
+Current hosting/security decision:
+
+- keep the frontend on GitHub Pages for now
+- accept the remaining response-header limits there until we move to a header-capable host or proxy
+- use `spec/frontend-header-security-plan.md` as the source of truth for that decision and its future follow-up
+
 ## Stack
 
 - Node.js 22
@@ -206,7 +212,7 @@ The schema currently includes:
 Render service settings:
 
 - Root directory: `backend`
-- Build command: `npm install && npm run build`
+- Build command: `npm install --include=dev && npm run build`
 - Start command: `npm run start`
 - Health path: `/api/v1/health`
 
