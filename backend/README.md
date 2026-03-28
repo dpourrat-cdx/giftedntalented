@@ -214,6 +214,14 @@ Expected production backend:
 
 - `https://giftedntalented.onrender.com`
 
+## Post-Deploy Checklist
+
+After any backend release or Render deploy:
+
+1. Wait for the Render deployment to finish.
+2. Run `npm run smoke:live` from `backend/` against the deployed API.
+3. If the smoke fails, check `/api/v1/health` and the Render logs before merging the fix.
+
 ## Related Docs
 
 - `spec/backend-api-spec.md`
