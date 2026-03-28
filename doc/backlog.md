@@ -30,7 +30,7 @@ Use these docs as the durable sources of truth:
 ## Priority 3: Code Quality And Maintainability
 
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
-  Remaining bridge still includes `frame-bust.js`, and the eval-driven suites for `gamification.js`, `question-bank.js`, and `scoreboard.js` still need a separate harness slice before their exclusions can be removed.
+  Remaining follow-up is to confirm Sonar coverage stays green as root-script attribution expands and to keep any future frontend test harness changes source-attributed rather than eval-driven.
 - [ ] Continue the minor Sonar sweep in the biggest remaining clusters first.
   Current clusters already noted in repo work:
   - `javascript:S7764` globalThis opportunities

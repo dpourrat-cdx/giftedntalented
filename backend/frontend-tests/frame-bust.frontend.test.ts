@@ -1,8 +1,21 @@
 // @vitest-environment jsdom
 
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { importBrowserScript, loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
+import { loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
+
+const repoRoot = path.resolve(import.meta.dirname, "..", "..");
+let scriptLoadVersion = 0;
+
+async function importFreshScript(relativePath: string) {
+  const scriptPath = path.resolve(repoRoot, relativePath).replaceAll("\\", "/");
+  await import(/* @vite-ignore */ `/@fs/${scriptPath}?v=${scriptLoadVersion++}`);
+}
+
+async function loadFrameBustScript() {
+  await importFreshScript("frame-bust.js");
+}
 
 describe("frame-bust.js", () => {
   beforeEach(() => {
@@ -30,13 +43,13 @@ describe("frame-bust.js", () => {
     expect(appIndex).toBeGreaterThan(-1);
     expect(frameBustIndex).toBeLessThan(appIndex);
 
-    await importBrowserScript("frame-bust.js");
+    await loadFrameBustScript();
 
     expect(typeof window.__GiftedFrameBust).toBe("function");
   });
 
   it("busts framed windows and falls back when top navigation is blocked", async () => {
-    await importBrowserScript("frame-bust.js");
+    await loadFrameBustScript();
 
     const bustFrame = window.__GiftedFrameBust as (
       frameWindow: {
