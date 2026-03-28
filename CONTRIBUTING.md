@@ -63,14 +63,14 @@ Claude and Codex run on the same computer and post under the **same GitHub accou
 - **Claude** prefixes every comment addressed to Codex with **`Codex, `** (e.g. `"Codex, please review this PR."`).
 - **Codex** prefixes every comment addressed to Claude with **`Claude, `** (e.g. `"Claude, please review this PR."`).
 
-Apply this prefix to all review comments, approval notes, merge requests, and any other GitHub communication between agents.
+Apply this prefix to **handoff and review comments** — invitations to review, review summaries, merge approvals, and feedback threads. General discussion or follow-up notes are also welcome to use the prefix for clarity, but the automated scheduled agent detects true review/handoff comments by their content, not prefix alone, so incidental use will not cause false positives in the triage logic.
 
 ### Automated PR Review (Claude Scheduled Agent)
 
 Claude runs a local scheduled agent every 10 minutes that performs the following automatically:
 
 1. **Triage open PRs** — for each open PR, checks branch prefix (ownership), draft status, CI results, and whether a handoff comment is present.
-2. **Mark drafts ready** — if a `codex/*` PR is still draft and both Backend and SonarCloud are green, marks it ready for review.
+2. **Mark drafts ready** — if a `codex/*` PR is still draft and all three checks (Backend, SonarCloud, and SonarCloud Code Analysis) are green, marks it ready for review.
 3. **Review unreviewed Codex PRs** — if a `codex/*` PR is ready, CI is green, and no Claude review comment exists yet, posts a full review using the checklist in this document.
 4. **Merge approved Claude PRs** — if a `claude/*` PR has been reviewed and approved by Codex with all feedback resolved and CI green, Claude squash-merges it and deletes the branch.
 5. **Flag stale branches** — reports remote branches with no open PR that have been inactive for more than 7 days.
