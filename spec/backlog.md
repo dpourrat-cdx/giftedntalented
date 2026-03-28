@@ -9,6 +9,7 @@ This file is the live backlog only. Completed work should not stay here unless i
 - Sonar critical and major issues are now cleared on `master`; the remaining Sonar work is minor-only.
 - The reset endpoint decision is now codified: keep the current parent-facing PIN flow for `POST /api/v1/admin/scores/reset`.
 - Strict style CSP is live on `master` (`style-src 'self'`), and `spec/frontend-header-security-plan.md` records the remaining GitHub Pages header limitations and hosting options.
+- GitHub Pages remains the frontend host for now, with a lightweight JS frame-busting fallback added as defense in depth only; real response-header protection still requires a header-capable host or proxy.
 - Durable architecture and process details belong in:
   - `spec/architecture.md`
   - `CONTRIBUTING.md`
@@ -16,9 +17,9 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 1: Security Hardening
 
-- [x] Keep the frontend on GitHub Pages for now and explicitly accept the residual response-header limitations.
-- [x] Document that any browser-side frame-busting guard is defense in depth only, not a security boundary.
-- [ ] If the frontend later moves to a header-capable host or proxy, add real CSP reporting and `frame-ancestors` protection there.
+- [x] Decide whether to accept GitHub Pages' response-header limits, add a proxy/CDN, or move the frontend to a header-capable host so clickjacking protection and CSP reporting can be enforced in real headers. Chosen: stay on GitHub Pages for now and accept the header limits until we move to a header-capable host or proxy.
+- [x] If GitHub Pages remains the host, decide whether to add a lightweight JS frame-busting fallback or explicitly accept the residual clickjacking risk in docs. Chosen: add a lightweight JS fallback as defense in depth.
+- [ ] If a header-capable host or proxy is chosen, add real CSP reporting and frame-ancestor protection there.
 
 ## Priority 2: Documentation And Repo Hygiene
 - [ ] Keep `spec/backend-api-spec.md`, `backend/README.md`, and `spec/frontend-header-security-plan.md` aligned when the reset flow, hosting model, or smoke process changes.
@@ -43,6 +44,7 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 - [ ] Review whether schema-cache fallback handling can now be simplified or centralized.
 - [ ] Review the double "old best" lookup path in score persistence and simplify it if the RPC already owns that comparison.
 - [ ] Broaden frontend source-attributed coverage so Sonar does not need coverage-bridge exclusions for legacy root scripts.
+  Current bridge still includes `frame-bust.js`, because the classic pre-app browser script does not yet attribute coverage truthfully through the current Vitest frontend harness.
 
 ## Priority 4: Privacy And Parent Safety
 

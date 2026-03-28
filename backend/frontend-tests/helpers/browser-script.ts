@@ -17,6 +17,13 @@ async function ensureSharedRandomIndex() {
   await import(/* @vite-ignore */ `/@fs/${fsPath}`);
 }
 
+async function loadEvaluatedScript(relativePath: string) {
+  const scriptPath = path.resolve(repoRoot, relativePath);
+  const scriptContents = await readFile(scriptPath, "utf8");
+  const sourcePath = scriptPath.replaceAll("\\", "/");
+  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
+}
+
 export async function loadIndexHtml() {
   const htmlPath = path.resolve(repoRoot, "index.html");
   const html = await readFile(htmlPath, "utf8");
@@ -26,6 +33,11 @@ export async function loadIndexHtml() {
 }
 
 export async function importBrowserScript(relativePath: string) {
+  if (relativePath === "frame-bust.js") {
+    await loadEvaluatedScript(relativePath);
+    return;
+  }
+
   if (relativePath !== "shared-random.js") {
     await ensureSharedRandomIndex();
   }
@@ -40,6 +52,7 @@ export function resetBrowserGlobals() {
   delete browserGlobal.GiftedQuestionBank;
   delete browserGlobal.GiftedGamification;
   delete browserGlobal.GiftedScoreboard;
+  delete browserGlobal.__GiftedFrameBust;
   delete browserGlobal.__GiftedExposeTestUtils;
   delete browserGlobal.CaptainNovaContent;
   window.localStorage.clear();
