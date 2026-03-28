@@ -57,11 +57,11 @@ describe("frame-bust.js", () => {
           location: { replace: fallbackReplace },
         },
         {
-          location: { href: "https://example.test/mission" },
+          location: { origin: "https://example.test" },
         },
       ),
     ).toBe(true);
-    expect(topReplace).toHaveBeenCalledWith("https://example.test/mission");
+    expect(topReplace).toHaveBeenCalledWith("https://example.test/giftedntalented/");
     expect(fallbackReplace).not.toHaveBeenCalled();
 
     const blockedTopReplace = vi.fn(() => {
@@ -75,11 +75,11 @@ describe("frame-bust.js", () => {
           location: { replace: blockedFallbackReplace },
         },
         {
-          location: { href: "https://example.test/mission-again" },
+          location: { origin: "https://example.test" },
         },
       ),
     ).toBe(true);
-    expect(blockedTopReplace).toHaveBeenCalledWith("https://example.test/mission-again");
-    expect(blockedFallbackReplace).toHaveBeenCalledWith("https://example.test/mission-again");
+    expect(blockedTopReplace).toHaveBeenCalledWith("https://example.test/giftedntalented/");
+    expect(blockedFallbackReplace).toHaveBeenCalledWith("https://example.test/giftedntalented/");
   });
 });

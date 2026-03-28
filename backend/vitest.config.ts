@@ -19,7 +19,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["lcov", "text"],
       reportsDirectory: "coverage",
-      include: ["src/**/*.ts", "../app.js", "../gamification.js", "../question-bank.js", "../scoreboard.js"],
+      include: ["src/**/*.ts", "../app.js", "../frame-bust.js", "../gamification.js", "../question-bank.js", "../scoreboard.js"],
       exclude: ["**/*.test.ts", "**/test/**", "**/scripts/**", "**/frontend-tests/**"],
     },
   },
