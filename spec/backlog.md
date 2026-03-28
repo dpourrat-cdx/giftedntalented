@@ -68,5 +68,5 @@ SonarCloud currently reports 0 open critical issues and 0 open major issues. The
 ## Next Recommended Delivery Slice
 
 1. **Minor Sonar sweep** - tackle the remaining 99 minor issues in the biggest clusters first (`S7764`, `S7781`, `S2486`/`S7723`), because these are still low-risk and easy to parallelize.
-2. **Frontend coverage attribution** - keep improving source-attributed frontend coverage so legacy-root script PRs stay easy to merge without extra coverage bridges.
+2. **Frontend coverage attribution** - extend the source-attributed pattern beyond `shared-random.js` so more legacy-root script PRs can shed coverage bridges over time.
 3. **CSP reporting / clickjacking** - use `spec/frontend-header-security-plan.md` to decide the hosting and reporting path now that strict style CSP is live.

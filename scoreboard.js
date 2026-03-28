@@ -835,22 +835,9 @@
       this.setBusy(true);
 
       try {
-        let resetMode = "local";
-
-        try {
-          await this.service.resetScores(resetPin);
-          resetMode = "online";
-        } catch (error) {
-          if (isRemoteUnavailableError(error)) {
-            resetMode = "local";
-          } else {
-            this.setStatus(
-              buildFriendlyError(error),
-              error?.code === "P0001" ? "error" : "info",
-              true,
-            );
-            return;
-          }
+        const resetMode = await this.resolveResetMode(resetPin);
+        if (!resetMode) {
+          return;
         }
 
         this.lastSavedFingerprint = "";
@@ -871,6 +858,24 @@
         );
       } finally {
         this.setBusy(false);
+      }
+    }
+
+    async resolveResetMode(resetPin) {
+      try {
+        await this.service.resetScores(resetPin);
+        return "online";
+      } catch (error) {
+        if (isRemoteUnavailableError(error)) {
+          return "local";
+        }
+
+        this.setStatus(
+          buildFriendlyError(error),
+          error?.code === "P0001" ? "error" : "info",
+          true,
+        );
+        return null;
       }
     }
   }
