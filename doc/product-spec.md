@@ -299,4 +299,4 @@ The product is a static, story-driven gifted practice site for children. It comb
 - `scoreboard.css`
 - `gamification.css`
 - `backend/supabase/backend_schema.sql` — live schema source of truth
-- `spec/backend-api-spec.md`
+- `doc/backend-api-spec.md`

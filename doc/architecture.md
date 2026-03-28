@@ -12,7 +12,7 @@
 
 ## Release Flow
 
-1. Work on a feature branch (prefix: `claude/`, `codex/`, or `feature/`) — never push directly to `master`.
+1. Work on a feature branch (prefix: `claude/`, `codex/`, or `feature/`) - never push directly to `master`.
 2. Run local checks inside `backend/` before opening a PR:
    ```bash
    npm run check && npm test && npm run build
@@ -24,15 +24,15 @@
 7. Run `npm run smoke:live` from `backend/` to verify the live backend is healthy.
 8. Delete the feature branch after merge.
 
-For the per-agent checklist (what each agent must complete before a task is done), see [CONTRIBUTING.md](../CONTRIBUTING.md).
+For the per-agent checklist, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## CI Pipeline
 
-`.github/workflows/ci.yml` runs on every push and PR targeting `master`:
+`.github/workflows/ci.yml` runs on every push and PR targeting `master`.
 
-Two jobs run on every push and PR targeting `master`:
+### `Backend` job
 
-**`Backend` job** (required to merge):
+Required to merge:
 
 | Step | Command | On failure |
 |---|---|---|
@@ -40,25 +40,29 @@ Two jobs run on every push and PR targeting `master`:
 | Type check | `npm run check` | Hard stop |
 | Test + coverage | `npm run test:coverage` | Hard stop |
 | Build | `npm run build` | Hard stop |
-| Audit | `npm audit --audit-level=high` | `continue-on-error` — visible, non-blocking |
+| Audit | `npm audit --audit-level=high` | `continue-on-error` - visible, non-blocking |
 
-**`SonarCloud` job** (runs after `Backend`, requires `SONAR_TOKEN` secret):
+### `SonarCloud` job
 
-Downloads the lcov coverage artifact from the `Backend` job and runs `SonarSource/sonarqube-scan-action`. Configuration lives in `sonar-project.properties` at the repo root.
+Runs after `Backend`, downloads the lcov coverage artifact from the `Backend` job, and runs `SonarSource/sonarqube-scan-action`.
 
-Quality gate enforces on new code: 0 unreviewed security hotspots, ≥80% coverage (config files excluded), A ratings for reliability/security/maintainability.
+Quality gate on new code:
 
-Project dashboard: https://sonarcloud.io/project/overview?id=dpourrat-cdx_giftedntalented
+- 0 unreviewed security hotspots
+- >=80% coverage
+- A ratings for reliability, security, and maintainability
 
-Concurrency: one run per branch; new pushes cancel in-flight runs.
+Configuration lives in `sonar-project.properties` at the repo root.
 
-## Branch Protection (master)
+Project dashboard: <https://sonarcloud.io/project/overview?id=dpourrat-cdx_giftedntalented>
+
+## Branch Protection (`master`)
 
 | Rule | Setting |
 |---|---|
-| Required status check | `Backend` (CI job) |
+| Required status check | `Backend` |
 | Branches up-to-date | Required before merge |
-| Include administrators | Yes — no bypass |
+| Include administrators | Yes - no bypass |
 | Force-push | Blocked |
 | Branch deletion | Blocked |
 
@@ -74,23 +78,21 @@ Set `BACKEND_BASE_URL` to target a non-production backend.
 
 The smoke script validates:
 
-- `GET /api/v1/health` returns `status: ok` and Supabase is healthy
-- Score lookup works for an existing player
-- Attempt flow works end to end: start → submit answer → finalize
+- `GET /api/v1/health` returns healthy status
+- score lookup works for an existing player
+- attempt flow works end to end: start -> submit answer -> finalize
 - `POST /api/v1/players/:playerName/record` returns `410 LEGACY_SCORE_ENDPOINT_DISABLED`
-- Replay-safe finalize: repeating the same finalize call is idempotent, no second score write
+- replay-safe finalize remains idempotent
 
-If the smoke script fails with `PGRST205`, the `score_attempts` schema migration is not present in Supabase yet.
+If the smoke script fails with `PGRST205`, the `score_attempts` schema migration is missing in Supabase.
 
 ## Dependabot
 
 `.github/dependabot.yml` opens weekly PRs for `backend/` npm updates every Monday:
 
 - `@types/*` packages grouped into one PR
-- Major bumps for `express` and `zod` ignored (require manual review)
-- Maximum 5 open Dependabot PRs at a time
-
-Review and merge Dependabot PRs promptly — CI validates them before merge is allowed.
+- major bumps for `express` and `zod` ignored for manual review
+- maximum 5 open Dependabot PRs at a time
 
 ## Environment Variables
 
@@ -103,7 +105,7 @@ Required for the backend:
 - `ALLOWED_ORIGINS`
 - `ADMIN_API_KEY`
 
-Optional FCM (push notifications):
+Optional FCM:
 
 - `FCM_PROJECT_ID`
 - `FCM_CLIENT_EMAIL`
@@ -119,7 +121,7 @@ Optional tuning:
 
 ## Legacy Notes
 
-- `supabase/scoreboard_setup.sql` at the repo root is legacy history only — do not use.
+- `supabase/scoreboard_setup.sql` at the repo root is legacy history only - do not use.
 - `backend/supabase/backend_schema.sql` is the live schema source of truth.
 - `POST /api/v1/players/:playerName/record` is disabled and returns `410`.
 
