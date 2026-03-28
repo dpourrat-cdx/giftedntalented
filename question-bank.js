@@ -2264,9 +2264,6 @@
           "",
           8300 + index,
         ),
-      );
-
-      questions.push(
         makeChoiceQuestion(
           section,
           `${left[1]} is to ${left[0]} as ${right[1]} is to ...`,
