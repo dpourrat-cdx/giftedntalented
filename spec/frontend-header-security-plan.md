@@ -13,18 +13,18 @@ The frontend is served from GitHub Pages, so it cannot emit response headers suc
 
 That means GitHub Pages cannot provide a fully enforceable clickjacking defense or a meaningful CSP reporting rollout on its own.
 
-## Recommendation
+## Decision
 
-Keep the frontend on GitHub Pages for now unless we decide the threat model justifies moving to a host or proxy that can emit headers.
+Keep the frontend on GitHub Pages for now.
 
-If we stay on GitHub Pages:
+That means the repo explicitly accepts these current limitations:
 
-- accept the residual clickjacking risk explicitly
-- keep the parent-facing reset and score UI clearly labeled
-- treat any browser-side frame-busting guard as defense in depth only, not as a security boundary
-- defer CSP reporting until a header-capable host exists
+- GitHub Pages cannot emit `Content-Security-Policy`, `Content-Security-Policy-Report-Only`, `frame-ancestors`, or `report-to`
+- clickjacking protection cannot be enforced through response headers on GitHub Pages
+- CSP reporting cannot be rolled out meaningfully without a header-capable host or proxy
+- any browser-side frame-busting guard is defense in depth only, not a security boundary
 
-If we move the frontend to a header-capable host or add a reverse proxy/CDN:
+If we later move the frontend to a header-capable host or add a reverse proxy/CDN:
 
 - enforce `frame-ancestors 'none'` in response headers
 - start with `Content-Security-Policy-Report-Only`
@@ -33,10 +33,7 @@ If we move the frontend to a header-capable host or add a reverse proxy/CDN:
 
 ## Acceptance Criteria
 
-This item is only done once one of these is true:
-
-1. GitHub Pages stays the host and the repo documents that the remaining risk is accepted, or
-2. the frontend moves to a header-capable host/proxy and the response-header plan is implemented.
+This item is done for now because GitHub Pages remains the host and the repo documents that the remaining risk is accepted.
 
 ## Follow-Up
 

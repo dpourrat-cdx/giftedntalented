@@ -16,9 +16,9 @@ This file is the live backlog only. Completed work should not stay here unless i
 
 ## Priority 1: Security Hardening
 
-- [ ] Decide whether to accept GitHub Pages' response-header limits, add a proxy/CDN, or move the frontend to a header-capable host so clickjacking protection and CSP reporting can be enforced in real headers.
-- [ ] If GitHub Pages remains the host, decide whether to add a lightweight JS frame-busting fallback or explicitly accept the residual clickjacking risk in docs.
-- [ ] If a header-capable host or proxy is chosen, add real CSP reporting and frame-ancestor protection there.
+- [x] Keep the frontend on GitHub Pages for now and explicitly accept the residual response-header limitations.
+- [x] Document that any browser-side frame-busting guard is defense in depth only, not a security boundary.
+- [ ] If the frontend later moves to a header-capable host or proxy, add real CSP reporting and `frame-ancestors` protection there.
 
 ## Priority 2: Documentation And Repo Hygiene
 - [ ] Keep `spec/backend-api-spec.md`, `backend/README.md`, and `spec/frontend-header-security-plan.md` aligned when the reset flow, hosting model, or smoke process changes.
