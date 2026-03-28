@@ -22,7 +22,8 @@ This file is the live backlog only. Completed work should not stay here unless i
 - [ ] If a header-capable host or proxy is chosen, add real CSP reporting and frame-ancestor protection there.
 
 ## Priority 2: Documentation And Repo Hygiene
-- [ ] Keep `spec/backend-api-spec.md`, `backend/README.md`, and `spec/frontend-header-security-plan.md` aligned when the reset flow, hosting model, or smoke process changes.
+- [ ] Keep `spec/backend-api-spec.md`, `backend/README.md`, and `spec/frontend-header-security-plan.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
+- [x] Refresh `spec/backend-api-spec.md` and `backend/README.md` to match the current Render build command, the GitHub Pages hosting decision, and the lightweight frame-busting fallback documented in `spec/frontend-header-security-plan.md`.
 
 ## Priority 3: Code Quality And Maintainability
 
