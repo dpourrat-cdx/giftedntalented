@@ -56,6 +56,8 @@ The reviewing agent must:
 - The scheduled Claude triage task runs every 10 minutes and only reviews non-draft `codex/*` PRs after both `Backend` and `SonarCloud` are green.
 - The scheduled Codex triage task runs every 10 minutes and only reviews non-draft `claude/*` PRs after both `Backend` and `SonarCloud` are green.
 - Either agent may use its 10-minute triage pass to promote its own PR from draft to ready, but only after `Backend` and `SonarCloud` have both completed successfully.
+- The scheduled Claude triage task may merge `claude/*` PRs only after Codex has reviewed them, all feedback is addressed, and the required checks are still green.
+- The scheduled Codex triage task may merge `codex/*` PRs only after Claude has reviewed them, all feedback is addressed, and the required checks are still green.
 - If a PR is intentionally left in draft while work continues, do not expect the scheduled review task to review it yet.
 - Scheduled triage should flag stale branches and abandoned PR branches for cleanup, but it must not delete branches automatically.
 
