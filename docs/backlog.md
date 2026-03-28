@@ -20,10 +20,10 @@ Recent merged progress that still matters for planning:
 
 Use these docs as the durable sources of truth:
 
-- `doc/architecture.md`
-- `doc/backend-api-spec.md`
-- `doc/decisions/frontend-header-security.md`
-- `doc/decisions/reset-route.md`
+- `docs/architecture.md`
+- `docs/backend-api-spec.md`
+- `docs/decisions/frontend-header-security.md`
+- `docs/decisions/reset-route.md`
 - `CONTRIBUTING.md`
 
 ## Priority 1: Security Hardening
@@ -32,8 +32,8 @@ Use these docs as the durable sources of truth:
 
 ## Priority 2: Documentation And Repo Hygiene
 
-- [ ] Keep `doc/backend-api-spec.md`, `backend/README.md`, and `doc/decisions/frontend-header-security.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
-- [ ] Keep the docs in `doc/` purpose-specific and delete temporary planning files instead of letting them become stale history.
+- [ ] Keep `docs/backend-api-spec.md`, `backend/README.md`, and `docs/decisions/frontend-header-security.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
+- [ ] Keep the docs in `docs/` purpose-specific and delete temporary planning files instead of letting them become stale history.
 
 ## Priority 3: Code Quality And Maintainability
 

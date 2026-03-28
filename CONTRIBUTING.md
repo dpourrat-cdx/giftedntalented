@@ -32,9 +32,9 @@ If you are Claude and you need to start a task:
 2. Create a branch prefixed with `claude/` (e.g., `claude/api-spec-update`).
 3. Prefer using a worktree so the main working directory stays available for Codex.
 
-### Coordination Point: `doc/backlog.md`
+### Coordination Point: `docs/backlog.md`
 
-Before starting any task, **read `doc/backlog.md`** to see what is in progress or already done. Before pushing your branch, **update the todo file** to reflect completed checkboxes and any new findings. This file is the single source of truth for what each agent is working on.
+Before starting any task, **read `docs/backlog.md`** to see what is in progress or already done. Before pushing your branch, **update the todo file** to reflect completed checkboxes and any new findings. This file is the single source of truth for what each agent is working on.
 
 ### PR Review Ownership
 
@@ -88,7 +88,7 @@ If one agent has an open PR touching any of the files below, the other agent sho
 - `backend/src/lib/question-bank.data.json`
 - `backend/src/middleware/admin-auth.ts`
 - Any `backend/supabase/*.sql` file
-- `doc/backlog.md` (coordinate via short-lived edits only)
+- `docs/backlog.md` (coordinate via short-lived edits only)
 
 ---
 
@@ -136,7 +136,7 @@ To merge anything into `master` you must:
 
 A PR must not be approved, marked ready, or merged if it introduces new Sonar issues unless:
 - the issues are fixed in the same PR, or
-- the remaining issues are explicitly documented in `doc/backlog.md` in that same PR as intentional follow-up work.
+- the remaining issues are explicitly documented in `docs/backlog.md` in that same PR as intentional follow-up work.
 
 ---
 
@@ -192,7 +192,7 @@ Every agent must complete this sequence before considering a task done:
 - **`Backend`**: install → check → test:coverage → build → audit. All steps except audit are hard failures. Must be green before a PR can merge.
 - **`SonarCloud`**: runs after `Backend`, downloads the lcov artifact, and posts a quality gate result. 0 new hotspots and ≥80% new-code coverage required.
 
-Full pipeline details and SonarCloud config are in [`doc/architecture.md`](doc/architecture.md).
+Full pipeline details and SonarCloud config are in [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
@@ -210,5 +210,5 @@ Weekly PRs for `backend/` npm updates open every Monday. `@types/*` packages are
 - A test file must not import the real Supabase or Firebase clients — mock them at the top of the file.
 - Tests must pass with `npm test` before any PR is opened.
 - `SonarCloud` new-code coverage must stay green before merge. Temporary coverage exclusions should be rare, documented in the PR, and paired with a backlog follow-up to remove them.
-- New Sonar issues on a PR should be treated as blockers by default. If a small issue is intentionally deferred, the PR must update `doc/backlog.md` and mention that deferral in the review thread before the PR can be considered ready.
+- New Sonar issues on a PR should be treated as blockers by default. If a small issue is intentionally deferred, the PR must update `docs/backlog.md` and mention that deferral in the review thread before the PR can be considered ready.
 - The test count (currently `149`) is not a hard ceiling — add as many tests as the code needs.

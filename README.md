@@ -41,8 +41,8 @@ The frontend points at the production Render backend by default. No URL swap is 
 | Doc | Purpose |
 |---|---|
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Multi-agent workflow, branch naming, local dev, merge checklist, test expectations |
-| [`doc/README.md`](doc/README.md) | Documentation index and purpose of each repo doc |
-| [`doc/product-spec.md`](doc/product-spec.md) | Current shipped product behavior - mission flow, scoring, parent controls |
-| [`doc/architecture.md`](doc/architecture.md) | System design, release flow, CI pipeline, smoke checks, environment variables |
-| [`doc/backlog.md`](doc/backlog.md) | Live backlog of open work only |
-| [`doc/backend-api-spec.md`](doc/backend-api-spec.md) | Current backend API reference |
+| [`docs/README.md`](docs/README.md) | Documentation index and purpose of each repo doc |
+| [`docs/product-spec.md`](docs/product-spec.md) | Current shipped product behavior - mission flow, scoring, parent controls |
+| [`docs/architecture.md`](docs/architecture.md) | System design, release flow, CI pipeline, smoke checks, environment variables |
+| [`docs/backlog.md`](docs/backlog.md) | Live backlog of open work only |
+| [`docs/backend-api-spec.md`](docs/backend-api-spec.md) | Current backend API reference |
