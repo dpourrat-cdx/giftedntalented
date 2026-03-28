@@ -28,6 +28,20 @@
     return list;
   }
 
+  function cyclicWindow(items, startIndex, count) {
+    if (items.length === 0) {
+      return [];
+    }
+
+    const result = [];
+
+    for (let offset = 0; offset < count; offset += 1) {
+      result.push(items[(startIndex + offset) % items.length]);
+    }
+
+    return result;
+  }
+
   function uniqueValues(values) {
     return values.filter((value, index) => values.indexOf(value) === index);
   }
@@ -2376,7 +2390,7 @@
   }
 
   function buildActivityOrderQuestion(section, activities, index) {
-    const timeline = activities.slice(index % activities.length).concat(activities.slice(0, index % activities.length)).slice(0, 4);
+    const timeline = cyclicWindow(activities, index % activities.length, 4);
     const orderLabels = ["first", "second", "third", "last"];
     const answerIndex = index % orderLabels.length;
     const ask = orderLabels[answerIndex];
@@ -2395,7 +2409,7 @@
   }
 
   function buildSpeedOrderQuestion(section, names, index) {
-    const ranking = names.slice(index % names.length).concat(names.slice(0, index % names.length)).slice(0, 4);
+    const ranking = cyclicWindow(names, index % names.length, 4);
     const rankLabels = ["fastest", "slowest", "second", "third"];
     const answerIndexByLabel = {
       fastest: 0,
