@@ -36,6 +36,7 @@ export async function importBrowserScript(relativePath: string) {
 }
 
 export function resetBrowserGlobals() {
+  delete (window as Window & typeof globalThis & Record<string, unknown>).secureRandomIndex;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBank;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedGamification;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedScoreboard;

@@ -29,6 +29,7 @@ export async function loadFrontendScript(relativePath: string) {
 }
 
 export function resetFrontendGlobals() {
+  delete (window as Window & typeof globalThis & Record<string, unknown>).secureRandomIndex;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBank;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedQuestionBankError;
   delete (window as Window & typeof globalThis & Record<string, unknown>).GiftedScoreboard;
