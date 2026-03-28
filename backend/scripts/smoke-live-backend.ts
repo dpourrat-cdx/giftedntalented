@@ -31,12 +31,12 @@ async function readJsonResponse(response: Response): Promise<JsonResponse> {
 }
 
 async function requestJson(path: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+
   const response = await fetch(buildUrl(path), {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
   return readJsonResponse(response);
