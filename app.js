@@ -818,30 +818,38 @@ function renderResultsGallery(percentage, sectionScores) {
 }
 
 function buildMissionUiState(section) {
-  const missionQuestions = sessionQuestions
-    .map((question, index) => ({ question, index }))
-    .filter((entry) => entry.question.section === section);
+  const missionQuestions = [];
+  for (let index = 0; index < sessionQuestions.length; index += 1) {
+    const question = sessionQuestions[index];
+    if (question.section === section) {
+      missionQuestions.push({ question, index });
+    }
+  }
+
   const answeredCount = missionQuestions.filter((entry) => validatedAnswers[entry.index] !== null).length;
   const currentMissionQuestionIndex = missionQuestions.findIndex((entry) => entry.index === currentIndex);
+  const questions = [];
+  for (let missionIndex = 0; missionIndex < missionQuestions.length; missionIndex += 1) {
+    const entry = missionQuestions[missionIndex];
+    const validatedAnswer = validatedAnswers[entry.index];
+    const isAnswered = validatedAnswer !== null;
+    const isCorrect = isAnswered && validatedAnswer === entry.question.answer;
+
+    questions.push({
+      missionIndex,
+      isAnswered,
+      isCorrect,
+      isWrong: isAnswered && !isCorrect,
+      isCurrent: hasStarted && entry.index === currentIndex,
+    });
+  }
 
   return {
     section,
     totalQuestions: missionQuestions.length,
     answeredCount,
     currentQuestionNumber: currentMissionQuestionIndex === -1 ? 1 : currentMissionQuestionIndex + 1,
-    questions: missionQuestions.map((entry, missionIndex) => {
-      const validatedAnswer = validatedAnswers[entry.index];
-      const isAnswered = validatedAnswer !== null;
-      const isCorrect = isAnswered && validatedAnswer === entry.question.answer;
-
-      return {
-        missionIndex,
-        isAnswered,
-        isCorrect,
-        isWrong: isAnswered && !isCorrect,
-        isCurrent: hasStarted && entry.index === currentIndex,
-      };
-    }),
+    questions,
   };
 }
 
@@ -926,16 +934,17 @@ function renderMissionDotsElement(missionState) {
 }
 
 function renderRocketSceneMarkup(stageCount, boostCount) {
-  const stars = Array.from({ length: clamp(boostCount, 0, 8) }, (_, index) => {
-    return `<span class="rocket-star rocket-star-${index + 1}"></span>`;
-  }).join("");
+  const stars = [];
+  for (let index = 0; index < clamp(boostCount, 0, 8); index += 1) {
+    stars.push(`<span class="rocket-star rocket-star-${index + 1}"></span>`);
+  }
 
   const partClass = (unlocked) => (unlocked ? "is-unlocked" : "");
   const fuelLevel = clamp(boostCount, 0, 8);
 
   return `
     <div class="rocket-scene rocket-scene-mini" aria-hidden="true">
-      <div class="rocket-stars">${stars}</div>
+      <div class="rocket-stars">${stars.join("")}</div>
       <div class="rocket-fuel">
         <span class="rocket-fuel-fill rocket-fuel-level-${fuelLevel}"></span>
       </div>
