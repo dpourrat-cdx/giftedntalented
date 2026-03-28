@@ -47,8 +47,14 @@ The reviewing agent must:
 - Confirm all CI checks pass before approving.
 - Leave a short summary comment on what was verified.
 - In PR comments, explicitly call in the other agent by name: Codex should ask Claude to review `codex/*` PRs, and Claude should ask Codex to review `claude/*` PRs.
+- When Codex asks Claude to review a PR, start the comment with `Claude, ` so the scheduled review hook can recognize it as a review handoff.
 - Use that review to challenge assumptions, regressions, missing tests, and Sonar findings rather than just rubber-stamping the branch.
 - Never approve a PR that touches the same files as another open PR without explicit human sign-off.
+
+**Scheduled review hook behavior:**
+- The scheduled Claude review task runs every 10 minutes and only picks up non-draft `codex/*` PRs. Draft PRs are skipped until Codex marks them ready for review.
+- The same practical rule applies in reverse for `claude/*` PRs: if an automated or scheduled review flow is expected to run, the PR must be marked ready first.
+- If a PR is intentionally left in draft while work continues, do not expect the scheduled review task to review it yet.
 
 **Merge authority:**
 - Each agent merges its own PRs — **never the other agent's**.
@@ -151,6 +157,12 @@ Every agent must complete this sequence before considering a task done:
 5. **Merge** via GitHub merge button.
 6. **Verify deployment**: after Render auto-deploys, run `npm run smoke:live` to confirm the live backend is healthy.
 7. **Delete the branch** after merge — keep the remote clean.
+8. **Prune stale GitHub branches and draft PR branches** when they are no longer needed so `codex/*` and `claude/*` branches do not accumulate on GitHub.
+
+Branch hygiene expectations:
+- Do not leave merged feature branches lingering on GitHub unless there is a specific reason to keep them.
+- Close abandoned PRs and delete their remote branches once it is clear they will not be resumed.
+- Keep open branch count low enough that review queues, scheduled hooks, and branch ownership stay easy to understand.
 
 ---
 
