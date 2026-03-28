@@ -1,14 +1,43 @@
+import { readFile } from "node:fs/promises";
 // @vitest-environment jsdom
 
-import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
 type BrowserGlobal = Window & typeof globalThis & Record<string, unknown>;
 
 const browserGlobal = globalThis as BrowserGlobal;
+let importNonce = 0;
 
-function toFsPath(filePath: string) {
-  return filePath.replaceAll("\\", "/");
+async function importScript(scriptPath: string) {
+  importNonce += 1;
+  const fileUrl = pathToFileURL(scriptPath).href;
+  await import(/* @vite-ignore */ `${fileUrl}?gifted-browser-import=${importNonce}`);
+}
+
+async function evalScript(scriptPath: string) {
+  const scriptContents = await readFile(scriptPath, "utf8");
+  const sourcePath = pathToFileURL(scriptPath).href;
+  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
+}
+
+function syncBrowserGlobals() {
+  const knownGlobals = [
+    "secureRandomIndex",
+    "GiftedQuestionBank",
+    "GiftedQuestionBankError",
+    "GiftedScoreboard",
+    "GiftedGamification",
+    "__GiftedFrameBust",
+    "__GiftedExposeTestUtils",
+    "CaptainNovaContent",
+  ] as const;
+
+  for (const key of knownGlobals) {
+    if (Object.prototype.hasOwnProperty.call(globalThis, key)) {
+      browserGlobal[key] = globalThis[key];
+    }
+  }
 }
 
 async function ensureSharedRandomIndex() {
@@ -17,15 +46,8 @@ async function ensureSharedRandomIndex() {
   }
 
   const scriptPath = path.resolve(repoRoot, "shared-random.js");
-  const fsPath = toFsPath(scriptPath);
-  await import(/* @vite-ignore */ `/@fs/${fsPath}`);
-}
-
-async function loadEvaluatedScript(relativePath: string) {
-  const scriptPath = path.resolve(repoRoot, relativePath);
-  const scriptContents = await readFile(scriptPath, "utf8");
-  const sourcePath = scriptPath.replaceAll("\\", "/");
-  browserGlobal.eval(`${scriptContents}\n//# sourceURL=${sourcePath}`);
+  await evalScript(scriptPath);
+  await importScript(scriptPath);
 }
 
 export async function loadIndexHtml() {
@@ -37,18 +59,14 @@ export async function loadIndexHtml() {
 }
 
 export async function importBrowserScript(relativePath: string) {
-  if (relativePath === "frame-bust.js") {
-    await loadEvaluatedScript(relativePath);
-    return;
-  }
-
   if (relativePath !== "shared-random.js") {
     await ensureSharedRandomIndex();
   }
 
   const scriptPath = path.resolve(repoRoot, relativePath);
-  const fsPath = toFsPath(scriptPath);
-  await import(/* @vite-ignore */ `/@fs/${fsPath}`);
+  await evalScript(scriptPath);
+  await importScript(scriptPath);
+  syncBrowserGlobals();
 }
 
 export function resetBrowserGlobals() {
