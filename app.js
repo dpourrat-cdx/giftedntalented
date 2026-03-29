@@ -125,12 +125,16 @@ let isStartingAttempt = false;
 const CONSENT_KEY = "gifted-consent-v1";
 
 function isValidPlayerName(name) {
-  if (/.+@.+\..+/.test(name)) {
+  // Detect email-like strings without a backtracking-prone regex.
+  // A name is email-like when there is an @ with at least one char before it
+  // and a dot somewhere after it.
+  const atIndex = name.indexOf("@");
+  if (atIndex > 0 && name.indexOf(".", atIndex) > atIndex + 1) {
     return "Use a first name or fun nickname — not an email address.";
   }
-  // Strip common phone-number formatting characters, then check for a
-  // 7-to-15 digit string (covers local, national, and international formats).
-  // Two-step approach avoids a quantified group with an optional inner element.
+  // Detect phone-like strings: strip common formatting characters, then check
+  // whether the result is a run of 7-15 digits (covers local, national, and
+  // international formats). Simple character class avoids ReDoS risk.
   const digitsOnly = name.trim().replace(/[\s\-.()+ ]/g, "");
   if (/^\d{7,15}$/.test(digitsOnly)) {
     return "Use a first name or fun nickname — not a phone number.";
