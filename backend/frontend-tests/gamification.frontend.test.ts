@@ -291,4 +291,64 @@ describe("GiftedGamification", () => {
     expect(document.querySelectorAll("#overlayRoot .celebration-confetti")).toHaveLength(10);
     expect(controller.hasBlockingOverlay()).toBe(false);
   });
+
+  it("clears queued overlays and resets the controller state before the delayed next overlay appears", async () => {
+    await loadGamificationScript();
+    vi.useFakeTimers();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([null, null]));
+    controller.onAnswerEvaluated(buildSnapshot([0, null]), {
+      isCorrect: true,
+      message: "Brilliant work",
+    });
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-intro")).toBeTruthy();
+
+    const dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    controller.reset();
+
+    expect(document.querySelector("#overlayRoot").childElementCount).toBe(0);
+    expect(document.getElementById("hud")?.classList.contains("is-hidden")).toBe(true);
+    expect(document.getElementById("sectionProgressRoot")?.textContent).toBe("");
+    expect(document.getElementById("overallProgressRoot")?.textContent).toBe("");
+    expect(document.getElementById("rocketProgressRoot")?.textContent).toBe("");
+
+    await vi.advanceTimersByTimeAsync(80);
+    expect(document.querySelector("#overlayRoot").childElementCount).toBe(0);
+  });
+
+  it("only enqueues the final celebration once and ignores incomplete attempts", async () => {
+    await loadGamificationScript();
+    vi.useFakeTimers();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.onTestCompleted(buildSnapshot([0, null]));
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-final")).toBeNull();
+
+    controller.onTestCompleted(buildSnapshot([0, 1]));
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-section")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-final")).toBeNull();
+
+    const dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    await vi.advanceTimersByTimeAsync(80);
+    expect(document.querySelectorAll("#overlayRoot .celebration-overlay.is-final")).toHaveLength(1);
+
+    controller.onTestCompleted(buildSnapshot([0, 1]));
+    expect(document.querySelectorAll("#overlayRoot .celebration-overlay.is-final")).toHaveLength(1);
+  });
 });
