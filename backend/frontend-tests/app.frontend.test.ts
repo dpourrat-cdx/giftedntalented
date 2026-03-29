@@ -26,6 +26,7 @@ function buildGamificationStub(hasBlockingOverlay = true) {
     },
     showMissionUpdate: vi.fn(),
     showMissionCompletion: vi.fn(),
+    requestMissionIntroduction: vi.fn(),
     reset: vi.fn(),
     clearTransientFeedback: vi.fn(),
   };
@@ -1598,6 +1599,25 @@ describe("app.js targeted coverage", () => {
       expect(shouldResumeDeferredAutoAdvance(true)).toBe(false);
     });
 
+    it("handles standard section overlay dismissals for both suppress and advance branches", async () => {
+      const { overlayStateChange, finalizeAttempt, gamificationController } = await startApp();
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "section", advanceOnDismiss: false },
+      });
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+      expect(finalizeAttempt).not.toHaveBeenCalled();
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "section", advanceOnDismiss: true },
+      });
+
+      expect(gamificationController.requestMissionIntroduction).toHaveBeenCalledTimes(1);
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+    });
+
     it("prefers the scoreboard answer when it is valid and falls back cleanly otherwise", async () => {
       const {
         resolveAuthoritativeCorrectAnswer,
@@ -1606,6 +1626,7 @@ describe("app.js targeted coverage", () => {
 
       expect(resolveAuthoritativeCorrectAnswer({ correctAnswer: 3 }, 1)).toBe(3);
       expect(resolveAuthoritativeCorrectAnswer({ correctAnswer: 9 }, 1)).toBe(1);
+      expect(resolveAuthoritativeCorrectAnswer({ correctAnswer: -1 }, 2)).toBe(2);
       expect(resolveAuthoritativeCorrectAnswer(null, 2)).toBe(2);
 
       expect(resolveAnswerEvaluationIsCorrect({ isCorrect: true }, 0, 2)).toBe(true);
@@ -1632,3 +1653,4 @@ describe("app.js targeted coverage", () => {
     });
   });
 });
+
