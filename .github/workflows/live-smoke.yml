@@ -67,13 +67,22 @@ jobs:
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: "open",
+              state: "all",
               per_page: 100,
             });
 
             const existing = issues.find((issue) => issue.title === title);
 
             if (existing) {
+              if (existing.state === "closed") {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  state: "open",
+                });
+              }
+
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -89,3 +98,4 @@ jobs:
               title,
               body,
             });
+
