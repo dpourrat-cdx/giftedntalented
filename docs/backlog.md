@@ -41,8 +41,8 @@ Use these docs as the durable sources of truth:
   Current local baseline on `master` is `86.85%` overall line coverage as of March 28, 2026.
 - [ ] Target the biggest remaining runtime coverage gaps first: `scoreboard.js` (`78.03%` lines / `59.17%` branches), `app.js` (`82.12%` lines / `63.85%` branches), and `gamification.js` (`82.18%` lines / `72.79%` branches).
 - [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
-- [ ] Add a repeatable coverage reporting step so each PR wave can show which files moved the global coverage number and which high-risk files still lag.
-- [ ] Decide whether the thin infra wrappers (`firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, `not-found.ts`, `express.d.ts`) should get direct tests, explicit exclusions, or remain accepted low-value gaps.
+- [ ] Use `cd backend && npm.cmd run coverage:report` after each coverage wave and include the changed file-level summary in the PR thread; when comparing two local runs, use `-- --baseline <lcov-path>`.
+- [ ] Treat thin infra wrappers as low-value by default: accept `express.d.ts` as an intentional no-test file, keep `firebase.ts`, `supabase.ts`, and `logger.ts` as accepted wrapper gaps unless behavior grows, and only add direct tests for `server.ts` / `not-found.ts` if they pick up meaningful logic.
 
 ## Priority 4: Privacy And Parent Safety
 
