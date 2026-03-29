@@ -63,20 +63,41 @@ Claude and Codex run on the same computer and post under the **same GitHub accou
 - **Claude** prefixes every comment addressed to Codex with **`Codex, `** (e.g. `"Codex, please review this PR."`).
 - **Codex** prefixes every comment addressed to Claude with **`Claude, `** (e.g. `"Claude, please review this PR."`).
 
-Apply this prefix to **handoff and review comments** — invitations to review, review summaries, merge approvals, and feedback threads. General discussion or follow-up notes are also welcome to use the prefix for clarity, but the automated scheduled agent detects true review/handoff comments by their content, not prefix alone, so incidental use will not cause false positives in the triage logic.
+Apply this prefix to **handoff and review comments** — invitations to review, review summaries, merge approvals, and feedback threads.
+
+### Automated Codex Bot vs. Manual Codex Reviews
+
+The **`chatgpt-codex-connector`** GitHub app posts a lightweight automated review on every non-draft PR. This is separate from Codex's substantive manual reviews. When Codex reviews a `claude/*` PR manually, it posts a plain comment under `dpourrat-cdx` using the `Claude, ` prefix, structured as:
+
+```
+Claude, ✅ Review complete.
+
+What I verified:
+- …
+
+One follow-up before merge:
+- …
+
+Merge recommendation: ready after …
+```
+
+When Claude reviews a `codex/*` PR manually, it posts a plain comment under `dpourrat-cdx` using the `Codex, ` prefix.
+
+### GitHub Approval Limitation
+
+Because both agents share the `dpourrat-cdx` account, **GitHub blocks formal PR approvals** (`addPullRequestReview --approve` returns an error). Always post reviews as `--comment` only — never attempt `--approve` or `--request-changes` via the API.
 
 ### Automated PR Review (Claude Scheduled Agent)
 
-Claude runs a local scheduled agent every 10 minutes that performs the following automatically:
+A local scheduled agent was designed to triage open PRs, mark drafts ready, post reviews, and merge approved Claude PRs every 10 minutes. **This automation is currently disabled** — it was not working reliably. All PR triage, draft promotion, and review posting must be done manually.
 
-1. **Triage open PRs** — for each open PR, checks branch prefix (ownership), draft status, CI results, and whether a handoff comment is present.
-2. **Mark drafts ready** — if a `codex/*` PR is still draft and all three checks (Backend, SonarCloud, and SonarCloud Code Analysis) are green, marks it ready for review.
-3. **Review unreviewed Codex PRs** — if a `codex/*` PR is ready, CI is green, and no Claude review comment exists yet, posts a full review using the checklist in this document.
-4. **Merge approved Claude PRs** — if a `claude/*` PR has been reviewed and approved by Codex with all feedback resolved and CI green, Claude squash-merges it and deletes the branch.
-5. **Flag stale branches** — reports remote branches with no open PR that have been inactive for more than 7 days.
-6. **Post inbox summary** — opens or updates a "Claude Triage Inbox" GitHub issue whenever there is an actionable change to report.
+When manually triaging:
 
-This automation runs locally using the Claude Code subscription (no extra API cost). GitHub Actions–based review was intentionally **not used** to avoid additional Anthropic API charges beyond the $20 Pro plan.
+1. **Mark drafts ready** — if a `codex/*` PR is still draft and all three checks (Backend, SonarCloud, and SonarCloud Code Analysis) are green, run `gh pr ready <number>`.
+2. **Review unreviewed Codex PRs** — post a full review comment (see format below) once CI is green.
+3. **Merge approved Claude PRs** — once Codex has reviewed and all feedback is resolved and CI is green, Claude squash-merges and deletes the branch.
+
+GitHub Actions–based review was intentionally **not used** to avoid additional Anthropic API charges beyond the $20 Pro plan.
 
 ### Files That Must Not Be Touched Simultaneously
 
@@ -109,7 +130,7 @@ Remote branches accumulate quickly in an active multi-agent repo. To keep the br
 - **Delete your branch immediately after merge** — the GitHub merge button has a "Delete branch" option; use it. If you merge via CLI (`gh pr merge --squash --delete-branch`), the flag handles it automatically.
 - **Never leave a closed (unmerged) PR's branch on the remote** — if a PR is closed without merging, delete the branch manually: `git push origin --delete <branch-name>`.
 - **Do not open a new branch for trivial one-commit fixes** — commit directly to an existing open branch where appropriate, or open a minimal PR.
-- **Stale branches** (no open PR, no commits in 7+ days) will be flagged by Claude's scheduled agent. Address the flag promptly: either open a PR, merge, or delete the branch.
+- **Stale branches** (no open PR, no commits in 7+ days) should be reviewed manually. Either open a PR, merge, or delete the branch.
 - The only long-lived branch is `master`. All other branches are short-lived and should be deleted once their PR is merged.
 
 ---
@@ -142,15 +163,40 @@ A PR must not be approved, marked ready, or merged if it introduces new Sonar is
 
 ## Local Development Workflow
 
+### First-Time Setup
+
+Copy the example env file and fill in the Supabase credentials before running the backend:
+
+```bash
+cp backend/.env.example backend/.env
+# Then set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from the Supabase dashboard:
+# https://supabase.com/dashboard/project/hwafspusaijqjkgweptv/settings/api
+```
+
+`backend/.env` is gitignored and must never be committed.
+
+### Windows Note
+
+On Windows, PowerShell execution policy blocks `npm.ps1`. Use `npm.cmd` instead of `npm` for all backend commands:
+
+```bash
+npm.cmd ci
+npm.cmd run check
+npm.cmd test
+npm.cmd run build
+npm.cmd run dev
+npm.cmd run smoke:live
+```
+
 ### Backend
 
 ```bash
 cd backend
-npm ci
-npm run check      # TypeScript type check
-npm test           # Vitest test suite (149 tests as of March 26, 2026)
-npm run build      # Compile to dist/
-npm run dev        # Express dev server on port 10000
+npm.cmd ci
+npm.cmd run check      # TypeScript type check
+npm.cmd test           # Vitest test suite
+npm.cmd run build      # Compile to dist/
+npm.cmd run dev        # Express dev server on port 10000
 ```
 
 ### Frontend
@@ -167,7 +213,7 @@ The frontend JS points at the production Render backend by default. No local bac
 
 ```bash
 cd backend
-npm run smoke:live   # hits production Render endpoint
+npm.cmd run smoke:live   # hits production Render endpoint
 ```
 
 ---
@@ -176,12 +222,12 @@ npm run smoke:live   # hits production Render endpoint
 
 Every agent must complete this sequence before considering a task done:
 
-1. **Test locally**: `npm run check && npm test && npm run build` — all must pass.
+1. **Test locally**: `npm.cmd run check && npm.cmd test && npm.cmd run build` — all must pass.
 2. **Commit and push** the branch.
 3. **Open a PR** and wait for CI to go green.
 4. **Get a review** (other agent or human owner).
 5. **Merge** via GitHub merge button.
-6. **Verify deployment**: after Render auto-deploys, run `npm run smoke:live` to confirm the live backend is healthy.
+6. **Verify deployment**: after Render auto-deploys, run `npm.cmd run smoke:live` to confirm the live backend is healthy.
 7. **Delete the branch** after merge — keep the remote clean.
 
 ---
@@ -211,4 +257,4 @@ Weekly PRs for `backend/` npm updates open every Monday. `@types/*` packages are
 - Tests must pass with `npm test` before any PR is opened.
 - `SonarCloud` new-code coverage must stay green before merge. Temporary coverage exclusions should be rare, documented in the PR, and paired with a backlog follow-up to remove them.
 - New Sonar issues on a PR should be treated as blockers by default. If a small issue is intentionally deferred, the PR must update `docs/backlog.md` and mention that deferral in the review thread before the PR can be considered ready.
-- The test count (currently `149`) is not a hard ceiling — add as many tests as the code needs.
+- The test count is not a hard ceiling — add as many tests as the code needs.
