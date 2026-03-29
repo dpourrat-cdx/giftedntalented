@@ -32,18 +32,89 @@ function buildGamificationStub(hasBlockingOverlay = true) {
 }
 
 function buildQuestionBankStub(question = attemptQuestion) {
+  const questions = Array.isArray(question) ? question : [question];
+  const sections = [...new Set(questions.map((entry) => entry.section))];
+  const groupedQuestions = questions.reduce((pool, entry) => {
+    const sectionQuestions = pool[entry.section] ?? [];
+    sectionQuestions.push({ ...entry, options: [...entry.options] });
+    pool[entry.section] = sectionQuestions;
+    return pool;
+  }, {} as Record<string, typeof attemptQuestion[]>);
+
   return {
-    SECTIONS: ["Verbal"],
-    QUESTIONS_PER_TEST_SECTION: 1,
+    SECTIONS: sections,
+    QUESTIONS_PER_TEST_SECTION: questions.length,
     buildTestSession() {
-      return [{ ...question, options: [...question.options] }];
+      return questions.map((entry) => ({ ...entry, options: [...entry.options] }));
     },
     getQuestionPool() {
-      return {
-        Verbal: [{ ...question, options: [...question.options] }],
-      };
+      return groupedQuestions;
     },
   };
+}
+
+async function setupAppWithQuestions(
+  questions: typeof attemptQuestion[],
+  options: { storyOnly?: boolean; scoreboard?: boolean; blockingOverlay?: boolean } = {},
+) {
+  await loadIndexHtml();
+  await importBrowserScript("content.js");
+
+  const [primaryQuestion = attemptQuestion] = questions;
+  window.GiftedQuestionBank = buildQuestionBankStub(questions);
+  let gamificationController = buildGamificationStub();
+  let overlayStateChange: ((overlayState: Record<string, unknown> | null) => void) | null = null;
+  window.GiftedGamification = {
+    createGamificationController(config: { callbacks?: { onOverlayStateChange?: typeof overlayStateChange } } = {}) {
+      overlayStateChange = config.callbacks?.onOverlayStateChange ?? null;
+      gamificationController = buildGamificationStub(options.blockingOverlay !== false);
+      return gamificationController;
+    },
+  };
+
+  const beginAttempt = vi.fn().mockResolvedValue({
+    questions: questions.map((entry) => ({ ...entry, options: [...entry.options] })),
+  });
+  const recordValidatedAnswer = vi.fn().mockResolvedValue({
+    accepted: true,
+    correctAnswer: primaryQuestion.answer,
+    isCorrect: false,
+    progress: {
+      answeredCount: 1,
+      correctCount: 0,
+      totalQuestions: questions.length,
+      percentage: 0,
+    },
+    record: null,
+  });
+  const finalizeAttempt = vi.fn().mockResolvedValue(null);
+
+  if (options.scoreboard !== false) {
+    window.GiftedScoreboard = {
+      createScoreboardController() {
+        return {
+          init() {},
+          setActivePlayerName() {},
+          resetActiveAttempt() {},
+          beginAttempt,
+          recordValidatedAnswer,
+          finalizeAttempt,
+        };
+      },
+    };
+  }
+
+  await importBrowserScript("app.js");
+
+  if (options.storyOnly) {
+    const toggle = document.getElementById("storyOnlyToggle") as HTMLInputElement;
+    if (toggle) {
+      toggle.checked = true;
+      toggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+    }
+  }
+
+  return { beginAttempt, recordValidatedAnswer, finalizeAttempt, gamificationController, overlayStateChange };
 }
 
 async function startAttemptWithScoreboard(question: typeof attemptQuestion, answerResult: Record<string, unknown>) {
@@ -117,63 +188,7 @@ async function setupApp(
   question = attemptQuestion,
   options: { storyOnly?: boolean; scoreboard?: boolean; blockingOverlay?: boolean } = {},
 ) {
-  await loadIndexHtml();
-  await importBrowserScript("content.js");
-
-  window.GiftedQuestionBank = buildQuestionBankStub(question);
-  let gamificationController = buildGamificationStub();
-  let overlayStateChange: ((overlayState: Record<string, unknown> | null) => void) | null = null;
-  window.GiftedGamification = {
-    createGamificationController(config: { callbacks?: { onOverlayStateChange?: typeof overlayStateChange } } = {}) {
-      overlayStateChange = config.callbacks?.onOverlayStateChange ?? null;
-      gamificationController = buildGamificationStub(options.blockingOverlay !== false);
-      return gamificationController;
-    },
-  };
-
-  const beginAttempt = vi.fn().mockResolvedValue({
-    questions: [{ ...question, options: [...question.options] }],
-  });
-  const recordValidatedAnswer = vi.fn().mockResolvedValue({
-    accepted: true,
-    correctAnswer: question.answer,
-    isCorrect: false,
-    progress: {
-      answeredCount: 1,
-      correctCount: 0,
-      totalQuestions: 1,
-      percentage: 0,
-    },
-    record: null,
-  });
-  const finalizeAttempt = vi.fn().mockResolvedValue(null);
-
-  if (options.scoreboard !== false) {
-    window.GiftedScoreboard = {
-      createScoreboardController() {
-        return {
-          init() {},
-          setActivePlayerName() {},
-          resetActiveAttempt() {},
-          beginAttempt,
-          recordValidatedAnswer,
-          finalizeAttempt,
-        };
-      },
-    };
-  }
-
-  await importBrowserScript("app.js");
-
-  if (options.storyOnly) {
-    const toggle = document.getElementById("storyOnlyToggle") as HTMLInputElement;
-    if (toggle) {
-      toggle.checked = true;
-      toggle.dispatchEvent(new window.Event("change", { bubbles: true }));
-    }
-  }
-
-  return { beginAttempt, recordValidatedAnswer, finalizeAttempt, gamificationController, overlayStateChange };
+  return setupAppWithQuestions([question], options);
 }
 
 async function startApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
@@ -964,6 +979,66 @@ describe("app.js targeted coverage", () => {
       }
     });
 
+    it("auto-advances to the next question when one remains", async () => {
+      vi.useFakeTimers();
+      try {
+        const followUpQuestion = {
+          ...attemptQuestion,
+          id: 2,
+          bankId: "Verbal-2",
+          prompt: "Which answer keeps the rocket steady?",
+          options: ["North", "East", "South", "West"],
+          answer: 1,
+          explanation: "East keeps the rocket on course.",
+        };
+        const { finalizeAttempt, recordValidatedAnswer } = await setupAppWithQuestions(
+          [attemptQuestion, followUpQuestion],
+          { blockingOverlay: false },
+        );
+        recordValidatedAnswer.mockResolvedValue({
+          accepted: true,
+          correctAnswer: attemptQuestion.answer,
+          isCorrect: true,
+          progress: {
+            answeredCount: 1,
+            correctCount: 1,
+            totalQuestions: 2,
+            percentage: 50,
+          },
+          record: null,
+        });
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const buttons = Array.from(
+          document.querySelectorAll("#optionsList button"),
+        ) as HTMLButtonElement[];
+        buttons[attemptQuestion.answer].click();
+
+        const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+        nextButton.click();
+
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(1000);
+        await Promise.resolve();
+
+        expect(recordValidatedAnswer).toHaveBeenCalledTimes(1);
+        expect(finalizeAttempt).not.toHaveBeenCalled();
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+        expect(document.getElementById("questionPrompt")?.textContent).toBe(followUpQuestion.prompt);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("resumes the deferred auto-advance after a blocking overlay is dismissed", async () => {
       vi.useFakeTimers();
       try {
@@ -1018,6 +1093,72 @@ describe("app.js targeted coverage", () => {
         expect(finalizeAttempt).toHaveBeenCalledTimes(1);
         expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
         expect(document.getElementById("scoreHeadline")?.textContent).toContain("Alex powered 1/1 mission steps (100%)");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("resumes deferred auto-advance to the next question after the overlay is dismissed", async () => {
+      vi.useFakeTimers();
+      try {
+        const followUpQuestion = {
+          ...attemptQuestion,
+          id: 2,
+          bankId: "Verbal-2",
+          prompt: "Which answer keeps the rocket steady?",
+          options: ["North", "East", "South", "West"],
+          answer: 1,
+          explanation: "East keeps the rocket on course.",
+        };
+        const { finalizeAttempt, overlayStateChange, recordValidatedAnswer } = await setupAppWithQuestions(
+          [attemptQuestion, followUpQuestion],
+        );
+        recordValidatedAnswer.mockResolvedValue({
+          accepted: true,
+          correctAnswer: attemptQuestion.answer,
+          isCorrect: true,
+          progress: {
+            answeredCount: 1,
+            correctCount: 1,
+            totalQuestions: 2,
+            percentage: 50,
+          },
+          record: null,
+        });
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(
+          new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const buttons = Array.from(
+          document.querySelectorAll("#optionsList button"),
+        ) as HTMLButtonElement[];
+        buttons[attemptQuestion.answer].click();
+
+        const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+        nextButton.click();
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        overlayStateChange?.({
+          hasBlocking: false,
+          dismissedEvent: null,
+        });
+
+        await vi.advanceTimersByTimeAsync(1000);
+        await Promise.resolve();
+
+        expect(recordValidatedAnswer).toHaveBeenCalledTimes(1);
+        expect(finalizeAttempt).not.toHaveBeenCalled();
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+        expect(document.getElementById("questionPrompt")?.textContent).toBe(followUpQuestion.prompt);
       } finally {
         vi.useRealTimers();
       }
@@ -1235,6 +1376,53 @@ describe("app.js targeted coverage", () => {
         expect(finalizeAttempt).toHaveBeenCalledTimes(1);
         expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
         expect(document.getElementById("scoreHeadline")?.textContent).toContain("Alex powered 0/1 mission steps (0%)");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("pauses the mission timer while a blocking overlay is active and resumes through retry", async () => {
+      vi.useFakeTimers();
+      try {
+        const { finalizeAttempt, overlayStateChange } = await setupApp();
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        overlayStateChange?.({
+          hasBlocking: true,
+          dismissedEvent: null,
+        });
+
+        await vi.advanceTimersByTimeAsync(30000);
+        await Promise.resolve();
+
+        expect(finalizeAttempt).not.toHaveBeenCalled();
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+        expect(document.getElementById("timerDisplay")?.textContent).toBe("00:30");
+
+        overlayStateChange?.({
+          hasBlocking: false,
+          dismissedEvent: null,
+        });
+
+        await vi.advanceTimersByTimeAsync(30000);
+        await Promise.resolve();
+
+        expect(finalizeAttempt).toHaveBeenCalledTimes(1);
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+
+        const retryButton = document.getElementById("retryButton") as HTMLButtonElement;
+        retryButton.click();
+
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+        expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(true);
+        expect((document.getElementById("childNameInput") as HTMLInputElement).value).toBe("");
       } finally {
         vi.useRealTimers();
       }
