@@ -87,6 +87,8 @@ When Claude reviews a `codex/*` PR manually, it posts a plain comment under `dpo
 
 Because both agents share the `dpourrat-cdx` account, **GitHub blocks formal PR approvals** (`addPullRequestReview --approve` returns an error). Always post reviews as `--comment` only — never attempt `--approve` or `--request-changes` via the API.
 
+**What counts as approval:** A substantive manual review comment from the other agent that explicitly includes the word `approved` (e.g. `"Codex, reviewed — approved, ready to merge."`). Handoff comments, review-request invitations, and follow-up notes do not count as approval.
+
 ### Automated PR Review (Claude Scheduled Agent)
 
 A local scheduled agent was designed to triage open PRs, mark drafts ready, post reviews, and merge approved Claude PRs every 10 minutes. **This automation is currently disabled** — it was not working reliably. All PR triage, draft promotion, and review posting must be done manually.
@@ -150,8 +152,15 @@ To merge anything into `master` you must:
 1. Open a PR from your branch.
 2. Wait for the `Backend` CI job to pass.
 3. Wait for the `SonarCloud` quality gate to pass (0 new hotspots, ≥80% new-code coverage).
-4. Get an approval (from the other agent or the human owner).
+4. Get an approval — a substantive review comment from the other agent explicitly including the word `approved` (see GitHub Approval Limitation above).
 5. Use the GitHub merge button — no direct pushes.
+
+**If your branch falls behind `master`** (e.g. another PR merged while yours was open):
+1. `git fetch origin`
+2. `git rebase origin/master`
+3. `git push --force-with-lease`
+4. Wait for all three CI checks to go green again (Backend, SonarCloud, SonarCloud Code Analysis)
+5. Merge — a prior approval still stands if no new commits were added beyond the rebase.
 
 ---
 
