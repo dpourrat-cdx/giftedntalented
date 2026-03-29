@@ -187,6 +187,23 @@ describe("GiftedScoreboard", () => {
     );
   });
 
+  it("shows the empty state when the remote lookup returns no record and no cache exists", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockResolvedValue(null),
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.refreshTopScoreForPlayer("Alex");
+
+    expect(result).toBeNull();
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
   it("shows a friendly error when the remote lookup fails without a cached score", async () => {
     await loadScoreboardScript();
 
@@ -289,6 +306,25 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.className).toBe("top-score-status is-info");
   });
 
+  it("clears a transient status message after the timeout elapses", async () => {
+    await loadScoreboardScript();
+    vi.useFakeTimers();
+
+    const controller = createController();
+
+    controller.setStatus("Explorer record saved on this device.", "success");
+
+    expect(controller.elements.status.textContent).toBe("Explorer record saved on this device.");
+    expect(controller.elements.status.className).toBe("top-score-status is-success");
+
+    await vi.advanceTimersByTimeAsync(4499);
+    expect(controller.elements.status.textContent).toBe("Explorer record saved on this device.");
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(controller.elements.status.textContent).toBe("");
+    expect(controller.elements.status.className).toBe("top-score-status is-hidden");
+  });
+
   it("finalizes an attempt using the in-flight attempt when the active id is not set yet", async () => {
     await loadScoreboardScript();
 
@@ -343,6 +379,26 @@ describe("GiftedScoreboard", () => {
       "Clear every saved explorer record on this device? This cannot be undone.",
     );
     expect(globalThis.prompt).not.toHaveBeenCalled();
+    expect(controller.service.resetScores).not.toHaveBeenCalled();
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+  it("returns without resetting when the admin PIN dialog is cancelled", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue(null));
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn(),
+    };
+
+    await controller.handleResetClick();
+
+    expect(globalThis.confirm).toHaveBeenCalledWith(
+      "Clear every saved explorer record on this device? This cannot be undone.",
+    );
+    expect(globalThis.prompt).toHaveBeenCalledWith("Enter the admin PIN to clear saved explorer records.");
     expect(controller.service.resetScores).not.toHaveBeenCalled();
     expect(controller.elements.status.textContent).toBe("");
   });
