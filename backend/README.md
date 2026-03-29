@@ -69,6 +69,9 @@ npm run dev
 - `npm run test:coverage`
   Runs the backend test suite with coverage.
 
+- `npm run coverage:report`
+  Summarizes the latest LCOV output from `backend/coverage/lcov.info` and can compare against a baseline file when invoked as `npm run coverage:report -- --baseline <path>`.
+
 - `npm run smoke:live`
   Runs the live backend smoke checks against the deployed API.
 
