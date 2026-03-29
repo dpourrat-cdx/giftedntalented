@@ -28,6 +28,10 @@ Use these files as the current sources of truth:
   - current open delivery slices
   - no completed history unless it still explains an open dependency or decision
 
+- `priority-4-privacy-parent-safety-plan.md`
+  - detailed multi-wave execution plan for backlog Priority 4
+  - privacy, retention, cookie/storage, and parent-safety delivery sequencing
+
 ## Decision Records
 
 - `decisions/frontend-header-security.md`
