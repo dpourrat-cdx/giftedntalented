@@ -20,17 +20,37 @@ master          ← protected, CI-gated, no direct pushes
 
 ### Worktrees
 
-Claude uses git worktrees (`.claude/worktrees/<name>`) so it never touches the main working tree when Codex has work in progress there, and vice versa. If you are Codex and you need to start a task:
+Both agents should keep the main repo checkout clean on `master` and do task work in dedicated in-repo worktrees:
+
+- **Claude worktrees** live under `.claude/worktrees/<name>`
+- **Codex worktrees** live under `.codex/worktrees/<name>`
+
+Each worktree is a full checkout on its own branch while sharing the same repository object store. This keeps branch work isolated, avoids clone sprawl, and makes cleanup predictable.
+
+If you are Codex and you need to start a task:
 
 1. Pull latest `master`.
 2. Create a branch prefixed with `codex/` (e.g., `codex/security-hardening`).
-3. Work in the main working directory **or** a dedicated worktree — do not commit to an active branch owned by Claude.
+3. Prefer creating a dedicated worktree under `.codex/worktrees/<name>` and do the task there.
+4. Do not commit to an active branch owned by Claude.
 
 If you are Claude and you need to start a task:
 
 1. Pull latest `master`.
 2. Create a branch prefixed with `claude/` (e.g., `claude/api-spec-update`).
-3. Prefer using a worktree so the main working directory stays available for Codex.
+3. Prefer creating a dedicated worktree under `.claude/worktrees/<name>` so the main working directory stays available for Codex.
+
+Recommended setup examples:
+
+```bash
+# Codex
+git worktree add .codex/worktrees/backlog-refresh -b codex/backlog-refresh master
+
+# Claude
+git worktree add .claude/worktrees/privacy-parent-safety -b claude/privacy-parent-safety master
+```
+
+Cleanup after merge should remove the corresponding in-repo worktree instead of leaving extra sibling clones behind.
 
 ### Coordination Point: `docs/backlog.md`
 
