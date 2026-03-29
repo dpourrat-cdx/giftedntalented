@@ -510,6 +510,19 @@ describe("app.js targeted coverage", () => {
       expect(nameHint.textContent).toBe("Press Enter to begin Story Only mode.");
       expect(nextHint.textContent).toBe("Press Enter to play the story route.");
     });
+
+    it("does not start the attempt when Enter is pressed before a name is entered", async () => {
+      const mocks = await setupApp();
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+      await Promise.resolve();
+
+      expect(mocks.beginAttempt).not.toHaveBeenCalled();
+      expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(true);
+      expect(document.getElementById("nextHint")?.textContent).toBe("Type your name to begin the mission.");
+    });
   });
 
   describe("renderStoryOnlyQuestion", () => {
@@ -810,6 +823,27 @@ describe("app.js targeted coverage", () => {
       expect(window.Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
     });
 
+    it("ignores next-button clicks before an answer has been selected", async () => {
+      const { recordValidatedAnswer } = await setupApp();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+
+      expect(recordValidatedAnswer).not.toHaveBeenCalled();
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+    });
+
+    it("ignores next-button clicks while story-only mode is active", async () => {
+      const { recordValidatedAnswer } = await startApp(attemptQuestion, { storyOnly: true });
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+
+      expect(recordValidatedAnswer).not.toHaveBeenCalled();
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+      expect(document.getElementById("questionCounter")?.textContent).toBe("Mission 1 story route");
+    });
+
     it("suppresses the next-button advance briefly after a section overlay dismissal", async () => {
       const { overlayStateChange, recordValidatedAnswer } = await startApp();
       const buttons = Array.from(
@@ -830,6 +864,53 @@ describe("app.js targeted coverage", () => {
       nextButton.click();
 
       expect(recordValidatedAnswer).not.toHaveBeenCalled();
+    });
+
+    it("advances to the next mission when a section overlay says to advance on dismiss", async () => {
+      const { finalizeAttempt, overlayStateChange, recordValidatedAnswer } = await startApp();
+      recordValidatedAnswer.mockResolvedValue({
+        accepted: true,
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: true,
+        progress: {
+          answeredCount: 1,
+          correctCount: 1,
+          totalQuestions: 1,
+          percentage: 100,
+        },
+        record: {
+          playerName: "Alex",
+          score: 1,
+          totalQuestions: 1,
+          percentage: 100,
+          elapsedSeconds: 10,
+        },
+      });
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[attemptQuestion.answer].click();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: {
+          variant: "section",
+          advanceOnDismiss: true,
+          sectionKey: "Verbal",
+        },
+      });
+
+      await Promise.resolve();
+
+      expect(finalizeAttempt).toHaveBeenCalledTimes(1);
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
     });
 
     it("auto-advances after a correct answer when no blocking overlay is active", async () => {
@@ -883,9 +964,81 @@ describe("app.js targeted coverage", () => {
       }
     });
 
+    it("resumes the deferred auto-advance after a blocking overlay is dismissed", async () => {
+      vi.useFakeTimers();
+      try {
+        const { recordValidatedAnswer, finalizeAttempt, overlayStateChange } = await setupApp();
+        recordValidatedAnswer.mockResolvedValue({
+          accepted: true,
+          correctAnswer: attemptQuestion.answer,
+          isCorrect: true,
+          progress: {
+            answeredCount: 1,
+            correctCount: 1,
+            totalQuestions: 1,
+            percentage: 100,
+          },
+          record: {
+            playerName: "Alex",
+            score: 1,
+            totalQuestions: 1,
+            percentage: 100,
+            elapsedSeconds: 10,
+          },
+        });
+
+        const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+        nameInput.value = "Alex";
+        nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+        nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const buttons = Array.from(
+          document.querySelectorAll("#optionsList button"),
+        ) as HTMLButtonElement[];
+        buttons[attemptQuestion.answer].click();
+
+        const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+        nextButton.click();
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        overlayStateChange?.({
+          hasBlocking: false,
+          dismissedEvent: null,
+        });
+
+        await vi.advanceTimersByTimeAsync(1000);
+        await Promise.resolve();
+
+        expect(recordValidatedAnswer).toHaveBeenCalledTimes(1);
+        expect(finalizeAttempt).toHaveBeenCalledTimes(1);
+        expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+        expect(document.getElementById("scoreHeadline")?.textContent).toContain("Alex powered 1/1 mission steps (100%)");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("resolves the selected-answer and mission-transition hint and button states", async () => {
       const { resolveNextHintText, resolveNextButtonText, shouldDisableNextButton } = await loadAppHelpers();
 
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: null,
+            validatedAnswer: null,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Choose an answer to power up Check Answer.");
       expect(
         resolveNextHintText(
           {
@@ -915,6 +1068,58 @@ describe("app.js targeted coverage", () => {
             selectedAnswer: 1,
             validatedAnswer: 1,
             isSubmitted: false,
+            isAutoAdvancing: true,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Rocket step locked in. Loading the next mission step...");
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: true,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Mission Control is checking that answer...");
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: false,
+          },
+          true,
+        ),
+      ).toContain("All 1 mission steps are complete");
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isAutoAdvancing: false,
+            isAwaitingAnswerSync: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Rocket step locked in. Press Next Mission Step.");
+      expect(
+        resolveNextHintText(
+          {
+            selectedAnswer: 1,
+            validatedAnswer: 1,
+            isSubmitted: false,
             isAutoAdvancing: false,
             isAwaitingAnswerSync: false,
             isMissionTransitionReady: true,
@@ -927,11 +1132,41 @@ describe("app.js targeted coverage", () => {
           {
             validatedAnswer: 1,
             isSubmitted: false,
+            isMissionTransitionReady: false,
+          },
+          true,
+        ),
+      ).toBe("Launch the Rocket");
+      expect(
+        resolveNextButtonText(
+          {
+            validatedAnswer: 1,
+            isSubmitted: true,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Mission Complete");
+      expect(
+        resolveNextButtonText(
+          {
+            validatedAnswer: 1,
+            isSubmitted: false,
             isMissionTransitionReady: true,
           },
           false,
         ),
       ).toBe("Next mission");
+      expect(
+        resolveNextButtonText(
+          {
+            validatedAnswer: 1,
+            isSubmitted: false,
+            isMissionTransitionReady: false,
+          },
+          false,
+        ),
+      ).toBe("Next Mission Step");
       expect(
         shouldDisableNextButton({
           selectedAnswer: null,
@@ -941,6 +1176,42 @@ describe("app.js targeted coverage", () => {
           isAwaitingAnswerSync: false,
         }),
       ).toBe(true);
+      expect(
+        shouldDisableNextButton({
+          selectedAnswer: 1,
+          validatedAnswer: 1,
+          isSubmitted: false,
+          isAutoAdvancing: true,
+          isAwaitingAnswerSync: false,
+        }),
+      ).toBe(true);
+      expect(
+        shouldDisableNextButton({
+          selectedAnswer: 1,
+          validatedAnswer: 1,
+          isSubmitted: false,
+          isAutoAdvancing: false,
+          isAwaitingAnswerSync: true,
+        }),
+      ).toBe(true);
+      expect(
+        shouldDisableNextButton({
+          selectedAnswer: 1,
+          validatedAnswer: 1,
+          isSubmitted: true,
+          isAutoAdvancing: false,
+          isAwaitingAnswerSync: false,
+        }),
+      ).toBe(true);
+      expect(
+        shouldDisableNextButton({
+          selectedAnswer: 1,
+          validatedAnswer: 1,
+          isSubmitted: false,
+          isAutoAdvancing: false,
+          isAwaitingAnswerSync: false,
+        }),
+      ).toBe(false);
     });
   });
 
