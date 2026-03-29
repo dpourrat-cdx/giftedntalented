@@ -19,6 +19,7 @@ Recent merged progress that still matters for planning:
 - March 28-29, 2026 PRs added source-attributed frontend coverage for `question-bank.js` and `frame-bust.js`, plus deeper runtime coverage for `scoreboard.js`, `app.js`, and `gamification.js`.
 - March 29, 2026 PR `#110` added repeatable LCOV reporting so coverage waves can compare current totals and lowest-coverage files consistently.
 - March 29, 2026 PR `#109` merged the Privacy & Parent Safety implementation plan in `docs/plans/privacy-parent-safety.md`; future Priority 4 work should use that plan as the starting point rather than reopening the same discovery scope.
+- March 29, 2026 Priority 4 Phase 0 ADRs merged: `docs/decisions/explorer-name-model.md`, `docs/decisions/data-retention.md`, `docs/decisions/data-processing-agreements.md`, `docs/decisions/data-breach-response.md`. Implementation proceeds in 6 further PRs per the approved plan.
 - March 29, 2026 PR `#117` updated `CONTRIBUTING.md` for cold-start readiness, including the manual review/approval rules, reviewer-prefix direction table, Windows `npm.cmd` note, first-time Supabase setup, and the explicit behind-`master` rebase flow.
 - March 27-28, 2026 PRs also aligned hosting/security docs and kept the GitHub Pages frame-busting fallback decision current.
 - March 28-29, 2026 docs updates also captured the current PR review automation status, comment-prefix convention, approval semantics, and remote branch hygiene workflow in `CONTRIBUTING.md`.
@@ -29,6 +30,10 @@ Use these docs as the durable sources of truth:
 - `docs/backend-api-spec.md`
 - `docs/decisions/frontend-header-security.md`
 - `docs/decisions/reset-route.md`
+- `docs/decisions/explorer-name-model.md`
+- `docs/decisions/data-retention.md`
+- `docs/decisions/data-processing-agreements.md`
+- `docs/decisions/data-breach-response.md`
 - `docs/plans/privacy-parent-safety.md`
 - `CONTRIBUTING.md`
 
@@ -77,7 +82,15 @@ Use these docs as the durable sources of truth:
 
 ## Next Recommended Delivery Slice
 
-1. **Coverage wave 1** - use `cd backend && npm.cmd run coverage:report` to confirm the current lowest-value runtime gaps, then target the remaining `gamification.js` overlay/finale branches first and only pick up residual `app.js` timer/result edges if they still materially trail.
-2. **Browser verification** - add desktop/mobile browser-level checks for the main learner and parent flows once the next runtime coverage wave lands.
-3. **Operations follow-up** - review Render cold-start behavior and decide whether any uptime mitigation or monitoring change is justified.
-4. **Priority 4 implementation hold** - when privacy/parent safety work resumes, start from `docs/plans/privacy-parent-safety.md` rather than reopening discovery.
+Priority 4 is now in active implementation. Proceed in PR order:
+
+1. **PR #2 (`claude/p4-phase1-privacy-policy`)** — `privacy.html` + consent notice + name validation (frontend only, no backend changes).
+2. **PR #3 (`claude/p4-phase2-delete-backend`)** — Schema migration (`last_active_at`) + `deletePlayerRecords` service + `DELETE /api/v1/admin/players/:playerName/records` route + tests.
+3. **PR #4 (`claude/p4-phase2-delete-frontend`)** — Temporary `window.prompt` UI for per-child deletion + frontend tests.
+4. **PR #5 (`claude/p4-phase3-cleanup`)** — Cleanup endpoint + GitHub Actions cron + localStorage TTL + tests.
+5. **PR #6 (`claude/p4-phase4-export-backend`)** — Data export endpoint + backend tests.
+6. **PR #7 (`claude/p4-phase4-parent-controls`)** — Parent Controls panel + remove old prompts + frontend tests.
+
+Owner action required before PR #2 is made public:
+- Fill in operator name and contact email in `privacy.html`.
+- Accept Supabase, Render, and Firebase DPAs (see `docs/decisions/data-processing-agreements.md`).
