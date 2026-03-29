@@ -128,13 +128,24 @@
           </div>
           <section id="storyPanel" class="story-panel" aria-live="polite"></section>
           <div id="nameEntry" class="name-entry">
+            <div id="consentNotice" class="consent-notice">
+              <p class="consent-notice-text">
+                Before starting, a parent or guardian should know that we save your explorer name
+                and mission scores.
+                <a href="privacy.html" class="consent-notice-link">Read our Privacy Policy</a>.
+              </p>
+              <label class="consent-notice-label">
+                <input type="checkbox" id="consentCheckbox" class="consent-notice-checkbox" />
+                <span>I'm a parent — I understand and agree</span>
+              </label>
+            </div>
             <label id="nameLabel" for="childNameInput" class="name-label">Explorer Name</label>
             <input
               id="childNameInput"
               class="name-input"
               type="text"
               maxlength="40"
-              placeholder="Type your explorer name here"
+              placeholder="First name or nickname"
               autocomplete="off"
             />
             <p id="nameHint" class="name-hint">
@@ -211,6 +222,10 @@
           <div id="reviewList" class="review-list"></div>
         </details>
       </section>
+
+      <footer class="app-footer">
+        <a href="privacy.html" class="privacy-link">Privacy Policy</a>
+      </footer>
     </main>
 
     <div

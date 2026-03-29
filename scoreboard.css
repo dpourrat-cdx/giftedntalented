@@ -87,3 +87,71 @@
     display: grid;
   }
 }
+
+/* Consent notice — shown before first use until parent acknowledges */
+.consent-notice {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(42, 157, 143, 0.18);
+  box-shadow: 0 4px 12px rgba(24, 53, 61, 0.06);
+  margin-bottom: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.consent-notice.is-hidden {
+  display: none;
+}
+
+.consent-notice-text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.consent-notice-link {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.consent-notice-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.consent-notice-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--teal);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* App footer — privacy policy link */
+.app-footer {
+  padding: 20px 0 4px;
+  text-align: center;
+}
+
+.privacy-link {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.privacy-link:hover,
+.privacy-link:focus-visible {
+  color: var(--teal);
+  text-decoration: underline;
+}

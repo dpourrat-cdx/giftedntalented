@@ -105,6 +105,9 @@ async function setupAppWithQuestions(
     };
   }
 
+  // Pre-grant consent so existing tests are not gated by the consent notice
+  window.localStorage.setItem("gifted-consent-v1", "1");
+
   await importBrowserScript("app.js");
 
   if (options.storyOnly) {
@@ -147,6 +150,8 @@ async function startAttemptWithScoreboard(question: typeof attemptQuestion, answ
       };
     },
   };
+
+  window.localStorage.setItem("gifted-consent-v1", "1");
 
   await importBrowserScript("app.js");
 
@@ -231,6 +236,8 @@ async function loadNormalizeAttemptQuestion(question = attemptQuestion) {
     },
   };
 
+  window.localStorage.setItem("gifted-consent-v1", "1");
+
   await loadFrontendScript("app.js");
 
   return window.eval("normalizeAttemptQuestion") as (
@@ -261,6 +268,8 @@ async function loadAppHelpers(question = attemptQuestion) {
       };
     },
   };
+
+  window.localStorage.setItem("gifted-consent-v1", "1");
 
   await loadFrontendScript("app.js");
 

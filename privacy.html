@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — Captain Nova's Rocket Mission</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=20260326-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260327-1" />
+    <style>
+      .privacy-page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+        color: var(--ink);
+        line-height: 1.65;
+      }
+      .privacy-page h1 {
+        font-size: 1.8rem;
+        margin-bottom: 4px;
+      }
+      .privacy-page .eyebrow {
+        margin-bottom: 32px;
+      }
+      .privacy-page h2 {
+        font-size: 1.15rem;
+        margin-top: 36px;
+        margin-bottom: 8px;
+        color: var(--ink);
+      }
+      .privacy-page p,
+      .privacy-page li {
+        color: var(--ink-soft);
+        margin-bottom: 12px;
+      }
+      .privacy-page ul {
+        padding-left: 20px;
+      }
+      .privacy-page table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+      }
+      .privacy-page th,
+      .privacy-page td {
+        text-align: left;
+        padding: 8px 12px;
+        border: 1px solid rgba(42, 157, 143, 0.2);
+      }
+      .privacy-page th {
+        background: rgba(42, 157, 143, 0.08);
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .privacy-summary-box {
+        padding: 16px 20px;
+        border-radius: 16px;
+        background: rgba(42, 157, 143, 0.08);
+        border: 1px solid rgba(42, 157, 143, 0.2);
+        margin-bottom: 32px;
+      }
+      .privacy-summary-box p {
+        margin: 0;
+        font-weight: 700;
+        color: var(--teal);
+      }
+      .privacy-back-link {
+        display: inline-block;
+        margin-bottom: 24px;
+        color: var(--teal);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .privacy-back-link:hover {
+        text-decoration: underline;
+      }
+      .privacy-placeholder {
+        background: rgba(231, 111, 81, 0.1);
+        border: 1px dashed var(--accent);
+        border-radius: 6px;
+        padding: 2px 8px;
+        color: var(--accent-deep);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="privacy-page">
+      <a href="./index.html" class="privacy-back-link">← Back to Captain Nova's Rocket Mission</a>
+
+      <p class="eyebrow">Legal &amp; Privacy</p>
+      <h1>Privacy Policy</h1>
+      <p><strong>Last updated:</strong> March 29, 2026</p>
+
+      <div class="privacy-summary-box">
+        <p>
+          We only save your explorer name and mission scores. Your parent can delete them anytime.
+          We don't track you or sell your information.
+        </p>
+      </div>
+
+      <h2>1. Who we are</h2>
+      <p>
+        Captain Nova's Rocket Mission is a free, story-driven educational app for children.
+      </p>
+      <p>
+        <strong>Operator:</strong>
+        <span class="privacy-placeholder">[operator name]</span> —
+        <span class="privacy-placeholder">[contact email address]</span>
+      </p>
+      <p>
+        This section must be filled in before this policy is published. Under GDPR (Art. 13),
+        COPPA (16 CFR 312.4), and similar laws, the operator's real name and a working contact
+        email address are required.
+      </p>
+
+      <h2>2. What data we collect</h2>
+      <p>We collect only what is needed to run the app:</p>
+      <ul>
+        <li><strong>Explorer name</strong> — a first name or nickname chosen by the child.</li>
+        <li><strong>Mission scores and percentages</strong> — the child's best mission score.</li>
+        <li><strong>Mission attempt history</strong> — questions selected, answers given, and timing data.</li>
+        <li><strong>Device-local cache</strong> — scores saved in your browser's localStorage for faster load and offline display.</li>
+        <li><strong>Optional push notification token</strong> — a device identifier for push notifications, only if the feature is enabled.</li>
+      </ul>
+      <p>We do <strong>not</strong> collect:</p>
+      <ul>
+        <li>Email addresses, full names, home addresses, or phone numbers</li>
+        <li>Cookies</li>
+        <li>Location data</li>
+        <li>Browsing history or cross-site tracking identifiers</li>
+        <li>Any analytics or third-party tracking data</li>
+      </ul>
+
+      <h2>3. Why we collect it</h2>
+      <ul>
+        <li>To save and display mission scores between sessions</li>
+        <li>To enable the parent reset and per-explorer deletion features</li>
+        <li>To provide the educational gameplay experience</li>
+      </ul>
+
+      <h2>4. How we store it</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Where stored</th>
+            <th>Provider</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Explorer names, scores, attempts</td>
+            <td>Online database</td>
+            <td>Supabase Inc. (us-west-2, Oregon, USA)</td>
+          </tr>
+          <tr>
+            <td>Backend server (API)</td>
+            <td>Cloud hosting</td>
+            <td>Render (render.com)</td>
+          </tr>
+          <tr>
+            <td>Optional push notifications</td>
+            <td>Cloud messaging</td>
+            <td>Google Firebase Cloud Messaging</td>
+          </tr>
+          <tr>
+            <td>Score cache</td>
+            <td>This device only (browser localStorage)</td>
+            <td>First-party — stays on your device</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The app is hosted on GitHub Pages. GitHub serves the static app files only and does not
+        receive your child's personal data.
+      </p>
+
+      <h2>5. How long we keep it</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Data type</th>
+            <th>Kept for</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Best scores</td>
+            <td>12 months after last activity, then automatically deleted</td>
+          </tr>
+          <tr>
+            <td>Mission attempt history</td>
+            <td>30 days after completion, then automatically deleted</td>
+          </tr>
+          <tr>
+            <td>Device cache (localStorage)</td>
+            <td>Until cleared by the parent, or after 30 days of no activity</td>
+          </tr>
+          <tr>
+            <td>Push notification token</td>
+            <td>90 days of inactivity, then automatically deleted</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>6. Who we share it with</h2>
+      <p>
+        <strong>We do not sell data. We do not share data with advertisers or marketers.</strong>
+      </p>
+      <p>Data is shared only with the service providers listed in Section 4, solely to operate the app:</p>
+      <ul>
+        <li>Supabase Inc. — database hosting</li>
+        <li>Render — backend server hosting</li>
+        <li>Google LLC / Firebase — optional push notifications only</li>
+      </ul>
+      <p>We do not share data with any other third parties.</p>
+
+      <h2>7. International data transfers</h2>
+      <p>
+        Our database and backend server are hosted in the United States (Oregon, us-west-2).
+        If you are in the EU, UK, or another jurisdiction outside the US, your child's data
+        is transferred to the US to operate the app.
+      </p>
+      <p>
+        We rely on Standard Contractual Clauses (SCCs) with Supabase Inc. as the legal
+        mechanism for these transfers, as required under GDPR Art. 46.
+      </p>
+
+      <h2>8. Your rights as a parent</h2>
+      <p>
+        You have the right to access, correct, and delete your child's data. The app's
+        Parent Controls panel lets you:
+      </p>
+      <ul>
+        <li><strong>View your child's data</strong> — download a copy of all saved scores and attempts.</li>
+        <li><strong>Delete one explorer</strong> — permanently remove one child's records without affecting others.</li>
+        <li><strong>Delete all records</strong> — permanently remove all saved data.</li>
+      </ul>
+      <p>
+        To exercise rights not covered by the in-app controls (such as a formal access request
+        or a complaint), contact us at:
+        <span class="privacy-placeholder">[contact email address]</span>
+      </p>
+      <p>
+        You may also file a complaint with your local data protection authority:
+      </p>
+      <ul>
+        <li>EU: Your national supervisory authority (see <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" target="_blank" rel="noopener noreferrer">edpb.europa.eu</a>)</li>
+        <li>UK: Information Commissioner's Office (<a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">ico.org.uk</a>)</li>
+        <li>US: Federal Trade Commission (<a href="https://ftc.gov/coppa" target="_blank" rel="noopener noreferrer">ftc.gov/coppa</a>)</li>
+      </ul>
+
+      <h2>9. Security</h2>
+      <ul>
+        <li>All data is encrypted in transit (HTTPS).</li>
+        <li>Data at rest is encrypted by Supabase.</li>
+        <li>The admin PIN is stored as a bcrypt hash — we cannot see it.</li>
+        <li>Sensitive admin actions are rate-limited.</li>
+        <li>Content Security Policy and frame-busting protections are in place.</li>
+      </ul>
+
+      <h2>10. Changes to this policy</h2>
+      <p>
+        We will update this page when the policy changes. The "Last updated" date at the top
+        of this page reflects the most recent revision.
+      </p>
+      <p>
+        <a href="./index.html" class="privacy-back-link">← Back to Captain Nova's Rocket Mission</a>
+      </p>
+    </main>
+  </body>
+</html>

@@ -460,7 +460,7 @@
     start: {
       briefingTitle: "Mission Briefing",
       nameLabel: "Explorer Name",
-      namePlaceholder: "Type your explorer name here",
+      namePlaceholder: "First name or nickname",
       emptyNameHint: "Mission Control needs your name before the countdown can begin.",
       readyNameHint: "Press Enter to start Mission 1: Verbal Challenge.",
       readyStoryOnlyNameHint: "Press Enter to begin Story Only mode.",
