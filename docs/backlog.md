@@ -9,9 +9,10 @@ This file tracks open work only. Completed items should stay here only if they s
 - The Sonar issue backlog is cleared on `master`.
 - GitHub Pages remains the frontend host for now, with a lightweight JS frame-busting fallback as defense in depth only.
 - Strict style CSP is live on `master` with `style-src 'self'`.
-- Local trusted coverage on `master` is above target. A fresh March 29, 2026 local rerun produced about `91.95%` overall lines / `77.31%` overall branches under `npm.cmd run test:coverage`, and `91.96%` overall lines / `77.32%` overall branches under `npm.cmd run coverage:report`.
+- Local trusted coverage on `master` is above target. After PR `#130`, a fresh March 29, 2026 local rerun produced about `92.05%` overall lines / `77.44%` overall branches under `npm.cmd run test:coverage`. The lightweight `coverage:report` summary still trails slightly (`91.96%` / `77.32%`) and its per-file summary can lag the raw Vitest table, so use the raw `test:coverage` output as the planning baseline when the two disagree.
 - SonarCloud's project dashboard may still show a lower overall number because it is a broader dashboard metric than the local runtime-focused planning summary.
 - Thin infra wrappers are intentionally low-priority by default: `express.d.ts` is a no-test file, `firebase.ts`, `supabase.ts`, and `logger.ts` remain accepted wrapper gaps unless behavior grows, and `server.ts` / `not-found.ts` only need direct tests if they pick up meaningful logic.
+- A March 29, 2026 live-browser pass on GitHub Pages exercised learner start, leaderboard lookup/reset-cancel entry, and Story Only entry without surfacing a clear blocker, so browser verification should now move behind the next narrow code or ops slice until another major UI change lands.
 
 Only keep completed work here when it still affects what happens next:
 
@@ -44,7 +45,7 @@ Use these docs as the durable sources of truth:
 ## Priority 3: Code Quality And Maintainability
 
 - [ ] Keep overall trusted coverage above `80%` and spend new test work on the highest-risk remaining behavior gaps rather than low-value padding.
-  Current local baseline on `master` is about `91.95%` overall line coverage and `77.31%` overall branch coverage as of March 29, 2026.
+  Current local baseline on `master` is about `92.05%` overall line coverage and `77.44%` overall branch coverage as of March 29, 2026.
 - [ ] Target the biggest remaining meaningful runtime gaps first. The latest local rerun points at `scoreboard.js` (`88.11%` lines / `72.28%` branches) and `app.js` (`89.08%` lines / `73.57%` branches`) as the main frontend runtime gaps; `gamification.js` is materially healthier at `93.58%` lines / `81.97%` branches.
 - [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
 - [ ] Use `cd backend && npm.cmd run coverage:report` after each coverage wave and include the changed file-level summary in the PR thread; when comparing two local runs, use `-- --baseline <lcov-path>`.
@@ -63,7 +64,7 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 ## Priority 5: Testing And Operations
 
 - [ ] Revisit `scoreboard.js` first and then any residual `app.js` timer/result-transition edges that still show up in the current local coverage report.
-- [ ] Add browser-level verification for desktop and mobile layout and interaction paths.
+- [ ] Repeat browser-level verification when a major UI flow changes, but treat it as maintenance now that the latest live pass did not surface a clear blocker.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
@@ -81,7 +82,8 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Operations follow-up** - add the smallest credible Render/monitoring improvement, starting with a scheduled production smoke workflow that reuses `npm.cmd run smoke:live` or the underlying script.
-2. **Browser verification** - run desktop/mobile checks for the main learner, scoreboard, and parent/privacy flows and record concrete findings only.
-3. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the current local coverage report as the planning baseline.
+1. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the latest raw `npm.cmd run test:coverage` output as the planning baseline when it disagrees with `coverage:report`.
+2. **Operations follow-up** - add the next smallest credible monitoring or Render improvement beyond the scheduled production smoke workflow.
+3. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
 4. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
+
