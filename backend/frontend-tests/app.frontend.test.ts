@@ -593,6 +593,21 @@ describe("app.js targeted coverage", () => {
       );
       expect(document.querySelector("#reviewList .review-card h4")?.textContent).toBe("Legendary Launch");
     });
+
+    it("ignores unrecognized story-only overlay dismissals", async () => {
+      const { gamificationController, overlayStateChange } = await startApp(attemptQuestion, { storyOnly: true });
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "other", sectionKey: "Verbal" },
+      });
+
+      expect(gamificationController.showMissionUpdate).not.toHaveBeenCalled();
+      expect(gamificationController.showMissionCompletion).not.toHaveBeenCalled();
+      expect(gamificationController.onTestCompleted).not.toHaveBeenCalled();
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
+      expect(document.getElementById("questionCounter")?.textContent).toBe("Mission 1 story route");
+    });
   });
 
   describe("renderOptions", () => {
@@ -857,6 +872,41 @@ describe("app.js targeted coverage", () => {
       expect(recordValidatedAnswer).not.toHaveBeenCalled();
       expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
       expect(document.getElementById("questionCounter")?.textContent).toBe("Mission 1 story route");
+    });
+
+    it("ignores standard overlay dismissals that are not section completions", async () => {
+      const { finalizeAttempt, overlayStateChange, recordValidatedAnswer } = await startApp();
+      recordValidatedAnswer.mockResolvedValue({
+        accepted: true,
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: false,
+        progress: {
+          answeredCount: 1,
+          correctCount: 0,
+          totalQuestions: 1,
+          percentage: 0,
+        },
+        record: null,
+      });
+
+      const buttons = Array.from(
+        document.querySelectorAll("#optionsList button"),
+      ) as HTMLButtonElement[];
+      buttons[attemptQuestion.answer].click();
+
+      const nextButton = document.getElementById("nextButton") as HTMLButtonElement;
+      nextButton.click();
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      overlayStateChange?.({
+        hasBlocking: false,
+        dismissedEvent: { variant: "intro", sectionKey: "Verbal" },
+      });
+
+      expect(finalizeAttempt).not.toHaveBeenCalled();
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(true);
     });
 
     it("suppresses the next-button advance briefly after a section overlay dismissal", async () => {
@@ -1562,6 +1612,23 @@ describe("app.js targeted coverage", () => {
       expect(resolveAnswerEvaluationIsCorrect({ isCorrect: false }, 2, 2)).toBe(false);
       expect(resolveAnswerEvaluationIsCorrect(null, 2, 2)).toBe(true);
       expect(resolveAnswerEvaluationIsCorrect(null, 1, 2)).toBe(false);
+    });
+
+    it("ignores answer sync requests for questions that are no longer active", async () => {
+      const { gamificationController } = await setupApp();
+      const syncAnswerEvaluation = window.eval("syncAnswerEvaluation") as (
+        questionIndex: number,
+        question: typeof attemptQuestion,
+        selectedAnswer: number,
+        result: Record<string, unknown> | null,
+      ) => void;
+
+      syncAnswerEvaluation(99, attemptQuestion, attemptQuestion.answer, {
+        correctAnswer: attemptQuestion.answer,
+        isCorrect: true,
+      });
+
+      expect(gamificationController.onAnswerEvaluated).not.toHaveBeenCalled();
     });
   });
 });
