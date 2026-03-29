@@ -159,6 +159,8 @@ A PR must not be approved, marked ready, or merged if it introduces new Sonar is
 - the issues are fixed in the same PR, or
 - the remaining issues are explicitly documented in `docs/backlog.md` in that same PR as intentional follow-up work.
 
+**Critical: a green SonarCloud CI check does not mean zero new issues.** The check passes when the quality gate threshold clears (0 hotspots, ≥80% coverage) — but new code issues can still exist. Always read the **SonarCloud bot's PR comment body** for the actual "N New issues" count. A non-zero count is a blocker regardless of the green checkmark. Never rely on the check alone.
+
 ---
 
 ## Local Development Workflow
