@@ -46,6 +46,8 @@ Use these docs as the durable sources of truth:
 
 ## Priority 4: Privacy And Parent Safety
 
+- Planning baseline captured in `doc/plans/priority-4-privacy-parent-safety-plan.md` (March 28, 2026).
+
 - [ ] Add a way to delete one child's record without clearing all saved records.
 - [ ] Clarify retention expectations for online score history, reset logs, and local fallback cache data.
 - [ ] Decide whether explorer names should stay plain-text or eventually move to a parent-managed profile model.
