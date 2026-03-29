@@ -46,7 +46,7 @@ Use these docs as the durable sources of truth:
 
 - [ ] Keep overall trusted coverage above `80%` and spend new test work on the highest-risk remaining behavior gaps rather than low-value padding.
   Current local baseline on `master` is about `92.05%` overall line coverage and `77.44%` overall branch coverage as of March 29, 2026.
-- [ ] Target the biggest remaining meaningful runtime gaps first. The latest local rerun points at `scoreboard.js` (`88.11%` lines / `72.28%` branches) and `app.js` (`89.08%` lines / `73.57%` branches`) as the main frontend runtime gaps; `gamification.js` is materially healthier at `93.58%` lines / `81.97%` branches.
+- [ ] Target the biggest remaining meaningful runtime gaps first. The latest raw local rerun points at `scoreboard.js` (`88.88%` lines / `73.03%` branches) and `app.js` (`89.08%` lines / `73.57%` branches) as the main frontend runtime gaps; `gamification.js` is materially healthier at `93.58%` lines / `81.97%` branches.
 - [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
 - [ ] Use `cd backend && npm.cmd run coverage:report` after each coverage wave and include the changed file-level summary in the PR thread; when comparing two local runs, use `-- --baseline <lcov-path>`.
 - [ ] Treat thin infra wrappers as low-value by default: accept `express.d.ts` as an intentional no-test file, keep `firebase.ts`, `supabase.ts`, and `logger.ts` as accepted wrapper gaps unless behavior grows, and only add direct tests for `server.ts` / `not-found.ts` if they pick up meaningful logic.
@@ -86,4 +86,3 @@ Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 2. **Operations follow-up** - add the next smallest credible monitoring or Render improvement beyond the scheduled production smoke workflow.
 3. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
 4. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
-
