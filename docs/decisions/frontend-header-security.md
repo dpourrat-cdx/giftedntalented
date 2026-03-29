@@ -35,5 +35,5 @@ If the frontend later moves to a header-capable host or gains a reverse proxy or
 
 ## Follow-Up
 
-- `doc/backlog.md` should point here for the header-security decision work.
-- `backend/README.md` and `doc/backend-api-spec.md` should stay aligned with this decision whenever hosting or fallback behavior changes.
+- `docs/backlog.md` should point here for the header-security decision work.
+- `backend/README.md` and `docs/backend-api-spec.md` should stay aligned with this decision whenever hosting or fallback behavior changes.

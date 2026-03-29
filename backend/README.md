@@ -20,7 +20,7 @@ Current hosting/security decision:
 - keep the frontend on GitHub Pages for now
 - accept the remaining response-header limits there until we move to a header-capable host or proxy
 - ship a lightweight browser-side frame-busting fallback as defense in depth only
-- use `doc/decisions/frontend-header-security.md` as the source of truth for that decision and its future follow-up
+- use `docs/decisions/frontend-header-security.md` as the source of truth for that decision and its future follow-up
 
 ## Stack
 
@@ -161,7 +161,7 @@ Main routes:
 
 For the live contract details, use:
 
-- `doc/backend-api-spec.md`
+- `docs/backend-api-spec.md`
 
 ## Attempt And Question Flow
 
@@ -231,6 +231,6 @@ After any backend release or Render deploy:
 
 ## Related Docs
 
-- `doc/backend-api-spec.md`
-- `doc/backlog.md`
-- `doc/decisions/frontend-header-security.md`
+- `docs/backend-api-spec.md`
+- `docs/backlog.md`
+- `docs/decisions/frontend-header-security.md`
