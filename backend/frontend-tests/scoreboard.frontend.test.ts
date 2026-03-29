@@ -220,6 +220,84 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.textContent).toBe("Remote lookup failed");
   });
 
+  it("resets to the awaiting-name state when refresh is called without a player name", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.setStatus("Explorer record saved on this device.", "success", true);
+
+    const result = await controller.refreshTopScoreForPlayer("   ");
+
+    expect(result).toBeNull();
+    expect(controller.activePlayerName).toBe("");
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+  it("ignores a stale remote lookup result after the active player changes", async () => {
+    await loadScoreboardScript();
+
+    let resolveLookup;
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockImplementation(
+        () => new Promise((resolve) => {
+          resolveLookup = resolve;
+        }),
+      ),
+    };
+
+    const pendingLookup = controller.refreshTopScoreForPlayer("Alex");
+    controller.setActivePlayerName("");
+    resolveLookup({
+      player_name: "Alex",
+      score: 9,
+      total_questions: 10,
+      percentage: 90,
+      elapsed_seconds: 61,
+    });
+
+    const result = await pendingLookup;
+
+    expect(result).toBeNull();
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+  it("ignores a stale remote lookup error after the active player changes", async () => {
+    await loadScoreboardScript();
+
+    let rejectLookup;
+    const controller = createController();
+    controller.service = {
+      fetchPlayerTopScore: vi.fn().mockImplementation(
+        () => new Promise((_, reject) => {
+          rejectLookup = reject;
+        }),
+      ),
+    };
+
+    const pendingLookup = controller.refreshTopScoreForPlayer("Alex");
+    controller.setActivePlayerName("");
+    rejectLookup(new Error("Remote lookup failed"));
+
+    const result = await pendingLookup;
+
+    expect(result).toBeNull();
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe("");
+  });
+
+
   it("records a validated answer after starting an attempt and updates the score from the response", async () => {
     await loadScoreboardScript();
 
@@ -362,6 +440,26 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.score.innerHTML).toContain("10/10");
     expect(controller.elements.score.innerHTML).toContain("100%");
   });
+
+  it("shows an attempt sync warning when attempt finalization fails", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      finalizeAttempt: vi.fn().mockRejectedValue(new TypeError("network")),
+    };
+    controller.activeAttemptId = "attempt-456";
+    controller.activeAttemptPlayerName = "Alex";
+
+    const result = await controller.finalizeAttempt({ elapsedSeconds: 90 });
+
+    expect(result).toBeNull();
+    expect(controller.elements.status.textContent).toBe(
+      "This mission can continue, but the shared explorer record could not update just now.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-info");
+  });
+
 
   it("does not open the reset dialog when confirmation is declined", async () => {
     await loadScoreboardScript();
@@ -763,6 +861,28 @@ describe("GiftedScoreboard", () => {
     expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
     expect(controller.elements.status.textContent).toBe("Wrong PIN");
     expect(controller.elements.status.className).toBe("top-score-status is-error");
+  });
+
+  it("falls back to the no-score state when renderTopScore cannot normalize a record", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.renderTopScore({ score: 7 }, "Alex");
+
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
+  });
+
+  it("falls back to the awaiting-name state when renderTopScore cannot normalize a record and no fallback name exists", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.renderTopScore({ score: 7 });
+
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
   });
 
   it("schedules a delayed lookup and cancels it when the player name is cleared", async () => {
