@@ -128,7 +128,11 @@ function isValidPlayerName(name) {
   if (/.+@.+\..+/.test(name)) {
     return "Use a first name or fun nickname — not an email address.";
   }
-  if (/^[+\d]?(\d[\s\-.()]?){7,14}\d$/.test(name.trim())) {
+  // Strip common phone-number formatting characters, then check for a
+  // 7-to-15 digit string (covers local, national, and international formats).
+  // Two-step approach avoids a quantified group with an optional inner element.
+  const digitsOnly = name.trim().replace(/[\s\-.()+ ]/g, "");
+  if (/^\d{7,15}$/.test(digitsOnly)) {
     return "Use a first name or fun nickname — not a phone number.";
   }
   return null;
