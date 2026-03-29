@@ -222,13 +222,21 @@ Add a "Delete one explorer" option in the parent controls area (near the existin
 
 | Data type | Purpose | Legal basis | Recommended retention | Deletion trigger | Owner |
 |---|---|---|---|---|---|
-| `test_scores` (best scores) | Display mission progress | Consent / legitimate interest | **12 months after last activity** for that player | Scheduled cleanup job, or parent request | Backend cleanup job |
+| `test_scores` (best scores) | Display mission progress | Consent / legitimate interest | **12 months after last activity** — see note below on activity signal | Scheduled cleanup job, or parent request | Backend cleanup job |
 | `score_attempts` (in-progress) | Anti-cheat, attempt integrity | Strictly necessary for service | **2 hours** (active, via `expires_at`); **30 days** (completed) | Scheduled cleanup job | Backend cleanup job |
 | `score_attempt_events` (audit) | Troubleshooting, security audit | Legitimate interest | **30 days** (cascade with attempt deletion) | Cascade delete | Backend cleanup job |
 | localStorage cache | Offline score display | Strictly necessary | **No automatic expiration** (device-local) | Parent clear, app reset, or browser clear. Disclose in privacy policy. | Frontend / user action |
 | FCM device tokens | Optional push notifications | Consent | **90 days of inactivity** | Scheduled cleanup job | Backend cleanup job |
 | Render access logs | Standard web server logging | Legitimate interest | **Per Render's retention policy** | Render-managed | Render (processor) |
 | Admin action audit logs | Security tracing for reset/delete | Legitimate interest | **90 days** | Scheduled cleanup job | Backend cleanup job |
+
+> **Activity signal design note:** The 12-month retention for `test_scores` relies on a "last activity" signal. Attempts are deleted after 30 days, so the attempt tables cannot be used as the activity signal once they age out. The correct design is to maintain a `last_active_at` timestamp directly on the `test_scores` row, updated every time a player *starts* a new attempt (not just when they beat their best score). The cleanup SQL must then use this column:
+>
+> ```sql
+> DELETE FROM test_scores WHERE last_active_at < NOW() - INTERVAL '12 months';
+> ```
+>
+> This requires a schema migration: add `last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` to `test_scores`, and update the attempt-start flow in `attempt.service.ts` to set `last_active_at = NOW()` for the matching player row whenever a new attempt is created. Until this migration lands, the cleanup job should fall back to `completed_at` as the activity signal and document the limitation.
 
 ### Implementation plan
 
@@ -452,7 +460,7 @@ Expanded:
 
 | Aspect | Detail |
 |---|---|
-| Auth | Admin PIN in `X-Admin-Pin` header (or query param for simplicity) |
+| Auth | Admin PIN in `X-Admin-Pin` **request header only** — never in the URL or query string. A PIN in the URL leaks into browser history, infrastructure access logs, CDN logs, and HTTP referrers. |
 | Rate limit | 5 per 15 minutes per IP |
 | Response | JSON with all data for that player: scores, attempts, events |
 | Format | Machine-readable (JSON) per GDPR Art. 20 (right to data portability) |
