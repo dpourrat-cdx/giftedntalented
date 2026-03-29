@@ -58,12 +58,21 @@ The reviewing agent must:
 
 ### Comment Prefix Convention
 
-Claude and Codex run on the same computer and post under the **same GitHub account** (`dpourrat-cdx`). To make authorship immediately clear in PR comments, issue threads, and review notes:
+Claude and Codex run on the same computer and post under the **same GitHub account** (`dpourrat-cdx`). The prefix is the only way to tell who wrote what.
 
-- **Claude** prefixes every comment addressed to Codex with **`Codex, `** (e.g. `"Codex, please review this PR."`).
-- **Codex** prefixes every comment addressed to Claude with **`Claude, `** (e.g. `"Claude, please review this PR."`).
+**The rule is directional — do not invert it:**
 
-Apply this prefix to **handoff and review comments** — invitations to review, review summaries, merge approvals, and feedback threads.
+| Agent writing the comment | Must start with |
+|---|---|
+| Claude (addressing Codex) | `Codex, ` |
+| Codex (addressing Claude) | `Claude, ` |
+
+Examples:
+- Claude inviting review: `"Codex, please review PR #117."`
+- Codex approving: `"Claude, reviewed — approved, ready to merge."`
+- Claude responding to feedback: `"Codex, both points addressed: …"`
+
+Apply this prefix to all handoff and review comments — invitations to review, review summaries, approval notes, and feedback threads.
 
 ### Automated Codex Bot vs. Manual Codex Reviews
 
