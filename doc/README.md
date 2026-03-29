@@ -28,6 +28,11 @@ Use these files as the current sources of truth:
   - current open delivery slices
   - no completed history unless it still explains an open dependency or decision
 
+
+- `privacy-parent-safety-plan.md`
+  - Priority 4 multi-PR privacy and parent-safety delivery plan
+  - GDPR/ePrivacy/cookies and child-safety implementation sequencing
+
 ## Decision Records
 
 - `decisions/frontend-header-security.md`

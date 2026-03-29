@@ -50,6 +50,7 @@ Use these docs as the durable sources of truth:
 - [ ] Clarify retention expectations for online score history, reset logs, and local fallback cache data.
 - [ ] Decide whether explorer names should stay plain-text or eventually move to a parent-managed profile model.
 - [ ] Decide whether the parent reset flow should move from a browser prompt to a dedicated form with clearer confirmation and error handling.
+- [ ] Execute the detailed multi-PR rollout plan in `doc/privacy-parent-safety-plan.md`, including GDPR/ePrivacy cookie-consent and child-safety controls.
 
 ## Priority 5: Testing And Operations
 
