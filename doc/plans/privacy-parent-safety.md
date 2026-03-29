@@ -1,0 +1,656 @@
+# Privacy & Parent Safety — Implementation Plan
+
+**Status:** Planning (not yet started)
+**Created:** March 28, 2026
+**Covers:** Backlog Priority 4 — all four tickets
+
+This plan accounts for GDPR (EU), UK Age Appropriate Design Code, COPPA (US), LGPD (Brazil), and general international best practices for a children's educational web app used by ages 5–12.
+
+---
+
+## Table of Contents
+
+1. [Current State Assessment](#1-current-state-assessment)
+2. [Legal Landscape Summary](#2-legal-landscape-summary)
+3. [Ticket 1: Per-Child Record Deletion](#3-ticket-1-per-child-record-deletion)
+4. [Ticket 2: Data Retention Policy](#4-ticket-2-data-retention-policy)
+5. [Ticket 3: Explorer Name Model Decision](#5-ticket-3-explorer-name-model-decision)
+6. [Ticket 4: Parent Reset UX Redesign](#6-ticket-4-parent-reset-ux-redesign)
+7. [Cross-Cutting: Privacy Policy](#7-cross-cutting-privacy-policy)
+8. [Cross-Cutting: Parental Consent Flow](#8-cross-cutting-parental-consent-flow)
+9. [Cross-Cutting: Data Processing Agreements](#9-cross-cutting-data-processing-agreements)
+10. [Implementation Phases](#10-implementation-phases)
+11. [Open Questions for the Owner](#11-open-questions-for-the-owner)
+
+---
+
+## 1. Current State Assessment
+
+### What data is collected
+
+| Data element | Storage location | Personal data? | Notes |
+|---|---|---|---|
+| Explorer name (first name / nickname) | Supabase `test_scores.player_name`, `score_attempts.player_name`, `score_attempt_events.player_name`, localStorage | **Yes** | Plain text, case-insensitive, 1–40 chars. Combined with scores and device-local storage, this identifies an individual child. |
+| Scores & percentages | Supabase `test_scores`, localStorage (`gifted-scoreboard-player-best-scores-v2`) | **Yes** | Linked to the explorer name profile |
+| Attempt history | Supabase `score_attempts`, `score_attempt_events` | **Yes** | Question selections, answers, timing data — linked to explorer name |
+| Admin PIN hash | Supabase `app_admin_settings` | **Yes** | bcrypt-hashed authentication credential |
+| FCM device token | Supabase `notification_devices` (optional) | **Yes** | Persistent device identifier; currently optional, backend-only |
+
+### What data is NOT collected
+
+- No cookies
+- No IP address logging (beyond standard web server access logs on Render)
+- No third-party analytics (no Google Analytics, no Segment, no tracking pixels)
+- No geolocation
+- No email addresses
+- No full names, addresses, or contact information
+- No cross-site tracking identifiers
+
+### Current privacy controls
+
+- **Bulk reset** via admin PIN (`POST /api/v1/admin/scores/reset`) — deletes ALL scores and attempts for ALL players. No per-child option.
+- **Rate limiting** on reset endpoint (5 attempts per 15 minutes).
+- **CSP** via HTML meta tag (GitHub Pages cannot send response headers).
+- **Frame-busting** script to prevent iframe embedding.
+- **Helmet** middleware on backend (X-Content-Type-Options, X-Frame-Options, etc.).
+- **CORS** whitelist on backend.
+- **No privacy policy** exists today.
+- **No parental consent flow** exists today.
+- **No data retention policy** is defined.
+
+---
+
+## 2. Legal Landscape Summary
+
+### Jurisdictions and why they apply
+
+This app is publicly accessible on GitHub Pages. Any child worldwide can use it. The following regulations apply because the app is **directed at children under 13** and processes their personal data:
+
+| Regulation | Jurisdiction | Key age threshold | Parental consent required? |
+|---|---|---|---|
+| **GDPR** Art. 8 | EU/EEA | 13–16 (varies by country) | Yes — for all target users (ages 5–12) |
+| **UK Children's Code** | United Kingdom | Under 18 (graduated) | Yes — high-privacy defaults mandatory |
+| **COPPA** 16 CFR 312 | United States | Under 13 | Yes — "verifiable parental consent" |
+| **LGPD** Art. 14 | Brazil | Under 12 | Yes — "specific and prominent" consent |
+| **APPI** | Japan | No fixed age (capacity-based) | Yes — for ages 5–12 |
+| **Privacy Act** | Australia | No fixed age (capacity-based) | Expected for under-13s |
+
+### Key legal requirements for this app
+
+1. **Parental consent before data collection** — required in every jurisdiction. Cannot rely on the child's own consent for ages 5–12.
+2. **Per-child right to erasure** — GDPR Art. 17, COPPA 16 CFR 312.10. Bulk-only deletion is insufficient.
+3. **Privacy policy** — required everywhere, must be written in child-friendly language (layered: simple for kids, detailed for parents).
+4. **Data minimisation** — collect only what is necessary. Current approach (nickname + scores) is good.
+5. **Defined retention period** — must be disclosed and enforced.
+6. **Push notifications off by default** — UK Children's Code Standard 7, GDPR, COPPA.
+7. **Data breach notification** — 72 hours (GDPR/UK), "promptly" (others).
+8. **International data transfers** — Supabase, Render, and Firebase may store data outside the EU/UK. Must ensure adequate safeguards (Standard Contractual Clauses or equivalent).
+
+### What the app already gets right
+
+- **No cookies** — no cookie banner needed.
+- **localStorage for core functionality only** — qualifies for the ePrivacy "strictly necessary" exemption, no consent banner needed for localStorage itself.
+- **Minimal data collection** — only nickname + scores, no email/address/full name.
+- **No third-party tracking or analytics** — excellent for data minimisation.
+- **No profiling** — scores are not used to adapt difficulty or target content.
+- **Frame-busting** — protects against clickjacking.
+- **FCM is optional and off by default** — aligns with "high privacy by default."
+
+---
+
+## 3. Ticket 1: Per-Child Record Deletion
+
+> Backlog: "Add a way to delete one child's record without clearing all saved records."
+
+### Why this is legally required
+
+- **GDPR Art. 17(1)(f):** A parent has the right to request erasure of their specific child's data. Offering only bulk deletion does not satisfy this.
+- **COPPA 16 CFR 312.6(a)(2):** A parent must be able to "request deletion of the child's personal information."
+- **LGPD Art. 14 + Art. 18(VI):** Right to erasure of the specific child's data.
+
+### Implementation plan
+
+#### 3.1 Backend: New API endpoint
+
+**`DELETE /api/v1/admin/players/:playerName/records`**
+
+| Aspect | Detail |
+|---|---|
+| Auth | Admin PIN in request body (same mechanism as bulk reset) |
+| Rate limit | Same as reset: 5 attempts per 15 minutes per IP |
+| Behaviour | Delete all `test_scores` rows for the given `player_name` (case-insensitive). Delete all `score_attempts` and cascading `score_attempt_events` for that player. Return `{ deletedScoreCount, deletedAttemptCount, playerName, deletedAt }`. |
+| Validation | `playerName` path param: 1–40 chars, trimmed. `resetPin` body param: non-empty string. |
+| Error cases | 401 `INVALID_RESET_PIN` if PIN doesn't match. 404 `PLAYER_NOT_FOUND` if no records exist for that name. |
+| Idempotency | If called twice for the same player after deletion, return 404. |
+
+#### 3.2 Backend: Service layer
+
+Add to `score.service.ts`:
+
+```
+deletePlayerRecords(playerName: string, resetPin: string): Promise<{
+  deletedScoreCount: number;
+  deletedAttemptCount: number;
+  playerName: string;
+  deletedAt: string;
+}>
+```
+
+Steps:
+1. Verify admin PIN (reuse existing `verifyResetPin()` logic).
+2. Count existing records for the player (for the response).
+3. Delete from `score_attempts` WHERE `lower(btrim(player_name)) = lower(btrim($1))` — cascade deletes events.
+4. Delete from `test_scores` WHERE `lower(btrim(player_name)) = lower(btrim($1))`.
+5. Return counts and timestamp.
+
+#### 3.3 Backend: Route and validation
+
+Add route in the admin router:
+- `DELETE /api/v1/admin/players/:playerName/records`
+- Reuse `resetLimiter` middleware.
+- Zod schema for body: `{ resetPin: z.string().min(1) }`.
+- Zod/validation for `playerName` param: string, 1–40 chars after trim.
+
+#### 3.4 Frontend: UI for per-child deletion
+
+Add a "Delete one explorer" option in the parent controls area (near the existing "Reset Saved Scores" button):
+
+1. Parent clicks "Delete one explorer's records."
+2. `window.prompt("Enter the explorer name to delete:")` — collects the name.
+3. `window.prompt("Enter the admin PIN to confirm deletion:")` — collects the PIN.
+4. Frontend calls `DELETE /api/v1/admin/players/{name}/records` with `{ resetPin }`.
+5. On success: remove the player from localStorage cache, show confirmation message.
+6. On 401: show "Invalid admin PIN" error.
+7. On 404: show "No records found for that explorer."
+8. On network failure: show "Could not reach the server. Local records for this explorer have been cleared." and remove from localStorage only.
+
+**Note:** This `window.prompt` flow will be replaced with a proper form UI in Ticket 4, but this gets the backend functionality in place first.
+
+#### 3.5 Tests
+
+- `score.service.test.ts`: Test `deletePlayerRecords` — happy path, wrong PIN, player not found, database errors.
+- New route test or integration test for the `DELETE` endpoint.
+- `scoreboard.frontend.test.ts`: Test the per-child deletion UI flow (prompt, API call, localStorage cleanup, error states).
+
+#### 3.6 Documentation
+
+- Update `doc/backend-api-spec.md` with the new endpoint.
+- Update `doc/decisions/reset-route.md` to explain the per-child deletion addition and why it uses the same PIN mechanism.
+
+---
+
+## 4. Ticket 2: Data Retention Policy
+
+> Backlog: "Clarify retention expectations for online score history, reset logs, and local fallback cache data."
+
+### Why this is legally required
+
+- **GDPR Art. 5(1)(e):** Data must be kept "for no longer than is necessary."
+- **COPPA 16 CFR 312.10:** Must retain personal information "only as long as reasonably necessary."
+- **LGPD Art. 16:** Data must be deleted after the processing purpose ends.
+- All frameworks require the retention period to be **disclosed in the privacy policy**.
+
+### Recommended retention policy
+
+| Data type | Recommended retention | Justification |
+|---|---|---|
+| `test_scores` (best scores) | **12 months after last activity** for that player, or until parent requests deletion | Allows returning players to see their records across a school year |
+| `score_attempts` (in-progress) | **2 hours** (already enforced via `expires_at`) for active attempts; **30 days** for completed attempts | Active attempts already expire. Completed attempts are audit records — 30 days is sufficient for troubleshooting |
+| `score_attempt_events` (audit log) | **30 days** (cascade with attempt deletion) | Same as completed attempts — tied 1:1 |
+| localStorage cache | **No automatic expiration** (device-local, user controls) | Cleared on reset, on per-child delete, or by the user clearing browser data. Disclose in privacy policy. |
+| FCM device tokens | **90 days of inactivity** | Google's own recommendation; token may become stale after this period |
+| Render access logs | **Per Render's retention policy** (disclose, do not control) | Standard web server logs; disclose in privacy policy that Render is the hosting provider |
+
+### Implementation plan
+
+#### 4.1 Automated cleanup job
+
+Create a scheduled Supabase function (or a backend cron endpoint) that runs daily:
+
+1. **Delete stale scores:** `DELETE FROM test_scores WHERE completed_at < NOW() - INTERVAL '12 months'` — but only if the player has had no activity (no attempts started) in the last 12 months. Use a subquery:
+   ```sql
+   DELETE FROM test_scores ts
+   WHERE ts.completed_at < NOW() - INTERVAL '12 months'
+   AND NOT EXISTS (
+     SELECT 1 FROM score_attempts sa
+     WHERE lower(btrim(sa.player_name)) = lower(btrim(ts.player_name))
+     AND sa.started_at > NOW() - INTERVAL '12 months'
+   );
+   ```
+
+2. **Delete old completed attempts:** `DELETE FROM score_attempts WHERE completed_at IS NOT NULL AND completed_at < NOW() - INTERVAL '30 days'` — cascade deletes events.
+
+3. **Delete expired incomplete attempts:** `DELETE FROM score_attempts WHERE expires_at < NOW() AND completed_at IS NULL` — cleanup abandoned attempts beyond the 2-hour TTL.
+
+4. **Delete stale FCM tokens:** `DELETE FROM notification_devices WHERE updated_at < NOW() - INTERVAL '90 days'` (if FCM is in use).
+
+#### 4.2 Backend implementation options
+
+**Option A — Supabase pg_cron extension:**
+- Enable `pg_cron` in Supabase.
+- Schedule a PL/pgSQL function to run daily at 03:00 UTC.
+- Pro: No backend involvement, runs even if the Express server is down.
+- Con: Requires Supabase plan that supports `pg_cron` (check availability).
+
+**Option B — Backend scheduled endpoint:**
+- Add `POST /api/v1/admin/maintenance/cleanup` (admin-key protected).
+- Call it via an external cron service (Render cron job, or a GitHub Actions scheduled workflow).
+- Pro: Easy to implement, test, and log.
+- Con: Requires the backend to be running.
+
+**Option C — On-demand cleanup in existing flows:**
+- Run cleanup queries opportunistically (e.g., during the nightly inactive period or when a reset is triggered).
+- Pro: Simplest, no cron needed.
+- Con: Cleanup only happens when someone uses the app.
+
+**Recommendation:** Start with Option B (backend endpoint + Render cron job) for testability, then consider migrating to Option A if pg_cron is available.
+
+#### 4.3 Documentation
+
+- Create `doc/decisions/data-retention.md` documenting the policy, the retention periods, and the justification.
+- Reference this policy in the privacy policy (Ticket 7).
+- Update `doc/backend-api-spec.md` if a cleanup endpoint is added.
+
+#### 4.4 Tests
+
+- Test the cleanup queries in isolation (mock Supabase, verify correct WHERE clauses).
+- Test edge cases: player with a recent attempt should NOT have scores deleted even if the score's `completed_at` is old.
+
+---
+
+## 5. Ticket 3: Explorer Name Model Decision
+
+> Backlog: "Decide whether explorer names should stay plain-text or eventually move to a parent-managed profile model."
+
+### Analysis
+
+#### Option A — Keep plain-text nicknames (recommended for now)
+
+**Pros:**
+- Already implemented and working.
+- Minimal data — a nickname like "Alex" or "RocketGirl" is the least invasive identifier possible.
+- No email collection, no account creation — avoids significant COPPA/GDPR consent complexity.
+- Data minimisation: collecting less data is always better from a privacy standpoint.
+
+**Cons:**
+- No access control: anyone who knows or guesses a name can view that player's score.
+- No authentication: a child can type any name and see/overwrite records.
+- No way to associate a parent with a specific child for consent/deletion requests (must use admin PIN for all actions).
+
+**Mitigations:**
+- Scores are not sensitive data (mission scores for educational games).
+- The admin PIN protects destructive operations (reset, delete).
+- The app does not expose a player list — you must know the exact name to look up a score.
+
+#### Option B — Parent-managed profiles
+
+**Pros:**
+- Parent creates child profiles after consent, giving explicit control.
+- Each profile could have its own access token for per-child auth.
+- Natural fit for per-child deletion, consent tracking, and data export.
+
+**Cons:**
+- Requires collecting **parent email** (or another contact method) — significantly increases COPPA/GDPR compliance burden.
+- Requires a full authentication system (signup, login, password reset, email verification).
+- Requires verifiable parental consent (COPPA "Email Plus" at minimum).
+- Much more engineering work and ongoing maintenance.
+- More personal data = more risk = more obligations.
+
+**When to reconsider:** If the app grows to need features like multi-device sync, parent dashboards, or class/school management, profiles become worth the complexity. For a single-device or family-device usage pattern, plain-text nicknames are sufficient and more privacy-respecting.
+
+### Decision recommendation
+
+**Keep plain-text nicknames** for the current scope. The app's minimal data collection is a privacy advantage, not a gap. Document this decision and revisit if usage patterns change.
+
+**Action items:**
+1. Create `doc/decisions/explorer-name-model.md` documenting the decision, the alternatives considered, and the trigger conditions for revisiting.
+2. Add a short note in the privacy policy: "We collect only a first name or nickname chosen by the child. We do not collect email addresses, full names, home addresses, or other contact information."
+
+---
+
+## 6. Ticket 4: Parent Reset UX Redesign
+
+> Backlog: "Decide whether the parent reset flow should move from a browser prompt to a dedicated form with clearer confirmation and error handling."
+
+### Why the current `window.prompt` approach is insufficient
+
+1. **Accessibility:** `window.prompt()` and `window.confirm()` produce browser-native dialogs that cannot be styled, are not screen-reader-friendly on all platforms, and do not support password masking for the PIN.
+2. **Error handling:** Native dialogs cannot show inline error messages (wrong PIN, network failure). The current flow shows status messages in a separate area after the dialog closes.
+3. **UK Children's Code Standard 15:** Must provide "prominent, accessible tools" for exercising data rights. A `window.prompt` is not prominent or accessible.
+4. **Combined flow needed:** Per-child deletion (Ticket 1) and bulk reset should be in a unified parent controls area, not scattered across separate prompts.
+
+### Proposed design: Parent Controls Panel
+
+#### 6.1 UI structure
+
+Add a collapsible "Parent Controls" section at the bottom of the app (below the scoreboard area):
+
+```
+┌─────────────────────────────────────────┐
+│  [🔒 Parent Controls]     [▼ Expand]    │
+└─────────────────────────────────────────┘
+
+Expanded:
+┌─────────────────────────────────────────┐
+│  🔒 Parent Controls                     │
+│                                         │
+│  Admin PIN: [________] [Show/Hide]      │
+│                                         │
+│  ┌─ Delete One Explorer ──────────────┐ │
+│  │ Explorer name: [________________]  │ │
+│  │ [Delete this explorer's records]   │ │
+│  └────────────────────────────────────┘ │
+│                                         │
+│  ┌─ Reset All Records ───────────────┐ │
+│  │ This will permanently delete      │ │
+│  │ every explorer's saved records    │ │
+│  │ on this device and online.        │ │
+│  │                                   │ │
+│  │ [Reset all explorer records]      │ │
+│  └────────────────────────────────────┘ │
+│                                         │
+│  Status: [___________________________]  │
+│                                         │
+│  ── Privacy ──                          │
+│  [View Privacy Policy]                  │
+│  [Download my child's data]             │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 6.2 Behaviour
+
+1. **Panel toggle:** Collapsed by default. Clicking "Parent Controls" expands it. No authentication to expand (the PIN is entered inside).
+2. **Admin PIN field:** `<input type="password">` with a show/hide toggle. Entered once, used for all actions in the session. Not stored in localStorage (cleared on page refresh).
+3. **Delete one explorer:** Text input for the name + confirmation button. On click:
+   - Inline confirmation: "Are you sure you want to delete all records for [name]? This cannot be undone." with [Cancel] and [Confirm Delete] buttons.
+   - On success: inline success message + clear the name field.
+   - On error: inline error message (wrong PIN, not found, network failure).
+4. **Reset all records:** Confirmation button with inline "Are you sure?" step (same pattern).
+5. **Status area:** Shows success/error messages inline, styled with the existing `is-success`, `is-error`, `is-info` CSS classes.
+6. **Privacy Policy link:** Links to the privacy policy page (see Ticket 7).
+7. **Data export:** "Download my child's data" button — calls a new endpoint to export the child's data as JSON. See section 6.3.
+
+#### 6.3 Data export endpoint (supports GDPR Art. 15 right of access)
+
+**`GET /api/v1/admin/players/:playerName/export`**
+
+| Aspect | Detail |
+|---|---|
+| Auth | Admin PIN in `X-Admin-Pin` header (or query param for simplicity) |
+| Rate limit | 5 per 15 minutes per IP |
+| Response | JSON with all data for that player: scores, attempts, events |
+| Format | Machine-readable (JSON) per GDPR Art. 20 (right to data portability) |
+
+Response shape:
+```json
+{
+  "playerName": "Alex",
+  "exportedAt": "2026-03-28T12:00:00Z",
+  "scores": [ { "score": 8, "totalQuestions": 10, ... } ],
+  "attempts": [ { "attemptId": "...", "answers": [...], ... } ],
+  "events": [ { "eventType": "answer_accepted", ... } ]
+}
+```
+
+#### 6.4 Implementation steps
+
+1. **HTML:** Add a `<section id="parentControls">` to `index.html` (collapsed by default).
+2. **CSS:** Style the panel with existing design tokens. Use `is-hidden` for collapse state.
+3. **JS:** New `parent-controls.js` script (or extend `scoreboard.js`):
+   - Toggle expand/collapse.
+   - PIN field handling (show/hide, validation).
+   - Delete-one flow (prompt → confirm → API call → status).
+   - Reset-all flow (confirm → API call → status).
+   - Data export flow (name input → API call → trigger download).
+4. **Backend:** Add the export endpoint (see 6.3).
+5. **Tests:** Frontend tests for the panel behaviour, backend tests for the export endpoint.
+
+#### 6.5 Accessibility requirements
+
+- All form inputs have `<label>` elements.
+- PIN input has `type="password"` and `autocomplete="off"`.
+- Buttons have clear, descriptive text (not just icons).
+- Status messages use `role="status"` or `role="alert"` for screen readers.
+- Panel can be navigated with keyboard (Tab, Enter, Escape).
+- Colour is not the only indicator of success/error (text messages accompany colour changes).
+
+---
+
+## 7. Cross-Cutting: Privacy Policy
+
+### Why this is required
+
+Every jurisdiction requires a privacy policy when personal data is collected from children. COPPA specifically requires it to be linked from every page where data is collected and from the homepage.
+
+### Content requirements
+
+The privacy policy must cover (synthesised from GDPR Art. 13, COPPA 16 CFR 312.4, UK Children's Code Standard 4, LGPD Art. 14):
+
+#### Section 1 — Who we are
+- App name: Captain Nova's Rocket Mission
+- Operator: [owner name and contact info — must be a real person or entity]
+- Contact email for privacy requests
+
+#### Section 2 — What data we collect
+- Explorer name (first name or nickname chosen by the child)
+- Mission scores and percentages
+- Mission attempt history (questions, answers, timing)
+- Device-local cache (localStorage — scores cached on this device)
+- Optional: push notification token (if FCM is enabled)
+- What we do NOT collect: email, full name, address, cookies, location, browsing history
+
+#### Section 3 — Why we collect it
+- To save and display mission scores
+- To enable the parent reset and per-explorer deletion features
+- To provide the educational gameplay experience
+
+#### Section 4 — How we store it
+- Online: Supabase (PostgreSQL database), hosted by Supabase Inc.
+- Backend server: Render (render.com)
+- Optional push notifications: Firebase Cloud Messaging (Google)
+- Device-local: browser localStorage (stays on the device)
+- Hosting regions: [disclose specific regions — check Supabase/Render/Firebase project settings]
+
+#### Section 5 — How long we keep it
+- Best scores: 12 months after last activity, then automatically deleted
+- Mission attempts: 30 days after completion, then automatically deleted
+- localStorage: until cleared by the parent or browser
+- Push notification tokens: 90 days of inactivity
+
+#### Section 6 — Who we share it with
+- **We do not sell data.** We do not share data with advertisers or marketers.
+- Data processors: Supabase Inc. (database), Render (backend hosting), Google/Firebase (optional push notifications only)
+- We do not share data with any other third parties
+
+#### Section 7 — International data transfers
+- Data may be stored in [US/EU — check provider regions]
+- Safeguards: Standard Contractual Clauses with Supabase and Render; Google's Data Processing Terms for Firebase
+- [Disclose specific transfer mechanisms used]
+
+#### Section 8 — Parent rights
+- **Access:** Request a copy of your child's data (export feature)
+- **Deletion:** Delete one child's records or all records (parent controls)
+- **Withdraw consent:** Stop using the app and request deletion
+- **Complaint:** File a complaint with your local data protection authority (link to EU DPA list, ICO, FTC)
+
+#### Section 9 — Security
+- Data is encrypted in transit (HTTPS) and at rest (Supabase encryption)
+- Admin PIN is hashed with bcrypt
+- Rate limiting on sensitive endpoints
+- Content Security Policy and frame-busting protections
+
+#### Section 10 — Changes to this policy
+- We will update this page when the policy changes
+- Last updated: [date]
+
+### Implementation
+
+1. Create `privacy.html` at the repo root (served by GitHub Pages alongside `index.html`).
+2. Write the policy in simple, clear language. Use short sentences. Avoid legal jargon.
+3. Consider a "kid-friendly summary" box at the top: "We only save your explorer name and mission scores. Your parent can delete them anytime. We don't track you or sell your information."
+4. Add a link to `privacy.html` in `index.html` (footer area and in the Parent Controls panel).
+5. Add a link in the backend's `/` health endpoint response (optional).
+
+---
+
+## 8. Cross-Cutting: Parental Consent Flow
+
+### The challenge
+
+GDPR and COPPA require **parental consent before collecting personal data** from children under their respective age thresholds. Since all target users (ages 5–12) are below every threshold, consent is always required.
+
+However, the app currently collects data (explorer name + scores) as soon as a child types a name and starts a mission. There is no consent gate.
+
+### Options
+
+#### Option A — Minimal consent notice (recommended for current scope)
+
+Display a clear notice **before the child enters their name** explaining:
+- What data will be saved (name and scores)
+- That a parent should be present or have agreed
+- Link to the privacy policy
+
+This is NOT full verifiable parental consent (VPC), but it is a reasonable first step for a small, free, non-commercial educational app. The FTC has historically focused enforcement on commercial operators with significant user bases.
+
+**Implementation:**
+1. Before the name input becomes active, show a notice panel:
+   ```
+   "Before starting, a parent or guardian should know that we save your
+   explorer name and mission scores. Read our Privacy Policy for details.
+   By entering a name and starting the mission, a parent or guardian agrees
+   to our Privacy Policy."
+   ```
+2. Add a "I'm a parent — I understand" checkbox or button that enables the name input.
+3. Store the consent acknowledgment in localStorage so it's not shown every session.
+
+#### Option B — Email-based verifiable parental consent (COPPA "Email Plus")
+
+Full COPPA compliance for US users:
+1. Before the child can play, parent provides their email.
+2. Backend sends a consent notification email with a confirmation link or PIN.
+3. Parent clicks the link or enters the PIN on the app.
+4. Only after confirmation can the child enter a name and play.
+
+**This requires:**
+- Collecting parent email (more personal data — increases compliance burden).
+- Email sending infrastructure (SendGrid, Postmark, etc.).
+- Consent record storage (which parent consented, when, for which child).
+- An unsubscribe/revoke flow.
+
+**Recommendation:** Defer Option B until the app has a larger user base or faces specific regulatory pressure. Option A provides a reasonable, good-faith consent mechanism for a small educational app while avoiding the significant engineering and operational burden of email-based VPC.
+
+### Decision needed from owner
+
+Choose between Option A (consent notice, simpler) and Option B (email VPC, legally stronger). See [Open Questions](#11-open-questions-for-the-owner).
+
+---
+
+## 9. Cross-Cutting: Data Processing Agreements
+
+### What is required
+
+Under GDPR Art. 28, when personal data is processed by a third party on behalf of the controller, a Data Processing Agreement (DPA) must be in place. The same concept exists under COPPA, LGPD, and the UK GDPR.
+
+### Third-party processors
+
+| Processor | Service | DPA available? | Action needed |
+|---|---|---|---|
+| **Supabase Inc.** | PostgreSQL database | Yes — Supabase DPA available at supabase.com/legal | Review and sign/accept the DPA. Verify it includes Standard Contractual Clauses for EU transfers. |
+| **Render** | Backend hosting | Yes — Render DPA available at render.com/legal | Review and sign/accept the DPA. |
+| **Google (Firebase)** | Optional push notifications | Yes — Google Cloud Data Processing Terms | Review and accept if FCM is in use. |
+| **GitHub (Pages)** | Frontend hosting | GitHub's Terms of Service apply | GitHub does not process personal data on behalf of the app — it serves static files. No DPA needed. |
+
+### Action items
+
+1. Review each processor's DPA for adequacy (especially international transfer mechanisms).
+2. Accept/sign each DPA through the respective platform's settings.
+3. Keep a record of accepted DPAs (date, version) in `doc/decisions/data-processing-agreements.md`.
+4. Disclose processors in the privacy policy.
+
+---
+
+## 10. Implementation Phases
+
+### Phase 1 — Foundation (privacy policy + retention decision)
+
+**Tickets:** Privacy policy, data retention policy document, explorer name model decision document.
+
+**Deliverables:**
+- [ ] `privacy.html` — privacy policy page
+- [ ] `doc/decisions/data-retention.md` — retention policy decision
+- [ ] `doc/decisions/explorer-name-model.md` — name model decision
+- [ ] Link to privacy policy in `index.html` footer
+- [ ] Review and accept DPAs with Supabase, Render, Firebase
+
+**Estimated scope:** 1–2 PRs, documentation-heavy, no backend changes.
+
+### Phase 2 — Per-child deletion (backend + minimal frontend)
+
+**Tickets:** Ticket 1 (per-child deletion).
+
+**Deliverables:**
+- [ ] `DELETE /api/v1/admin/players/:playerName/records` endpoint
+- [ ] `deletePlayerRecords()` in `score.service.ts`
+- [ ] Route, validation, rate limiting
+- [ ] Temporary `window.prompt` UI for per-child deletion (will be replaced in Phase 4)
+- [ ] Tests for all of the above
+- [ ] Update `doc/backend-api-spec.md`
+
+**Estimated scope:** 1 PR, moderate backend work + tests.
+
+### Phase 3 — Automated data cleanup
+
+**Tickets:** Ticket 2 (retention enforcement).
+
+**Deliverables:**
+- [ ] Cleanup endpoint or Supabase function
+- [ ] Scheduled execution (Render cron or pg_cron)
+- [ ] Tests for cleanup queries
+- [ ] Update `doc/backend-api-spec.md` if endpoint-based
+
+**Estimated scope:** 1 PR, moderate backend work.
+
+### Phase 4 — Parent Controls panel redesign
+
+**Tickets:** Ticket 4 (parent reset UX) — incorporates Ticket 1's frontend into the new panel.
+
+**Deliverables:**
+- [ ] `<section id="parentControls">` in `index.html`
+- [ ] CSS for the panel
+- [ ] `parent-controls.js` (or extension of `scoreboard.js`)
+- [ ] Data export endpoint (`GET /api/v1/admin/players/:playerName/export`)
+- [ ] Consent notice (Option A or Option B, per owner decision)
+- [ ] Remove old `window.prompt`/`window.confirm` reset flow
+- [ ] Accessibility audit of the panel
+- [ ] Tests for all frontend and backend changes
+
+**Estimated scope:** 2–3 PRs (backend endpoint, frontend panel, consent notice).
+
+### Phase 5 — Compliance hardening (as needed)
+
+**Deliverables (only if usage grows or regulatory pressure requires it):**
+- [ ] Email-based verifiable parental consent (Option B)
+- [ ] DPIA (Data Protection Impact Assessment) document
+- [ ] Data breach response plan document
+- [ ] kidSAFE or ESRB Safe Harbor certification
+
+---
+
+## 11. Open Questions for the Owner
+
+These decisions require human input and cannot be made by the agents alone:
+
+1. **Operator identity for the privacy policy:** GDPR and COPPA require disclosing the name, address, email, and (for COPPA) phone number of the data controller/operator. Who should be listed? An individual name, a business entity, or another arrangement?
+
+2. **Parental consent level:** Option A (consent notice — simpler, good-faith, sufficient for a small free app) or Option B (email-based verifiable parental consent — legally stronger, significantly more engineering)? See [Section 8](#8-cross-cutting-parental-consent-flow).
+
+3. **Supabase hosting region:** Where is the Supabase project hosted? If in the US, EU users' data crosses borders — the privacy policy must disclose this and the DPA must include Standard Contractual Clauses. Consider whether migrating to an EU-region Supabase instance is worthwhile.
+
+4. **Firebase Cloud Messaging:** Is FCM currently active in production? If not used, consider removing the FCM code entirely to reduce the data processing surface area and the number of required DPAs.
+
+5. **Data retention periods:** Are the recommended periods (12 months for scores, 30 days for attempts, 90 days for FCM tokens) appropriate? A shorter period (e.g., end of school year) might be more aligned with the educational use case.
+
+6. **Compliance budget:** Is there budget for a kidSAFE or ESRB Safe Harbor certification? These cost $1,000–5,000/year but provide a compliance framework and some liability protection.
+
+7. **Legal review:** Should a lawyer review the privacy policy and consent flow before publication? Recommended for any app directed at children, even a small one.
