@@ -46,6 +46,8 @@ Use these docs as the durable sources of truth:
 
 ## Priority 4: Privacy And Parent Safety
 
+Reference plan: `doc/priority-4-privacy-parent-safety-plan.md` (March 28, 2026 baseline for sequencing, GDPR/ePrivacy consent controls, and child-safety safeguards).
+
 - [ ] Add a way to delete one child's record without clearing all saved records.
 - [ ] Clarify retention expectations for online score history, reset logs, and local fallback cache data.
 - [ ] Decide whether explorer names should stay plain-text or eventually move to a parent-managed profile model.
@@ -75,3 +77,4 @@ Use these docs as the durable sources of truth:
 2. **Coverage wave 2** - add targeted `app.js` and `gamification.js` branch coverage for timer expiry, result transitions, overlay queue advancement, and finale paths that still sit below the new master baseline.
 3. **Infra coverage decision** - decide whether `firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, `not-found.ts`, and `express.d.ts` deserve direct tests or should simply remain accepted thin-wrapper gaps.
 4. **Browser verification** - add desktop/mobile browser-level checks for the main learner and parent flows once the higher-value runtime coverage is in place.
+5. **Priority 4 privacy kickoff** - execute Sprint 1 from `doc/priority-4-privacy-parent-safety-plan.md` to lock retention decisions, cookie/storage inventory, and child identity model direction before feature implementation.
