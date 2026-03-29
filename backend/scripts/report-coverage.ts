@@ -91,7 +91,6 @@ function parseLcov(contents: string) {
 
     if (line.startsWith("BRH:")) {
       record.branchesHit = Number(line.slice(4));
-      continue;
     }
   }
 
@@ -132,7 +131,7 @@ function summarize(records: CoverageMap) {
 }
 
 function toDisplayPath(file: string) {
-  return file.replace(/\\/gu, "/").replace(/^.*giftedntalented[^/]*\//u, "");
+  return file.replaceAll("\\", "/").replace(/^.*giftedntalented[^/]*\//u, "");
 }
 
 async function readCoverageFile(filePath: string) {
