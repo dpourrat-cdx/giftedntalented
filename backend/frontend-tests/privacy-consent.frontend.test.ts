@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
-import { loadFrontendScript } from "./helpers/frontend-script";
+import { importBrowserScript, loadIndexHtml, resetBrowserGlobals } from "./helpers/browser-script";
 
 const minimalQuestion = {
   id: 1,
@@ -38,9 +37,34 @@ function buildScoreboardStub() {
   };
 }
 
+function setupDomMocks() {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }),
+  });
+  Object.defineProperty(window.Element.prototype, "scrollIntoView", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+  Object.defineProperty(window, "scrollTo", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+}
+
 async function loadApp(grantConsent = false) {
   await loadIndexHtml();
-  await loadFrontendScript("content.js");
+  await importBrowserScript("content.js");
 
   window.GiftedQuestionBank = {
     SECTIONS: ["Verbal"],
@@ -76,14 +100,17 @@ async function loadApp(grantConsent = false) {
     window.localStorage.setItem("gifted-consent-v1", "1");
   }
 
-  await loadFrontendScript("app.js");
+  await importBrowserScript("app.js");
 
   return { statusCalls };
 }
 
 describe("consent notice", () => {
   beforeEach(() => {
+    vi.resetModules();
     resetBrowserGlobals();
+    vi.restoreAllMocks();
+    setupDomMocks();
   });
 
   it("shows the consent notice and disables the name input when no consent is stored", async () => {
@@ -138,7 +165,10 @@ describe("consent notice", () => {
 
 describe("explorer name validation", () => {
   beforeEach(() => {
+    vi.resetModules();
     resetBrowserGlobals();
+    vi.restoreAllMocks();
+    setupDomMocks();
   });
 
   async function attemptStart(name: string) {
