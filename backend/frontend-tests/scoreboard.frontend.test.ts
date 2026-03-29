@@ -414,6 +414,104 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.className).toBe("top-score-status is-info");
   });
 
+  it("reuses the existing active attempt when beginAttempt sees the same fingerprint", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn(),
+    };
+    controller.activeAttemptId = "attempt-123";
+    controller.activeAttemptFingerprint = controller.buildAttemptFingerprint("Alex", []);
+    controller.activeAttemptQuestions = [{ questionId: "q1" }];
+
+    const result = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+
+    expect(result).toEqual({
+      attemptId: "attempt-123",
+      questions: [{ questionId: "q1" }],
+    });
+    expect(controller.service.startAttempt).not.toHaveBeenCalled();
+  });
+
+  it("reuses the in-flight attempt promise for the same fingerprint", async () => {
+    await loadScoreboardScript();
+
+    let resolveAttempt;
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn().mockImplementation(
+        () => new Promise((resolve) => {
+          resolveAttempt = resolve;
+        }),
+      ),
+    };
+
+    const firstAttempt = controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+    const secondAttempt = controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+
+    resolveAttempt({ attemptId: "attempt-123", questions: [{ questionId: "q1" }] });
+
+    await expect(firstAttempt).resolves.toEqual({
+      attemptId: "attempt-123",
+      questions: [{ questionId: "q1" }],
+    });
+    await expect(secondAttempt).resolves.toEqual({
+      attemptId: "attempt-123",
+      questions: [{ questionId: "q1" }],
+    });
+    expect(controller.service.startAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry an unavailable attempt fingerprint until the fingerprint changes", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn()
+        .mockRejectedValueOnce(new TypeError("network"))
+        .mockResolvedValueOnce({ attemptId: "attempt-456", questions: [] }),
+    };
+
+    const firstResult = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+    const secondResult = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+    const thirdResult = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "native",
+      mode: "quiz",
+      questions: [{ questionId: "q2" }],
+    });
+
+    expect(firstResult).toBeNull();
+    expect(secondResult).toBeNull();
+    expect(thirdResult).toEqual({ attemptId: "attempt-456", questions: [] });
+    expect(controller.service.startAttempt).toHaveBeenCalledTimes(2);
+  });
   it("clears a transient status message after the timeout elapses", async () => {
     await loadScoreboardScript();
     vi.useFakeTimers();
@@ -963,4 +1061,5 @@ describe("GiftedScoreboard", () => {
     expect(refreshTopScoreForPlayer).not.toHaveBeenCalled();
   });
 });
+
 
