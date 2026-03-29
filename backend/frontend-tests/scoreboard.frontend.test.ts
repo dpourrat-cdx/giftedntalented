@@ -384,6 +384,36 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.className).toBe("top-score-status is-info");
   });
 
+  it("shows an attempt sync warning when answer submission fails after the attempt starts", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn().mockResolvedValue({
+        attemptId: "attempt-123",
+        questions: [{ questionId: "q1" }],
+      }),
+      submitAttemptAnswer: vi.fn().mockRejectedValue(new TypeError("network")),
+    };
+
+    const result = await controller.recordValidatedAnswer({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      sessionQuestions: [{ questionId: "q1" }],
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+
+    expect(result).toBeNull();
+    expect(controller.elements.status.textContent).toBe(
+      "This mission can continue, but the shared explorer record could not update just now.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-info");
+  });
+
   it("clears a transient status message after the timeout elapses", async () => {
     await loadScoreboardScript();
     vi.useFakeTimers();
@@ -460,6 +490,23 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.className).toBe("top-score-status is-info");
   });
 
+
+  it("returns without finalizing when no active attempt id exists", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      finalizeAttempt: vi.fn(),
+    };
+    controller.activeAttemptId = null;
+    controller.activeAttemptPromise = null;
+
+    const result = await controller.finalizeAttempt({ elapsedSeconds: 90 });
+
+    expect(result).toBeNull();
+    expect(controller.service.finalizeAttempt).not.toHaveBeenCalled();
+    expect(controller.elements.status.textContent).toBe("");
+  });
 
   it("does not open the reset dialog when confirmation is declined", async () => {
     await loadScoreboardScript();
@@ -916,3 +963,4 @@ describe("GiftedScoreboard", () => {
     expect(refreshTopScoreForPlayer).not.toHaveBeenCalled();
   });
 });
+
