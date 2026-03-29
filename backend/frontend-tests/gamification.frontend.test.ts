@@ -351,4 +351,89 @@ describe("GiftedGamification", () => {
     controller.onTestCompleted(buildSnapshot([0, 1]));
     expect(document.querySelectorAll("#overlayRoot .celebration-overlay.is-final")).toHaveLength(1);
   });
+  it("replays a requested mission introduction for the current section", async () => {
+    await loadGamificationScript();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([null, null]));
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-intro")).toBeTruthy();
+
+    const dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    controller.requestMissionIntroduction("Verbal");
+    controller.sync(buildSnapshot([null, null]));
+
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-intro")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-kicker")?.textContent).toBe(
+      "Mission Introduction",
+    );
+  });
+
+  it("ignores explicit mission update and completion requests when state or section is missing", async () => {
+    await loadGamificationScript();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.showMissionUpdate("Verbal");
+    controller.showMissionCompletion("Verbal");
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+
+    controller.sync(buildSnapshot([0, null]));
+    controller.clearTransientFeedback();
+
+    controller.showMissionUpdate("Math");
+    controller.showMissionCompletion("Math");
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+  });
+
+  it("supports explicit mission update and completion helpers for the active section", async () => {
+    await loadGamificationScript();
+    vi.useFakeTimers();
+
+    const controller = window.GiftedGamification.createGamificationController({
+      themeId: "rocket-adventure",
+      roots: buildRoots(),
+    });
+
+    controller.sync(buildSnapshot([0, null]));
+
+    controller.showMissionUpdate("Verbal");
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-midpoint")).toBeTruthy();
+
+    let dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    await vi.advanceTimersByTimeAsync(80);
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+
+    controller.showMissionCompletion("Verbal");
+    expect(document.querySelector("#overlayRoot .celebration-overlay.is-section")).toBeTruthy();
+    expect(document.querySelector("#overlayRoot .celebration-button")?.textContent).toBe(
+      "Next mission",
+    );
+
+    dismissButton = document.querySelector("[data-dismiss-celebration]") as HTMLButtonElement | null;
+    expect(dismissButton).toBeTruthy();
+    dismissButton?.click();
+
+    await vi.advanceTimersByTimeAsync(80);
+    expect(document.querySelector("#overlayRoot .celebration-overlay")).toBeNull();
+
+    controller.sync(buildSnapshot([0, 1]), { skipSectionCompletion: true });
+    controller.requestMissionCompletion("Verbal");
+    controller.sync(buildSnapshot([0, 1]));
+
+    expect(document.querySelectorAll("#overlayRoot .celebration-overlay.is-section")).toHaveLength(1);
+  });
+
 });
