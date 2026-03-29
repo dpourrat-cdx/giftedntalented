@@ -302,6 +302,10 @@ describe("GiftedGamification", () => {
     });
 
     controller.sync(buildSnapshot([null, null]));
+    controller.onAnswerEvaluated(buildSnapshot([0, null]), {
+      isCorrect: true,
+      message: "Brilliant work",
+    });
 
     expect(document.querySelector("#overlayRoot .celebration-overlay.is-intro")).toBeTruthy();
 
