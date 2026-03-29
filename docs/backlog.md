@@ -6,25 +6,18 @@ This file tracks open work only. Completed items should stay here only if they s
 
 - The live score flow is attempt-based and backend-owned.
 - The legacy `POST /players/:playerName/record` write path is intentionally disabled with `410 LEGACY_SCORE_ENDPOINT_DISABLED`.
-- The Sonar issue backlog is cleared on `master` after the March 27-28, 2026 cleanup wave.
+- The Sonar issue backlog is cleared on `master`.
 - GitHub Pages remains the frontend host for now, with a lightweight JS frame-busting fallback as defense in depth only.
 - Strict style CSP is live on `master` with `style-src 'self'`.
-- Local trusted coverage on `master` is now above target at `90.33%` overall lines and `74.72%` overall branches (`272` tests passing under `npm.cmd run test:coverage` on March 29, 2026).
-- `cd backend && npm.cmd run coverage:report` is now the standard local summary step after coverage waves.
+- Local trusted coverage on `master` is above target. A fresh March 29, 2026 local rerun produced about `91.95%` overall lines / `77.31%` overall branches under `npm.cmd run test:coverage`, and `91.96%` overall lines / `77.32%` overall branches under `npm.cmd run coverage:report`.
+- SonarCloud's project dashboard may still show a lower overall number because it is a broader dashboard metric than the local runtime-focused planning summary.
 - Thin infra wrappers are intentionally low-priority by default: `express.d.ts` is a no-test file, `firebase.ts`, `supabase.ts`, and `logger.ts` remain accepted wrapper gaps unless behavior grows, and `server.ts` / `not-found.ts` only need direct tests if they pick up meaningful logic.
 
-Recent merged progress that still matters for planning:
+Only keep completed work here when it still affects what happens next:
 
-- March 27-28, 2026 PRs removed the remaining open Sonar issues across frontend runtime files, backend support files, test helpers, and the live smoke script.
-- March 28-29, 2026 PRs added source-attributed frontend coverage for `question-bank.js` and `frame-bust.js`, plus deeper runtime coverage for `scoreboard.js`, `app.js`, and `gamification.js`.
-- March 29, 2026 PR `#110` added repeatable LCOV reporting so coverage waves can compare current totals and lowest-coverage files consistently.
-- March 29, 2026 PR `#109` merged the Privacy & Parent Safety implementation plan in `docs/plans/privacy-parent-safety.md`; future Priority 4 work should use that plan as the starting point rather than reopening the same discovery scope.
-- March 29, 2026 Priority 4 Phase 0 ADRs merged: `docs/decisions/explorer-name-model.md`, `docs/decisions/data-retention.md`, `docs/decisions/data-processing-agreements.md`, `docs/decisions/data-breach-response.md`. Implementation proceeds in 6 further PRs per the approved plan.
-- March 29, 2026 PR `#120` added deeper source-attributed `gamification.js` runtime coverage for explicit mission intro/update/completion helper paths.
-- March 29, 2026 PR `#123` added deeper source-attributed `app.js` runtime coverage for overlay no-op paths and stale answer-sync guards.
-- March 29, 2026 PR `#117` updated `CONTRIBUTING.md` for cold-start readiness, including the manual review/approval rules, reviewer-prefix direction table, Windows `npm.cmd` note, first-time Supabase setup, and the explicit behind-`master` rebase flow.
-- March 27-28, 2026 PRs also aligned hosting/security docs and kept the GitHub Pages frame-busting fallback decision current.
-- March 28-29, 2026 docs updates also captured the current PR review automation status, comment-prefix convention, approval semantics, and remote branch hygiene workflow in `CONTRIBUTING.md`.
+- `docs/plans/privacy-parent-safety.md` and the accepted privacy ADRs remain the starting point for Priority 4. Do not reopen that discovery work.
+- `CONTRIBUTING.md` is the source of truth for cold-start rules, review ownership, branch/worktree usage, approval semantics, and merge flow.
+- `backend/scripts/smoke-live-backend.ts` is the existing end-to-end production check and should stay aligned with backend behavior changes.
 
 Use these docs as the durable sources of truth:
 
@@ -51,13 +44,15 @@ Use these docs as the durable sources of truth:
 ## Priority 3: Code Quality And Maintainability
 
 - [ ] Keep overall trusted coverage above `80%` and spend new test work on the highest-risk remaining behavior gaps rather than low-value padding.
-  Current local baseline on `master` is `90.33%` overall line coverage and `74.72%` overall branch coverage as of March 29, 2026.
-- [ ] Target the biggest remaining runtime coverage gaps first: `scoreboard.js` (`84.24%` lines / `67.79%` branches), `app.js` (`87.53%` lines / `71.74%` branches), and `gamification.js` (`89.07%` lines / `74.91%` branches).
+  Current local baseline on `master` is about `91.95%` overall line coverage and `77.31%` overall branch coverage as of March 29, 2026.
+- [ ] Target the biggest remaining meaningful runtime gaps first. The latest local rerun points at `scoreboard.js` (`88.11%` lines / `72.28%` branches) and `app.js` (`89.08%` lines / `73.57%` branches`) as the main frontend runtime gaps; `gamification.js` is materially healthier at `93.58%` lines / `81.97%` branches.
 - [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
 - [ ] Use `cd backend && npm.cmd run coverage:report` after each coverage wave and include the changed file-level summary in the PR thread; when comparing two local runs, use `-- --baseline <lcov-path>`.
 - [ ] Treat thin infra wrappers as low-value by default: accept `express.d.ts` as an intentional no-test file, keep `firebase.ts`, `supabase.ts`, and `logger.ts` as accepted wrapper gaps unless behavior grows, and only add direct tests for `server.ts` / `not-found.ts` if they pick up meaningful logic.
 
 ## Priority 4: Privacy And Parent Safety
+
+Claude owns Priority 4 execution. Codex should stay out of that implementation track unless explicitly redirected.
 
 - [ ] Implement per-child deletion (`DELETE /api/v1/admin/players/:playerName/records`) so one child's records can be removed without clearing all saved data.
 - [ ] Turn the retention plan into implementation, including a durable `last_active_at` signal for score retention and a cleanup mechanism that matches the documented policy.
@@ -67,7 +62,7 @@ Use these docs as the durable sources of truth:
 
 ## Priority 5: Testing And Operations
 
-- [ ] Add the next frontend behavior coverage wave for `scoreboard.js` first, then revisit any residual `app.js` timer/result-transition edges or `gamification.js` finale branches that still show up in `coverage:report`.
+- [ ] Revisit `scoreboard.js` first and then any residual `app.js` timer/result-transition edges that still show up in the current local coverage report.
 - [ ] Add browser-level verification for desktop and mobile layout and interaction paths.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
@@ -84,9 +79,9 @@ Use these docs as the durable sources of truth:
 
 ## Next Recommended Delivery Slice
 
-Priority 4 is active on Claude's side. For Codex and other non-privacy follow-ups, the next recommended slice is:
+Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Coverage wave 1** - use `cd backend && npm.cmd run coverage:report` and target `scoreboard.js` first, since it is now the largest meaningful runtime gap on `master`.
-2. **Browser verification** - add desktop/mobile browser-level checks for the main learner, scoreboard, and parent flows after the next runtime coverage wave lands.
-3. **Operations follow-up** - review Render cold-start behavior and decide whether any uptime mitigation or monitoring change is justified.
-4. **Priority 4 coordination** - keep using `docs/plans/privacy-parent-safety.md` and the accepted ADRs as the starting point for Claude's privacy/parent-safety implementation sequence.
+1. **Operations follow-up** - add the smallest credible Render/monitoring improvement, starting with a scheduled production smoke workflow that reuses `npm.cmd run smoke:live` or the underlying script.
+2. **Browser verification** - run desktop/mobile checks for the main learner, scoreboard, and parent/privacy flows and record concrete findings only.
+3. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the current local coverage report as the planning baseline.
+4. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
