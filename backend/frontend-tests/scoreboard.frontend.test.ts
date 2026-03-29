@@ -429,6 +429,286 @@ describe("GiftedScoreboard", () => {
     expect(controller.elements.status.className).toBe("top-score-status is-info");
   });
 
+  it("keeps the cached best score when a lower score is recorded for the active explorer", async () => {
+    await loadScoreboardScript();
+    window.localStorage.setItem(
+      "gifted-scoreboard-player-best-scores-v2",
+      JSON.stringify({
+        alex: {
+          playerName: "Alex",
+          score: 9,
+          totalQuestions: 10,
+          percentage: 90,
+          elapsedSeconds: 61,
+        },
+      }),
+    );
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.recordScore({
+      playerName: "Alex",
+      score: 8,
+      totalQuestions: 10,
+      percentage: 80,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    });
+
+    expect(result).toBeNull();
+    expect(controller.service.saveScore).not.toHaveBeenCalled();
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.innerHTML).toContain("9/10");
+    expect(controller.elements.score.innerHTML).toContain("90%");
+  });
+
+  it("does not resave an identical fingerprint and keeps the rendered score stable", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      saveScore: vi.fn().mockResolvedValue(null),
+      fetchPlayerTopScore: vi.fn().mockResolvedValue({
+        player_name: "Alex",
+        score: 7,
+        total_questions: 10,
+        percentage: 70,
+        elapsed_seconds: 61,
+      }),
+    };
+
+    const scoreEntry = {
+      playerName: "Alex",
+      score: 8,
+      totalQuestions: 10,
+      percentage: 80,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    };
+
+    const firstResult = await controller.recordScore(scoreEntry);
+    controller.clearCachedScores();
+    const secondResult = await controller.recordScore(scoreEntry);
+
+    expect(firstResult).toBe(true);
+    expect(secondResult).toBeNull();
+    expect(controller.service.saveScore).toHaveBeenCalledTimes(1);
+    expect(controller.elements.score.innerHTML).toContain("8/10");
+    expect(controller.elements.score.innerHTML).toContain("80%");
+  });
+
+  it("shows the success message after a score saves online", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      saveScore: vi.fn().mockResolvedValue(null),
+      fetchPlayerTopScore: vi.fn().mockResolvedValue({
+        player_name: "Alex",
+        score: 8,
+        total_questions: 10,
+        percentage: 80,
+        elapsed_seconds: 61,
+      }),
+    };
+
+    const result = await controller.recordScore(
+      {
+        playerName: "Alex",
+        score: 8,
+        totalQuestions: 10,
+        percentage: 80,
+        elapsedSeconds: 61,
+        clientType: "web",
+        mode: "quiz",
+      },
+      { showSuccessMessage: true },
+    );
+
+    expect(result).toBe(true);
+    expect(controller.service.saveScore).toHaveBeenCalledTimes(1);
+    expect(controller.elements.status.textContent).toBe("Explorer record saved on this device.");
+    expect(controller.elements.status.className).toBe("top-score-status is-success");
+  });
+
+  it("ignores score submissions without a player name", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.recordScore({
+      playerName: "   ",
+      score: 8,
+      totalQuestions: 10,
+      percentage: 80,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    });
+
+    expect(result).toBeNull();
+    expect(controller.service.saveScore).not.toHaveBeenCalled();
+  });
+
+  it("ignores malformed score submissions", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.recordScore({
+      playerName: "Alex",
+      score: 8,
+      totalQuestions: undefined,
+      percentage: 80,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    });
+
+    expect(result).toBeNull();
+    expect(controller.service.saveScore).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-positive score submissions", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      saveScore: vi.fn(),
+    };
+
+    const result = await controller.recordScore({
+      playerName: "Alex",
+      score: 0,
+      totalQuestions: 10,
+      percentage: 0,
+      elapsedSeconds: 61,
+      clientType: "web",
+      mode: "quiz",
+    });
+
+    expect(result).toBeNull();
+    expect(controller.service.saveScore).not.toHaveBeenCalled();
+  });
+
+  it("uses the online reset flow when the backend reset succeeds", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue(" 1234 "));
+    window.localStorage.setItem(
+      "gifted-scoreboard-player-best-scores-v2",
+      JSON.stringify({
+        alex: {
+          playerName: "Alex",
+          score: 7,
+          totalQuestions: 8,
+          percentage: 88,
+          elapsedSeconds: 92,
+        },
+      }),
+    );
+
+    const controller = createController();
+    controller.activePlayerName = "Alex";
+    controller.service = {
+      resetScores: vi.fn().mockResolvedValue({
+        deletedCount: 1,
+      }),
+    };
+
+    await controller.handleResetClick();
+
+    expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
+    expect(controller.elements.name.textContent).toBe("Alex");
+    expect(controller.elements.score.textContent).toBe("No saved record yet for this explorer.");
+    expect(controller.elements.status.textContent).toBe(
+      "Every saved explorer record has been cleared.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-success");
+    expect(window.localStorage.getItem("gifted-scoreboard-player-best-scores-v2")).toBeNull();
+  });
+
+  it("shows the awaiting-name state after an online reset when no explorer is active", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("1234"));
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn().mockResolvedValue({
+        deletedCount: 1,
+      }),
+    };
+
+    await controller.handleResetClick();
+
+    expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe(
+      "Every saved explorer record has been cleared.",
+    );
+  });
+
+  it("falls back to the device-only reset flow when the backend is unavailable", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("1234"));
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn().mockRejectedValue(new TypeError("Network down")),
+    };
+
+    await controller.handleResetClick();
+
+    expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
+    expect(controller.elements.name.textContent).toBe("Type an explorer name");
+    expect(controller.elements.score.textContent).toBe(
+      "Enter the explorer name below to show only that explorer's best score.",
+    );
+    expect(controller.elements.status.textContent).toBe(
+      "Every saved explorer record on this device has been cleared.",
+    );
+    expect(controller.elements.status.className).toBe("top-score-status is-success");
+  });
+
+  it("surfaces a reset PIN error from the backend", async () => {
+    await loadScoreboardScript();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(true));
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("1234"));
+
+    const controller = createController();
+    controller.service = {
+      resetScores: vi.fn().mockRejectedValue({
+        code: "P0001",
+        message: "Wrong PIN",
+      }),
+    };
+
+    await controller.handleResetClick();
+
+    expect(controller.service.resetScores).toHaveBeenCalledWith("1234");
+    expect(controller.elements.status.textContent).toBe("Wrong PIN");
+    expect(controller.elements.status.className).toBe("top-score-status is-error");
+  });
+
   it("schedules a delayed lookup and cancels it when the player name is cleared", async () => {
     await loadScoreboardScript();
     vi.useFakeTimers();
