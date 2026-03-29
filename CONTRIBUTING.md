@@ -6,7 +6,7 @@ This document covers the branch workflow, test expectations, merge process, and 
 
 ## Multi-Agent Workflow (Claude + Codex)
 
-This repo is actively developed by two AI agents — **Claude** (via Claude Code) and **Codex** (via OpenAI Codex CLI) — alongside the human owner. The conventions below prevent file conflicts, clarify ownership, and keep history clean.
+This repo is actively developed by two AI agents — **Claude** (via Claude Code) and **Codex** (via OpenAI Codex CLI) — with the repo owner supervising workflow and merge decisions. The conventions below prevent file conflicts, clarify ownership, and keep history clean.
 
 ### The Core Rule: One Agent, One Branch, One Worktree at a Time
 
@@ -27,18 +27,45 @@ Both agents should keep the main repo checkout clean on `master` and do task wor
 
 Each worktree is a full checkout on its own branch while sharing the same repository object store. This keeps branch work isolated, avoids clone sprawl, and makes cleanup predictable.
 
+Treat the main working directory as the clean `master` checkout, not the place for feature work.
+
+### Identity Check Before Any Work
+
+This is a required gate, not a suggestion.
+
+Before doing anything in this repo, the agent must know whether it is **Claude** or **Codex**.
+
+If the agent does **not** know which one it is, that is a blocking condition. Stop immediately and ask the repo owner before doing anything else.
+
+Until identity is clear, do **not**:
+- read the backlog as your task source
+- create or switch branches
+- create or use a worktree
+- edit files
+- review PRs
+- merge PRs
+
+Once identity is clear:
+- If you are **Claude**, follow the Claude rules below.
+- If you are **Codex**, follow the Codex rules below.
+
 If you are Codex and you need to start a task:
 
 1. Pull latest `master`.
 2. Create a branch prefixed with `codex/` (e.g., `codex/security-hardening`).
-3. Prefer creating a dedicated worktree under `.codex/worktrees/<name>` and do the task there.
-4. Do not commit to an active branch owned by Claude.
+3. Create or reuse a dedicated worktree under `.codex/worktrees/<name>`.
+4. Do the task work from that worktree only.
+5. Do not use the main checkout for Codex feature branches.
+6. Do not commit to an active branch owned by Claude.
 
 If you are Claude and you need to start a task:
 
 1. Pull latest `master`.
 2. Create a branch prefixed with `claude/` (e.g., `claude/api-spec-update`).
-3. Prefer creating a dedicated worktree under `.claude/worktrees/<name>` so the main working directory stays available for Codex.
+3. Create or reuse a dedicated worktree under `.claude/worktrees/<name>`.
+4. Do the task work from that worktree only.
+5. Do not use the main checkout for Claude feature branches.
+6. Do not commit to an active branch owned by Codex.
 
 Recommended setup examples:
 
@@ -68,13 +95,13 @@ The reviewing agent must:
 - Leave a short summary comment on what was verified.
 - In PR comments, explicitly call in the other agent by name: Codex should ask Claude to review `codex/*` PRs, and Claude should ask Codex to review `claude/*` PRs.
 - Use that review to challenge assumptions, regressions, missing tests, and Sonar findings rather than just rubber-stamping the branch.
-- Never approve a PR that touches the same files as another open PR without explicit human sign-off.
+- Never approve a PR that touches the same files as another open PR without explicit owner sign-off.
 
 **Merge authority:**
 - Each agent merges its own PRs — **never the other agent's**.
 - Claude must **never merge a Codex PR**. Leave a review comment and stop. Codex merges its own work.
 - Codex must **never merge a Claude PR**. Leave a review comment and stop. Claude merges its own work.
-- Human owner has final merge authority on any PR that touches security-sensitive paths (`middleware/`, `validators/`, `supabase/`, schema SQL files).
+- The repo owner has final merge authority on any PR that touches security-sensitive paths (`middleware/`, `validators/`, `supabase/`, schema SQL files).
 
 ### Comment Prefix Convention
 
@@ -146,13 +173,14 @@ If one agent has an open PR touching any of the files below, the other agent sho
 
 ## Branch Naming
 
+Only two short-lived working branch prefixes should be used in this repo:
+
 | Prefix | Used by | Example |
 |---|---|---|
 | `claude/` | Claude Code agent | `claude/api-spec-update` |
 | `codex/` | Codex agent | `codex/security-hardening` |
-| `feature/` | Human-driven work | `feature/story-pack-selector` |
-| `fix/` | Bug fixes (any source) | `fix/timer-drift` |
-| `chore/` | Deps, config, CI tweaks | `chore/dependabot-setup` |
+
+Branch names should communicate both the agent owner and the task. Do not use `feature/`, `fix/`, `chore/`, or other generic prefixes for normal repo work.
 
 ### Branch Hygiene
 
@@ -265,7 +293,7 @@ Every agent must complete this sequence before considering a task done:
 1. **Test locally**: `npm.cmd run check && npm.cmd test && npm.cmd run build` — all must pass.
 2. **Commit and push** the branch.
 3. **Open a PR** and wait for CI to go green.
-4. **Get a review** (other agent or human owner).
+4. **Get a review** (other agent or repo owner).
 5. **Merge** via GitHub merge button.
 6. **Verify deployment**: after Render auto-deploys, run `npm.cmd run smoke:live` to confirm the live backend is healthy.
 7. **Delete the branch** after merge — keep the remote clean.
