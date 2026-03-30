@@ -474,6 +474,8 @@
       playerReadyNote: "Explorer {name}, your mission console is ready.",
       launchVideoPrompt: "Captain Nova is launching toward the first mission.",
       launchVideoStatus: "Captain Nova is launching. Your mission briefing will open in a moment.",
+      launchVideoBlockedStatus: "Press play to watch Captain Nova's launch before the mission briefing opens.",
+      launchVideoAction: "Play launch video",
     },
     question: {
       counter: "Mission Step {current} of {total}",

@@ -48,6 +48,7 @@ const dom = {
   launchVideoPanel: document.getElementById("launchVideoPanel"),
   launchVideo: document.getElementById("launchVideo"),
   launchVideoStatus: document.getElementById("launchVideoStatus"),
+  launchVideoAction: document.getElementById("launchVideoAction"),
   nameEntry: document.getElementById("nameEntry"),
   consentNotice: document.getElementById("consentNotice"),
   consentCheckbox: document.getElementById("consentCheckbox"),
@@ -187,6 +188,12 @@ function resetLaunchVideoState() {
     dom.launchVideoStatus.textContent =
       startContent.launchVideoStatus || "Captain Nova is launching. Your mission briefing will open in a moment.";
   }
+  if (dom.launchVideoAction) {
+    dom.launchVideoAction.textContent = startContent.launchVideoAction || "Play launch video";
+    dom.launchVideoAction.classList.add("is-hidden");
+    dom.launchVideoAction.disabled = false;
+    dom.launchVideoAction.onclick = null;
+  }
   if (dom.launchVideo) {
     dom.launchVideo.pause();
     dom.launchVideo.currentTime = 0;
@@ -205,6 +212,11 @@ function renderLaunchVideoScreen() {
   dom.optionsList.innerHTML = "";
   dom.feedbackPanel.className = "feedback-panel is-hidden";
   dom.feedbackPanel.innerHTML = "";
+  if (dom.launchVideoAction) {
+    dom.launchVideoAction.textContent = startContent.launchVideoAction || "Play launch video";
+    dom.launchVideoAction.classList.add("is-hidden");
+    dom.launchVideoAction.disabled = false;
+  }
   renderIntroductionStory();
   dom.launchVideoPanel?.classList.remove("is-hidden");
   lastRenderedQuestionIndex = -1;
@@ -220,6 +232,42 @@ function playLaunchVideo(onComplete) {
 
   let finished = false;
   const video = dom.launchVideo;
+
+  async function startPlayback() {
+    if (finished) {
+      return;
+    }
+
+    if (dom.launchVideoAction) {
+      dom.launchVideoAction.classList.add("is-hidden");
+      dom.launchVideoAction.disabled = false;
+    }
+
+    if (dom.launchVideoStatus) {
+      dom.launchVideoStatus.textContent =
+        startContent.launchVideoStatus || "Captain Nova is launching. Your mission briefing will open in a moment.";
+    }
+
+    try {
+      await video.play();
+    } catch {
+      if (finished) {
+        return;
+      }
+
+      if (dom.launchVideoStatus) {
+        dom.launchVideoStatus.textContent =
+          startContent.launchVideoBlockedStatus
+          || "Press play to watch Captain Nova's launch before the mission briefing opens.";
+      }
+
+      if (dom.launchVideoAction) {
+        dom.launchVideoAction.textContent = startContent.launchVideoAction || "Play launch video";
+        dom.launchVideoAction.classList.remove("is-hidden");
+        dom.launchVideoAction.disabled = false;
+      }
+    }
+  }
 
   function complete() {
     if (finished) {
@@ -237,16 +285,16 @@ function playLaunchVideo(onComplete) {
   launchVideoCompletion = onComplete;
   isLaunchVideoActive = true;
   renderLaunchVideoScreen();
+  if (dom.launchVideoAction) {
+    dom.launchVideoAction.onclick = () => {
+      dom.launchVideoAction.disabled = true;
+      startPlayback();
+    };
+  }
   video.addEventListener("ended", complete, { once: true });
   video.addEventListener("error", complete, { once: true });
   video.currentTime = 0;
-
-  const playPromise = video.play();
-  if (playPromise && typeof playPromise.catch === "function") {
-    playPromise.catch(() => {
-      complete();
-    });
-  }
+  startPlayback();
 }
 
 function testDurationSeconds() {
