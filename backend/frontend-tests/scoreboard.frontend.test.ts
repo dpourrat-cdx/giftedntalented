@@ -439,6 +439,38 @@ describe("GiftedScoreboard", () => {
     expect(controller.service.startAttempt).not.toHaveBeenCalled();
   });
 
+  it("starts a native-mode attempt with the provided questions", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn().mockResolvedValue({
+        attemptId: "attempt-789",
+        questions: [{ questionId: "q-native" }],
+      }),
+    };
+
+    const result = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "native",
+      mode: "quiz",
+      questions: [{ questionId: "q-native", bankId: "bank-native", options: ["A", "B"] }],
+    });
+
+    expect(controller.service.startAttempt).toHaveBeenCalledWith({
+      playerName: "Alex",
+      clientType: "native",
+      mode: "quiz",
+      questions: [{ questionId: "q-native", bankId: "bank-native", options: ["A", "B"] }],
+    });
+    expect(result).toEqual({
+      attemptId: "attempt-789",
+      questions: [{ questionId: "q-native" }],
+    });
+    expect(controller.activeAttemptId).toBe("attempt-789");
+    expect(controller.activeAttemptQuestions).toEqual([{ questionId: "q-native" }]);
+  });
+
   it("reuses the in-flight attempt promise for the same fingerprint", async () => {
     await loadScoreboardScript();
 
@@ -512,6 +544,55 @@ describe("GiftedScoreboard", () => {
     expect(thirdResult).toEqual({ attemptId: "attempt-456", questions: [] });
     expect(controller.service.startAttempt).toHaveBeenCalledTimes(2);
   });
+  it("resets the active attempt state instead of starting online protection in story mode", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      startAttempt: vi.fn(),
+    };
+    controller.activeAttemptId = "attempt-123";
+    controller.activeAttemptPromise = Promise.resolve({ attemptId: "attempt-123" });
+    controller.activeAttemptFingerprint = "fingerprint";
+    controller.activeAttemptUnavailableFingerprint = "fingerprint";
+    controller.activeAttemptQuestions = [{ questionId: "q1" }];
+    controller.activeAttemptPlayerName = "Alex";
+
+    const result = await controller.beginAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "story",
+      questions: [{ questionId: "q1" }],
+    });
+
+    expect(result).toBeNull();
+    expect(controller.service.startAttempt).not.toHaveBeenCalled();
+    expect(controller.activeAttemptId).toBeNull();
+    expect(controller.activeAttemptPromise).toBeNull();
+    expect(controller.activeAttemptFingerprint).toBe("");
+    expect(controller.activeAttemptUnavailableFingerprint).toBe("");
+    expect(controller.activeAttemptQuestions).toEqual([]);
+    expect(controller.activeAttemptPlayerName).toBe("");
+  });
+
+  it("returns the existing active attempt id without restarting the attempt", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.activeAttemptId = "attempt-123";
+    controller.beginAttempt = vi.fn();
+
+    const result = await controller.ensureActiveAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+
+    expect(result).toBe("attempt-123");
+    expect(controller.beginAttempt).not.toHaveBeenCalled();
+  });
+
   it("clears a transient status message after the timeout elapses", async () => {
     await loadScoreboardScript();
     vi.useFakeTimers();
@@ -1061,5 +1142,4 @@ describe("GiftedScoreboard", () => {
     expect(refreshTopScoreForPlayer).not.toHaveBeenCalled();
   });
 });
-
 
