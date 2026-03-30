@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 export type RequestClass = "public_read" | "public_write" | "reset" | "admin";
+const MAX_LOG_FIELD_LENGTH = 256;
 
 type RequestLike = Pick<Request, "method" | "baseUrl" | "route" | "originalUrl" | "path" | "ip" | "headers" | "socket"> & {
   requestId?: string;
@@ -8,15 +9,29 @@ type RequestLike = Pick<Request, "method" | "baseUrl" | "route" | "originalUrl" 
 
 type ResponseLike = Pick<Response, "statusCode">;
 
+function sanitizeLogField(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const sanitized = value.replace(/[\r\n\t]+/g, " ").trim();
+
+  if (!sanitized) {
+    return null;
+  }
+
+  return sanitized.slice(0, MAX_LOG_FIELD_LENGTH);
+}
+
 export function resolveRoutePattern(request: RequestLike): string {
   const routePath = typeof request.route?.path === "string" ? request.route.path : "";
   const baseUrl = request.baseUrl || "";
 
   if (baseUrl || routePath) {
-    return `${baseUrl}${routePath}` || request.originalUrl || request.path || "/";
+    return sanitizeLogField(`${baseUrl}${routePath}`) ?? sanitizeLogField(request.originalUrl) ?? sanitizeLogField(request.path) ?? "/";
   }
 
-  return request.originalUrl || request.path || "/";
+  return sanitizeLogField(request.originalUrl) ?? sanitizeLogField(request.path) ?? "/";
 }
 
 export function resolveRequestClass(request: RequestLike): RequestClass {
@@ -42,14 +57,14 @@ export function resolveForwardedFor(request: RequestLike): string | null {
   const headerValue = request.headers?.["x-forwarded-for"];
 
   if (Array.isArray(headerValue)) {
-    return headerValue.join(", ");
+    return sanitizeLogField(headerValue.join(", "));
   }
 
-  return typeof headerValue === "string" && headerValue.trim() ? headerValue : null;
+  return sanitizeLogField(headerValue);
 }
 
 export function resolveRemoteIp(request: RequestLike): string | null {
-  return request.ip || request.socket?.remoteAddress || null;
+  return sanitizeLogField(request.ip) ?? sanitizeLogField(request.socket?.remoteAddress) ?? null;
 }
 
 export function buildRequestLogContext(
@@ -58,7 +73,7 @@ export function buildRequestLogContext(
   latencyMs?: number,
 ) {
   const context = {
-    requestId: request.requestId ?? null,
+    requestId: sanitizeLogField(request.requestId) ?? null,
     route: resolveRoutePattern(request),
     method: String(request.method || "GET").toUpperCase(),
     requestClass: resolveRequestClass(request),
@@ -78,12 +93,10 @@ export function buildRequestLogContext(
 }
 
 export function resolveHttpLogLevel(
-  request: RequestLike,
+  _request: RequestLike,
   response: ResponseLike,
   error?: Error,
 ): "info" | "warn" | "error" {
-  void request;
-
   if (error || response.statusCode >= 500) {
     return "error";
   }

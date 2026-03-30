@@ -108,6 +108,28 @@ describe("request observability helpers", () => {
     });
   });
 
+  it("sanitizes request-derived log fields before writing them", () => {
+    const request = createRequest({
+      requestId: "req-123\r\nforged",
+      originalUrl: "/api/v1/health\r\nforged",
+      ip: "203.0.113.10\r\n127.0.0.1",
+      headers: {
+        "x-forwarded-for": "198.51.100.6\r\nmalicious-entry",
+      } as Request["headers"],
+    });
+
+    expect(buildRequestLogContext(request, createResponse(200))).toEqual({
+      requestId: "req-123 forged",
+      route: "/api/v1/health forged",
+      method: "GET",
+      requestClass: "public_read",
+      remoteIp: "203.0.113.10 127.0.0.1",
+      forwardedFor: "198.51.100.6 malicious-entry",
+      statusCode: 200,
+      latencyMs: undefined,
+    });
+  });
+
   it("uses warn for 4xx responses and error for 5xx or thrown errors", () => {
     const request = createRequest();
 
