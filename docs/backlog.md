@@ -50,7 +50,7 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 - [ ] Repeat browser-level verification when a major UI flow changes, but treat it as maintenance now that the latest live pass did not surface a clear blocker.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
-- [ ] Decide whether long-lived observability should use Elastic / OpenSearch-backed log search and alerts or stay with a lighter hosted logging path, based on cost, maintenance burden, and the small current traffic profile.
+- [ ] Revisit the observability platform only if Render log search plus structured logs stops being enough for retention, alerting, or incident investigation. See `docs/decisions/observability-platform.md`.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
 ## Priority 6: Product And Content Improvements
@@ -66,6 +66,6 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Operations observability** - add the smallest credible backend telemetry slice first: structured request/error logging, a basic alert path for resets/write bursts/5xx spikes, and a decision memo on whether Elastic / OpenSearch is justified yet.
+1. **Operations follow-through** - decide whether Render cold-start behavior is acceptable or whether uptime mitigation is worth paying for.
 2. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
 3. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
