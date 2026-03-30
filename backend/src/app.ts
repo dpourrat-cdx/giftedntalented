@@ -7,6 +7,7 @@ import { logger } from "./config/logger.js";
 import { attemptsRouter } from "./routes/attempts.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundMiddleware } from "./middleware/not-found.js";
+import { buildRequestLogContext, resolveHttpLogLevel } from "./middleware/request-observability.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { devicesRouter } from "./routes/devices.routes.js";
@@ -22,9 +23,23 @@ export function buildApp() {
   app.use(
     pinoHttp({
       logger,
-      customProps(request: Request) {
+      customLogLevel(request, response, error) {
+        return resolveHttpLogLevel(request as Request, response, error);
+      },
+      customProps(request: Request, response) {
+        return buildRequestLogContext(request, response);
+      },
+      customSuccessObject(request: Request, response, value) {
         return {
-          requestId: request.requestId,
+          ...value,
+          ...buildRequestLogContext(request, response, value.responseTime),
+        };
+      },
+      customErrorObject(request: Request, response, error, value) {
+        return {
+          ...value,
+          ...buildRequestLogContext(request, response, value.responseTime),
+          errorName: error.name,
         };
       },
     }),

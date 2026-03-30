@@ -593,6 +593,91 @@ describe("GiftedScoreboard", () => {
     expect(controller.beginAttempt).not.toHaveBeenCalled();
   });
 
+  it("returns the in-flight attempt id without starting a second attempt", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.beginAttempt = vi.fn();
+    controller.activeAttemptPromise = Promise.resolve({ attemptId: "attempt-789" });
+
+    const result = await controller.ensureActiveAttempt({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      questions: [{ questionId: "q1" }],
+    });
+
+    expect(result).toBe("attempt-789");
+    expect(controller.beginAttempt).not.toHaveBeenCalled();
+  });
+
+  it("skips remote attempt protection when recording a story-mode answer", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.service = {
+      submitAttemptAnswer: vi.fn(),
+    };
+    controller.ensureActiveAttempt = vi.fn();
+
+    const result = await controller.recordValidatedAnswer({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "story",
+      sessionQuestions: [{ questionId: "q1" }],
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+
+    expect(result).toBeNull();
+    expect(controller.ensureActiveAttempt).not.toHaveBeenCalled();
+    expect(controller.service.submitAttemptAnswer).not.toHaveBeenCalled();
+  });
+
+  it("continues a later answer submission after the previous answer queue rejects", async () => {
+    await loadScoreboardScript();
+
+    const controller = createController();
+    controller.answerQueue = Promise.reject(new Error("queued answer failed"));
+    controller.service = {
+      submitAttemptAnswer: vi.fn().mockResolvedValue({
+        record: {
+          player_name: "Alex",
+          score: 9,
+          total_questions: 10,
+          percentage: 90,
+          elapsed_seconds: 61,
+        },
+      }),
+    };
+    controller.ensureActiveAttempt = vi.fn().mockResolvedValue("attempt-123");
+
+    const result = await controller.recordValidatedAnswer({
+      playerName: "Alex",
+      clientType: "web",
+      mode: "quiz",
+      sessionQuestions: [{ questionId: "q1" }],
+      questionId: "q1",
+      bankId: "bank-1",
+      selectedAnswer: "B",
+      elapsedSeconds: 61,
+    });
+
+    expect(result).toEqual({
+      record: {
+        player_name: "Alex",
+        score: 9,
+        total_questions: 10,
+        percentage: 90,
+        elapsed_seconds: 61,
+      },
+    });
+    expect(controller.ensureActiveAttempt).toHaveBeenCalledTimes(1);
+    expect(controller.service.submitAttemptAnswer).toHaveBeenCalledTimes(1);
+  });
+
   it("clears a transient status message after the timeout elapses", async () => {
     await loadScoreboardScript();
     vi.useFakeTimers();

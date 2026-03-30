@@ -38,6 +38,10 @@ Use these files as the current sources of truth:
 - `decisions/reset-route.md`
   - why `POST /api/v1/admin/scores/reset` remains parent-facing and reset-PIN based
 
+- `decisions/observability-platform.md`
+  - why the repo stays with Render log search plus structured logs for now
+  - when to revisit Elastic, OpenSearch, or another hosted logging stack
+
 ## Related Docs Outside This Folder
 
 - `README.md`

@@ -1660,6 +1660,21 @@ describe("app.js targeted coverage", () => {
 
       expect(gamificationController.onAnswerEvaluated).not.toHaveBeenCalled();
     });
+
+    it("logs attempt finalization failures without breaking results rendering", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { finalizeAttempt } = await startApp();
+      finalizeAttempt.mockRejectedValueOnce(new Error("finalize failed"));
+
+      await completeSingleQuestionFlow(attemptQuestion.answer);
+
+      expect(finalizeAttempt).toHaveBeenCalledTimes(1);
+      expect(consoleError).toHaveBeenCalledWith(
+        "[CaptainNova] Attempt finalization failed.",
+        expect.objectContaining({ message: "finalize failed" }),
+      );
+      expect(document.getElementById("resultsSection")?.classList.contains("is-hidden")).toBe(false);
+    });
   });
 });
 

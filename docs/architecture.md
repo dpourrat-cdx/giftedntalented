@@ -58,6 +58,15 @@ Configuration lives in `sonar-project.properties` at the repo root.
 
 Project dashboard: <https://sonarcloud.io/project/overview?id=dpourrat-cdx_giftedntalented>
 
+## Coverage Policy
+
+Coverage is a CI guardrail, not a standing roadmap item.
+
+- Keep overall trusted coverage above the merge gate and Sonar quality gate.
+- With the repo already above `85%` overall line coverage, do not keep dedicated "raise coverage" work in `docs/backlog.md`.
+- Add tests when touching risky behavior, fixing bugs, or closing a clear regression gap, not to pad percentages.
+- Treat wrapper files such as `express.d.ts`, `firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, and `not-found.ts` as low-priority test targets unless they gain meaningful logic.
+
 ## Branch Protection (`master`)
 
 | Rule | Setting |
@@ -87,6 +96,27 @@ The smoke script validates:
 - replay-safe finalize remains idempotent
 
 If the smoke script fails with `PGRST205`, the `score_attempts` schema migration is missing in Supabase.
+
+## Observability
+
+Backend request logs now emit a stable JSON field set for normal responses, rate-limit warnings, and unhandled 5xx failures:
+
+- `requestId`
+- `route`
+- `method`
+- `statusCode`
+- `latencyMs`
+- `remoteIp`
+- `forwardedFor`
+- `requestClass` (`public_read`, `public_write`, `reset`, `admin`)
+
+Render logs are the source of truth for this slice. Elastic/OpenSearch is intentionally out of scope unless the current JSON logs prove insufficient.
+
+Operator search patterns:
+
+- repeated reset attempts: `requestClass:"reset"` or `event:"rate_limit_exceeded" limiter:"reset"`
+- repeated admin auth failures: `requestClass:"admin" statusCode:401`
+- 5xx spikes: `statusCode:>=500` or message `Unhandled request error`
 
 ## Dependabot
 
