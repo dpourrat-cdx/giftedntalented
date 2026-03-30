@@ -135,7 +135,7 @@ function isValidPlayerName(name) {
   // Detect phone-like strings: strip common formatting characters, then check
   // whether the result is a run of 7-15 digits (covers local, national, and
   // international formats). Simple character class avoids ReDoS risk.
-  const digitsOnly = name.trim().replace(/[\s\-.()+ ]/g, "");
+  const digitsOnly = name.trim().replaceAll(/[\s\-.()+]/g, "");
   if (/^\d{7,15}$/.test(digitsOnly)) {
     return "Use a first name or fun nickname — not a phone number.";
   }
