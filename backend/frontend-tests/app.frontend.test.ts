@@ -56,9 +56,15 @@ function buildQuestionBankStub(question = attemptQuestion) {
 
 async function setupAppWithQuestions(
   questions: typeof attemptQuestion[],
-  options: { storyOnly?: boolean; scoreboard?: boolean; blockingOverlay?: boolean } = {},
+  options: {
+    storyOnly?: boolean;
+    scoreboard?: boolean;
+    blockingOverlay?: boolean;
+    autoFinishLaunchVideo?: boolean;
+  } = {},
 ) {
   await loadIndexHtml();
+  stubLaunchVideoElement();
   await importBrowserScript("content.js");
 
   const [primaryQuestion = attemptQuestion] = questions;
@@ -121,8 +127,39 @@ async function setupAppWithQuestions(
   return { beginAttempt, recordValidatedAnswer, finalizeAttempt, gamificationController, overlayStateChange };
 }
 
+async function finishLaunchVideoIfPresent() {
+  const launchVideoPanel = document.getElementById("launchVideoPanel");
+  const launchVideo = document.getElementById("launchVideo") as HTMLVideoElement | null;
+  if (!launchVideoPanel || !launchVideo || launchVideoPanel.classList.contains("is-hidden")) {
+    return;
+  }
+
+  launchVideo.dispatchEvent(new window.Event("ended"));
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+function stubLaunchVideoElement() {
+  const launchVideo = document.getElementById("launchVideo") as HTMLVideoElement | null;
+  if (!launchVideo) {
+    return;
+  }
+
+  Object.defineProperty(launchVideo, "play", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockResolvedValue(undefined),
+  });
+  Object.defineProperty(launchVideo, "pause", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+}
+
 async function startAttemptWithScoreboard(question: typeof attemptQuestion, answerResult: Record<string, unknown>) {
   await loadIndexHtml();
+  stubLaunchVideoElement();
   await importBrowserScript("content.js");
 
   window.GiftedQuestionBank = buildQuestionBankStub(question);
@@ -164,6 +201,7 @@ async function startAttemptWithScoreboard(question: typeof attemptQuestion, answ
 
   await Promise.resolve();
   await new Promise((resolve) => window.setTimeout(resolve, 0));
+  await finishLaunchVideoIfPresent();
 
   return {
     beginAttempt,
@@ -197,7 +235,10 @@ async function setupApp(
   return setupAppWithQuestions([question], options);
 }
 
-async function startApp(question = attemptQuestion, options: { storyOnly?: boolean } = {}) {
+async function startApp(
+  question = attemptQuestion,
+  options: { storyOnly?: boolean; autoFinishLaunchVideo?: boolean } = {},
+) {
   const mocks = await setupApp(question, options);
 
   const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
@@ -209,12 +250,16 @@ async function startApp(question = attemptQuestion, options: { storyOnly?: boole
 
   await Promise.resolve();
   await new Promise((resolve) => window.setTimeout(resolve, 0));
+  if (options.autoFinishLaunchVideo !== false) {
+    await finishLaunchVideoIfPresent();
+  }
 
   return mocks;
 }
 
 async function loadNormalizeAttemptQuestion(question = attemptQuestion) {
   await loadIndexHtml();
+  stubLaunchVideoElement();
   await loadFrontendScript("content.js");
 
   window.GiftedQuestionBank = buildQuestionBankStub(question);
@@ -248,6 +293,7 @@ async function loadNormalizeAttemptQuestion(question = attemptQuestion) {
 
 async function loadAppHelpers(question = attemptQuestion) {
   await loadIndexHtml();
+  stubLaunchVideoElement();
   await loadFrontendScript("content.js");
 
   window.GiftedQuestionBank = buildQuestionBankStub(question);
@@ -347,6 +393,7 @@ describe("app.js targeted coverage", () => {
 
   it("wraps answer buttons in list items when rendering a started attempt", async () => {
     await loadIndexHtml();
+    stubLaunchVideoElement();
     await importBrowserScript("content.js");
 
     window.GiftedQuestionBank = {
@@ -404,7 +451,7 @@ describe("app.js targeted coverage", () => {
     );
 
     await Promise.resolve();
-    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    await finishLaunchVideoIfPresent();
 
     const optionsList = document.getElementById("optionsList") as HTMLUListElement;
     expect(optionsList.children).toHaveLength(4);
@@ -547,6 +594,57 @@ describe("app.js targeted coverage", () => {
       expect(mocks.beginAttempt).not.toHaveBeenCalled();
       expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(true);
       expect(document.getElementById("nextHint")?.textContent).toBe("Type your name to begin the mission.");
+    });
+
+    it("plays the launch video before quiz mode starts the first mission", async () => {
+      const mocks = await setupApp();
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+      nameInput.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
+
+      await Promise.resolve();
+
+      const launchVideoPanel = document.getElementById("launchVideoPanel") as HTMLElement;
+      const launchVideo = document.getElementById("launchVideo") as HTMLVideoElement;
+
+      expect(mocks.beginAttempt).toHaveBeenCalledTimes(1);
+      expect(launchVideoPanel.classList.contains("is-hidden")).toBe(false);
+      expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(true);
+      expect(mocks.gamificationController.sync.mock.calls.at(-1)?.[0]?.hasStarted).toBe(false);
+
+      launchVideo.dispatchEvent(new window.Event("ended"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(launchVideoPanel.classList.contains("is-hidden")).toBe(true);
+      expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(false);
+      expect(mocks.gamificationController.sync.mock.calls.at(-1)?.[0]?.hasStarted).toBe(true);
+    });
+
+    it("skips the launch video in story only mode", async () => {
+      const mocks = await setupApp(attemptQuestion, {
+        storyOnly: true,
+      });
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+      nameInput.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mocks.beginAttempt).not.toHaveBeenCalled();
+      expect(document.getElementById("launchVideoPanel")?.classList.contains("is-hidden")).toBe(true);
+      expect(document.getElementById("questionPrompt")?.textContent).toBe(
+        "Story Only mode is on. Follow Captain Nova through each mission scene.",
+      );
     });
   });
 
@@ -821,6 +919,7 @@ describe("app.js targeted coverage", () => {
       nameInput.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 
       await Promise.resolve();
+      await finishLaunchVideoIfPresent();
 
       await completeSingleQuestionFlow(attemptQuestion.answer);
 
@@ -1018,6 +1117,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         const buttons = Array.from(
           document.querySelectorAll("#optionsList button"),
@@ -1077,6 +1177,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         const buttons = Array.from(
           document.querySelectorAll("#optionsList button"),
@@ -1129,6 +1230,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         const buttons = Array.from(
           document.querySelectorAll("#optionsList button"),
@@ -1195,6 +1297,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         const buttons = Array.from(
           document.querySelectorAll("#optionsList button"),
@@ -1429,6 +1532,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         await vi.advanceTimersByTimeAsync(30000);
         await Promise.resolve();
@@ -1453,6 +1557,7 @@ describe("app.js targeted coverage", () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        await finishLaunchVideoIfPresent();
 
         overlayStateChange?.({
           hasBlocking: true,

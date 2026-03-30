@@ -256,7 +256,7 @@
           title: "Sorting Protocol",
           rocketPart: "Launch Flames",
           completionArtwork: {
-            src: "./assets/mission-8-launch-glow-unlocked.png",
+            src: "./assets/mission-7-launch-flames-unlocked.png",
             alt: "Mission 7 complete scene showing Captain Nova as the Launch Flames ignite beneath the rocket and the countdown wakes.",
           },
           introduction: storyText([
@@ -294,7 +294,7 @@
           title: "Final Logic System",
           rocketPart: "Launch Glow",
           completionArtwork: {
-            src: "./assets/mission-8-launch-glow-unlocked-v2.png",
+            src: "./assets/mission-8-launch-glow-unlocked.png",
             alt: "Mission 8 complete scene showing Captain Nova as the final launch system surges awake and the rocket glows with full power.",
           },
           introduction: storyText([
@@ -472,6 +472,8 @@
       readyNextHint: "Press Enter to start Mission 1: Verbal Challenge.",
       readyStoryOnlyNextHint: "Press Enter to play the story route.",
       playerReadyNote: "Explorer {name}, your mission console is ready.",
+      launchVideoPrompt: "Captain Nova is launching toward the first mission.",
+      launchVideoStatus: "Captain Nova is launching. Your mission briefing will open in a moment.",
     },
     question: {
       counter: "Mission Step {current} of {total}",
