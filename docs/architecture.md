@@ -12,7 +12,7 @@
 
 ## Release Flow
 
-1. Work on a feature branch (prefix: `claude/`, `codex/`, or `feature/`) - never push directly to `master`.
+1. Work on an agent-owned branch in an agent-owned worktree (`claude/*` for Claude, `codex/*` for Codex) - never push directly to `master`.
 2. Run local checks inside `backend/` before opening a PR:
    ```bash
    npm run check && npm test && npm run build
@@ -24,7 +24,9 @@
 7. Run `npm run smoke:live` from `backend/` to verify the live backend is healthy.
 8. Delete the feature branch after merge.
 
-For the per-agent checklist, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+On Windows, use `npm.cmd` for these backend commands as described in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+For the per-agent checklist, branch/worktree rules, and review flow, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## CI Pipeline
 
