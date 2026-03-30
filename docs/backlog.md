@@ -46,11 +46,19 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 ## Priority 5: Testing And Operations
 
-- [ ] Repeat browser-level verification when a major UI flow changes, but treat it as maintenance now that the latest live pass did not surface a clear blocker.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
 
-## Priority 6: Product And Content Improvements
+## Priority 6: Android And Accounts
+
+- [ ] Choose the Android delivery approach for the current app and document the path to Google Play release, including packaging strategy, app identity/assets, signing, privacy/support metadata, internal testing, and production rollout steps.
+- [ ] Define the minimum Android-ready product changes needed for Play release, including mobile install/runtime behavior, offline/failure handling expectations, and any app-shell or hosting changes required by the chosen packaging approach.
+- [ ] Design parent account ownership around passwordless email-code login using the existing Supabase stack, with no password flow.
+- [ ] Define what parent login unlocks, including cross-device score retrieval, future parent controls, and any account-bound export or management actions.
+- [ ] Keep score tracking server-side for monitoring and operations even without login, but do not let children retrieve historical scores later unless a parent account flow is in place.
+- [ ] Separate child play from parent account actions clearly in the UX so children can play without credentials while parent-only retrieval and management stay behind the email-code flow.
+
+## Priority 7: Product And Content Improvements
 
 - [ ] Add a parent-friendly storyline selector so future story packs can be chosen without editing code.
 - [ ] Move storyline packs out of the main JS bundle into dedicated content files or JSON.
@@ -63,5 +71,5 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
+1. **Android and account planning** - define the Google Play delivery path and parent passwordless account model before implementation work starts.
 2. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
