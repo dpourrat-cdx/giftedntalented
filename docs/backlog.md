@@ -58,6 +58,7 @@ Use these docs as the durable sources of truth:
 
 Claude owns Priority 4 execution. Codex should stay out of that implementation track unless explicitly redirected.
 
+- [ ] Treat the current privacy-policy step as a draft/WIP release only; before calling Priority 4 complete, replace placeholder operator/contact details with owner-provided values and reconcile the live policy wording with the actually shipped controls.
 - [ ] Implement per-child deletion (`DELETE /api/v1/admin/players/:playerName/records`) so one child's records can be removed without clearing all saved data.
 - [ ] Turn the retention plan into implementation, including a durable `last_active_at` signal for score retention and a cleanup mechanism that matches the documented policy.
 - [ ] Capture the explorer-name model decision as a durable ADR and add the chosen guardrails for name input.
