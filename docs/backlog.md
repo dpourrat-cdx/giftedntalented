@@ -43,6 +43,7 @@ Use these docs as the durable sources of truth:
 - [ ] Keep `docs/backend-api-spec.md`, `backend/README.md`, and `docs/decisions/frontend-header-security.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
 - [ ] Keep the docs in `docs/` purpose-specific, use `docs/backlog.md` for live planning, and delete temporary planning files instead of letting them become stale history.
 - [ ] Keep `README.md`, `docs/README.md`, and `docs/architecture.md` aligned with `CONTRIBUTING.md` whenever branch/worktree rules, Windows command guidance, or merge expectations change.
+- [ ] Before any privacy-policy page is published on GitHub Pages, get the real operator name and working contact email from the repo owner and replace placeholders instead of shipping an incomplete public legal notice.
 
 ## Priority 3: Code Quality And Maintainability
 
