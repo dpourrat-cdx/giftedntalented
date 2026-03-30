@@ -87,3 +87,175 @@
     display: grid;
   }
 }
+
+/* Consent notice — shown before first use until parent acknowledges */
+.consent-notice {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(42, 157, 143, 0.18);
+  box-shadow: 0 4px 12px rgba(24, 53, 61, 0.06);
+  margin-bottom: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.consent-notice.is-hidden {
+  display: none;
+}
+
+.consent-notice-text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.consent-notice-link {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.consent-notice-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.consent-notice-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--teal);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* App footer — privacy policy link */
+.app-footer {
+  padding: 20px 0 4px;
+  text-align: center;
+}
+
+.privacy-link {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.privacy-link:hover,
+.privacy-link:focus-visible {
+  color: var(--teal);
+  text-decoration: underline;
+}
+
+/* Privacy policy page */
+.privacy-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  color: var(--ink);
+  line-height: 1.65;
+}
+
+.privacy-page h1 {
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+.privacy-page .eyebrow {
+  margin-bottom: 32px;
+}
+
+.privacy-page h2 {
+  font-size: 1.15rem;
+  margin-top: 36px;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+
+.privacy-draft-note {
+  padding: 14px 18px;
+  margin: 18px 0 24px;
+  border-radius: 14px;
+  background: rgba(231, 111, 81, 0.12);
+  border: 1px solid rgba(231, 111, 81, 0.28);
+}
+
+.privacy-draft-note p {
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.privacy-page p,
+.privacy-page li {
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+.privacy-page ul {
+  padding-left: 20px;
+}
+
+.privacy-page table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.privacy-page th,
+.privacy-page td {
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid rgba(42, 157, 143, 0.2);
+}
+
+.privacy-page th {
+  background: rgba(42, 157, 143, 0.08);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.privacy-summary-box {
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: rgba(42, 157, 143, 0.08);
+  border: 1px solid rgba(42, 157, 143, 0.2);
+  margin-bottom: 32px;
+}
+
+.privacy-summary-box p {
+  margin: 0;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.privacy-back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: var(--teal);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.privacy-back-link:hover {
+  text-decoration: underline;
+}
+
+.privacy-placeholder {
+  background: rgba(231, 111, 81, 0.1);
+  border: 1px dashed var(--accent);
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: var(--accent-deep);
+  font-style: italic;
+}

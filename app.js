@@ -46,6 +46,8 @@ const dom = {
   questionFeedbackRoot: document.getElementById("questionFeedbackRoot"),
   gamificationOverlayRoot: document.getElementById("gamificationOverlayRoot"),
   nameEntry: document.getElementById("nameEntry"),
+  consentNotice: document.getElementById("consentNotice"),
+  consentCheckbox: document.getElementById("consentCheckbox"),
   childNameInput: document.getElementById("childNameInput"),
   nameLabel: document.getElementById("nameLabel"),
   nameHint: document.getElementById("nameHint"),
@@ -119,6 +121,26 @@ let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
 let questionBankLookup = null;
 let isStartingAttempt = false;
+
+const CONSENT_KEY = "gifted-consent-v1";
+
+function isValidPlayerName(name) {
+  // Detect email-like strings without a backtracking-prone regex.
+  // A name is email-like when there is an @ with at least one char before it
+  // and a dot somewhere after it.
+  const atIndex = name.indexOf("@");
+  if (atIndex > 0 && name.indexOf(".", atIndex) > atIndex + 1) {
+    return "Use a first name or fun nickname — not an email address.";
+  }
+  // Detect phone-like strings: strip common formatting characters, then check
+  // whether the result is a run of 7-15 digits (covers local, national, and
+  // international formats). Simple character class avoids ReDoS risk.
+  const digitsOnly = name.trim().replaceAll(/[\s\-.()+]/g, "");
+  if (/^\d{7,15}$/.test(digitsOnly)) {
+    return "Use a first name or fun nickname — not a phone number.";
+  }
+  return null;
+}
 
 function totalQuestions() {
   return sessionQuestions.length;
@@ -1786,6 +1808,12 @@ function startTestFromBeginning() {
     return;
   }
 
+  const nameError = isValidPlayerName(playerName);
+  if (nameError) {
+    scoreboardController?.setStatus(nameError, "error");
+    return;
+  }
+
   currentIndex = 0;
   isStoryOnlySession = storyOnlyModeEnabled;
   const isQuizSession = !isStoryOnlySession;
@@ -2148,6 +2176,23 @@ if (globalThis.GiftedScoreboard) {
   });
   scoreboardController.init();
   scoreboardController.setActivePlayerName(playerName);
+}
+
+if (dom.consentCheckbox) {
+  const consentGiven = Boolean(globalThis.localStorage?.getItem(CONSENT_KEY));
+  if (consentGiven) {
+    dom.consentNotice?.classList.add("is-hidden");
+  } else {
+    dom.childNameInput.disabled = true;
+  }
+  dom.consentCheckbox.addEventListener("change", () => {
+    if (dom.consentCheckbox.checked) {
+      globalThis.localStorage?.setItem(CONSENT_KEY, "1");
+      dom.consentNotice?.classList.add("is-hidden");
+      dom.childNameInput.disabled = false;
+      dom.childNameInput.focus();
+    }
+  });
 }
 
 ensureSemanticProgressFill();
