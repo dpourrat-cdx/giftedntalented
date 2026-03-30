@@ -13,6 +13,7 @@ This file tracks open work only. Completed items should stay here only if they s
 - SonarCloud's project dashboard may still show a lower overall number because it is a broader dashboard metric than the local runtime-focused planning summary.
 - Thin infra wrappers are intentionally low-priority by default: `express.d.ts` is a no-test file, `firebase.ts`, `supabase.ts`, and `logger.ts` remain accepted wrapper gaps unless behavior grows, and `server.ts` / `not-found.ts` only need direct tests if they pick up meaningful logic.
 - A March 29, 2026 live-browser pass on GitHub Pages exercised learner start, leaderboard lookup/reset-cancel entry, and Story Only entry without surfacing a clear blocker, so browser verification should now move behind the next narrow code or ops slice until another major UI change lands.
+- A March 30, 2026 Markdown coherence pass found a small amount of non-product doc drift; keep `README.md`, `docs/README.md`, `docs/architecture.md`, and `CONTRIBUTING.md` aligned on branch/worktree expectations and operational commands.
 
 Only keep completed work here when it still affects what happens next:
 
@@ -41,6 +42,7 @@ Use these docs as the durable sources of truth:
 
 - [ ] Keep `docs/backend-api-spec.md`, `backend/README.md`, and `docs/decisions/frontend-header-security.md` aligned when the reset flow, hosting model, frame-busting fallback, or smoke process changes.
 - [ ] Keep the docs in `docs/` purpose-specific, use `docs/backlog.md` for live planning, and delete temporary planning files instead of letting them become stale history.
+- [ ] Keep `README.md`, `docs/README.md`, and `docs/architecture.md` aligned with `CONTRIBUTING.md` whenever branch/worktree rules, Windows command guidance, or merge expectations change.
 
 ## Priority 3: Code Quality And Maintainability
 
@@ -66,7 +68,8 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 - [ ] Revisit `scoreboard.js` first and then any residual `app.js` timer/result-transition edges that still show up in the current local coverage report.
 - [ ] Repeat browser-level verification when a major UI flow changes, but treat it as maintenance now that the latest live pass did not surface a clear blocker.
 - [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
-- [ ] Add alerting or monitoring for unusual public write bursts, repeated reset failures, and backend error spikes.
+- [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
+- [ ] Decide whether long-lived observability should use Elastic / OpenSearch-backed log search and alerts or stay with a lighter hosted logging path, based on cost, maintenance burden, and the small current traffic profile.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
 
 ## Priority 6: Product And Content Improvements
@@ -82,7 +85,7 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the latest raw `npm.cmd run test:coverage` output as the planning baseline when it disagrees with `coverage:report`.
-2. **Operations follow-up** - add the next smallest credible monitoring or Render improvement beyond the scheduled production smoke workflow.
+1. **Operations observability** - add the smallest credible backend telemetry slice first: structured request/error logging, a basic alert path for resets/write bursts/5xx spikes, and a decision memo on whether Elastic / OpenSearch is justified yet.
+2. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the latest raw `npm.cmd run test:coverage` output as the planning baseline when it disagrees with `coverage:report`.
 3. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
 4. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
