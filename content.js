@@ -6,7 +6,7 @@
   const storylines = Object.freeze({
     cinematicCaptainNova: {
       id: "cinematicCaptainNova",
-      title: "Captain Nova's Rocket Mission",
+      title: "Captain Cocoa's Rocket Mission",
       introductionArtwork: {
         src: "./assets/captain-nova-launch-bay-portal.png",
         alt: "Captain Nova standing in Mission Control beside the unfinished rocket while a glowing route opens toward deep space and Luma-7.",
@@ -417,7 +417,7 @@
   const content = {
     hero: {
       eyebrow: "Mission Control",
-      title: "Captain Nova's Rocket Mission",
+      title: "Captain Cocoa's Rocket Mission",
       copy: "A story-driven gifted practice adventure for brave young engineers.",
       metrics: {
         steps: "{count} Mission Steps",

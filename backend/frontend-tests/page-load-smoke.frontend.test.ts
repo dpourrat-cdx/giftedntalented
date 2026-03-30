@@ -95,7 +95,7 @@ describe("page load smoke", () => {
     );
 
     expect(document.querySelector("main.app-shell")).not.toBeNull();
-    expect(document.getElementById("heroTitle")?.textContent).toBe("Captain Nova's Rocket Mission");
+    expect(document.getElementById("heroTitle")?.textContent).toBe("Captain Cocoa's Rocket Mission");
     expect(document.getElementById("questionPanel")).not.toBeNull();
     expect(document.getElementById("resultsSection")).not.toBeNull();
     expect(document.getElementById("gamificationOverlayRoot")).not.toBeNull();
