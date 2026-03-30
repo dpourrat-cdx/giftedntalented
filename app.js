@@ -45,6 +45,9 @@ const dom = {
   rocketProgressRoot: document.getElementById("rocketProgressRoot"),
   questionFeedbackRoot: document.getElementById("questionFeedbackRoot"),
   gamificationOverlayRoot: document.getElementById("gamificationOverlayRoot"),
+  launchVideoPanel: document.getElementById("launchVideoPanel"),
+  launchVideo: document.getElementById("launchVideo"),
+  launchVideoStatus: document.getElementById("launchVideoStatus"),
   nameEntry: document.getElementById("nameEntry"),
   consentNotice: document.getElementById("consentNotice"),
   consentCheckbox: document.getElementById("consentCheckbox"),
@@ -121,6 +124,8 @@ let storyOnlyModeEnabled = false;
 let isStoryOnlySession = false;
 let questionBankLookup = null;
 let isStartingAttempt = false;
+let isLaunchVideoActive = false;
+let launchVideoCompletion = null;
 
 const CONSENT_KEY = "gifted-consent-v1";
 
@@ -173,6 +178,77 @@ function syncGamification() {
   });
 }
 
+function resetLaunchVideoState() {
+  isLaunchVideoActive = false;
+  launchVideoCompletion = null;
+  dom.questionPanel.classList.remove("is-launch-video-screen");
+  dom.launchVideoPanel?.classList.add("is-hidden");
+  if (dom.launchVideoStatus) {
+    dom.launchVideoStatus.textContent =
+      startContent.launchVideoStatus || "Captain Nova is launching. Your mission briefing will open in a moment.";
+  }
+  if (dom.launchVideo) {
+    dom.launchVideo.pause();
+    dom.launchVideo.currentTime = 0;
+  }
+}
+
+function renderLaunchVideoScreen() {
+  dom.questionPanel.classList.add("is-start-screen", "is-launch-video-screen");
+  dom.tipCard?.classList.add("is-hidden");
+  dom.nameEntry.classList.add("is-hidden");
+  dom.playerNote.classList.add("is-hidden");
+  dom.questionPrompt.textContent =
+    startContent.launchVideoPrompt || "Captain Nova is launching toward the first mission.";
+  dom.questionStimulus.textContent = "";
+  dom.questionStimulus.classList.add("is-hidden");
+  dom.optionsList.innerHTML = "";
+  dom.feedbackPanel.className = "feedback-panel is-hidden";
+  dom.feedbackPanel.innerHTML = "";
+  renderIntroductionStory();
+  dom.launchVideoPanel?.classList.remove("is-hidden");
+  lastRenderedQuestionIndex = -1;
+  dom.questionStage.scrollTop = 0;
+  syncGamification();
+}
+
+function playLaunchVideo(onComplete) {
+  if (isStoryOnlySession || !dom.launchVideo) {
+    onComplete();
+    return;
+  }
+
+  let finished = false;
+  const video = dom.launchVideo;
+
+  function complete() {
+    if (finished) {
+      return;
+    }
+
+    finished = true;
+    video.removeEventListener("ended", complete);
+    video.removeEventListener("error", complete);
+    const callback = launchVideoCompletion;
+    resetLaunchVideoState();
+    callback?.();
+  }
+
+  launchVideoCompletion = onComplete;
+  isLaunchVideoActive = true;
+  renderLaunchVideoScreen();
+  video.addEventListener("ended", complete, { once: true });
+  video.addEventListener("error", complete, { once: true });
+  video.currentTime = 0;
+
+  const playPromise = video.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch(() => {
+      complete();
+    });
+  }
+}
+
 function testDurationSeconds() {
   return totalQuestions() * 30;
 }
@@ -193,6 +269,7 @@ function createNewSession() {
   isSubmitted = false;
   hasStarted = false;
   lastRenderedQuestionIndex = -1;
+  resetLaunchVideoState();
 }
 
 function canonicalQuestionByBankId(bankId) {
@@ -1376,7 +1453,11 @@ function resolveStartScreenNextHint() {
 }
 
 function renderStartScreen() {
+  if (!isLaunchVideoActive) {
+    dom.launchVideoPanel?.classList.add("is-hidden");
+  }
   dom.questionPanel.classList.add("is-start-screen");
+  dom.questionPanel.classList.remove("is-launch-video-screen");
   dom.tipCard?.classList.remove("is-hidden");
   dom.nameEntry.classList.remove("is-hidden");
   dom.playerNote.classList.add("is-hidden");
@@ -1579,12 +1660,17 @@ function renderQuestion() {
   renderStartBadges();
   renderSectionStats();
 
+  if (isLaunchVideoActive) {
+    renderLaunchVideoScreen();
+    return;
+  }
+
   if (!hasStarted) {
     renderStartScreen();
     return;
   }
 
-  dom.questionPanel.classList.remove("is-start-screen");
+  dom.questionPanel.classList.remove("is-start-screen", "is-launch-video-screen");
   dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   const question = questionAt(currentIndex);
@@ -1843,27 +1929,29 @@ function startTestFromBeginning() {
 
   if (scoreboardController && isQuizSession) {
     isStartingAttempt = true;
-    dom.nextHint.textContent = "Preparing mission steps...";
-    dom.nextHint.classList.remove("is-hidden");
-    dom.nextButton.disabled = true;
-    scoreboardController
+    const attemptStartPromise = scoreboardController
       .beginAttempt({
         playerName,
         clientType: "web",
         mode: "quiz",
       })
-      .then((result) => {
-        beginSessionWithQuestions(result?.questions ?? []);
-      })
+      .then((result) => result?.questions ?? [])
       .catch((error) => {
         reportAsyncMissionError("Attempt start failed.", error);
-        beginSessionWithQuestions([]);
+        return [];
       });
+
+    playLaunchVideo(async () => {
+      const questions = await attemptStartPromise;
+      beginSessionWithQuestions(questions);
+    });
 
     return;
   }
 
-  beginSessionWithQuestions([]);
+  playLaunchVideo(() => {
+    beginSessionWithQuestions([]);
+  });
 }
 
 function restartTest() {
