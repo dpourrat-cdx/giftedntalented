@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { logger } from "../config/logger.js";
 import { AppError } from "../utils/errors.js";
 import { errorHandler } from "./error-handler.js";
 
@@ -8,7 +9,16 @@ vi.mock("../config/logger.js", () => ({
 }));
 
 function createMockReqRes() {
-  const req = { requestId: "test-request-id" } as unknown as Request;
+  const req = {
+    requestId: "test-request-id",
+    method: "GET",
+    baseUrl: "",
+    originalUrl: "/",
+    path: "/",
+    headers: {},
+    ip: "203.0.113.10",
+    socket: { remoteAddress: "198.51.100.5" },
+  } as unknown as Request;
   const jsonFn = vi.fn();
   const statusFn = vi.fn(() => ({ json: jsonFn }));
   const res = { status: statusFn, json: jsonFn } as unknown as Response;
@@ -64,6 +74,16 @@ describe("errorHandler", () => {
         message: "The server could not complete the request.",
         requestId: "test-request-id",
       }),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: "test-request-id",
+        statusCode: 500,
+        route: "/",
+        method: "GET",
+        requestClass: "public_read",
+      }),
+      "Unhandled request error",
     );
   });
 });

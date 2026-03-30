@@ -88,6 +88,27 @@ The smoke script validates:
 
 If the smoke script fails with `PGRST205`, the `score_attempts` schema migration is missing in Supabase.
 
+## Observability
+
+Backend request logs now emit a stable JSON field set for normal responses, rate-limit warnings, and unhandled 5xx failures:
+
+- `requestId`
+- `route`
+- `method`
+- `statusCode`
+- `latencyMs`
+- `remoteIp`
+- `forwardedFor`
+- `requestClass` (`public_read`, `public_write`, `reset`, `admin`)
+
+Render logs are the source of truth for this slice. Elastic/OpenSearch is intentionally out of scope unless the current JSON logs prove insufficient.
+
+Operator search patterns:
+
+- repeated reset attempts: `requestClass:"reset"` or `event:"rate_limit_exceeded" limiter:"reset"`
+- repeated admin auth failures: `requestClass:"admin" statusCode:401`
+- 5xx spikes: `statusCode:>=500` or message `Unhandled request error`
+
 ## Dependabot
 
 `.github/dependabot.yml` opens weekly PRs for `backend/` npm updates every Monday:
