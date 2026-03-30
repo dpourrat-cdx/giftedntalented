@@ -14,7 +14,7 @@ function sanitizeLogField(value: string | null | undefined): string | null {
     return null;
   }
 
-  const sanitized = value.replace(/[\r\n\t]+/g, " ").trim();
+  const sanitized = value.replaceAll(/[\r\n\t]+/g, " ").trim();
 
   if (!sanitized) {
     return null;
