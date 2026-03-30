@@ -58,6 +58,15 @@ Configuration lives in `sonar-project.properties` at the repo root.
 
 Project dashboard: <https://sonarcloud.io/project/overview?id=dpourrat-cdx_giftedntalented>
 
+## Coverage Policy
+
+Coverage is a CI guardrail, not a standing roadmap item.
+
+- Keep overall trusted coverage above the merge gate and Sonar quality gate.
+- With the repo already above `85%` overall line coverage, do not keep dedicated "raise coverage" work in `docs/backlog.md`.
+- Add tests when touching risky behavior, fixing bugs, or closing a clear regression gap, not to pad percentages.
+- Treat wrapper files such as `express.d.ts`, `firebase.ts`, `supabase.ts`, `logger.ts`, `server.ts`, and `not-found.ts` as low-priority test targets unless they gain meaningful logic.
+
 ## Branch Protection (`master`)
 
 | Rule | Setting |

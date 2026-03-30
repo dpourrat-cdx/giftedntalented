@@ -18,7 +18,7 @@ Use the durable docs for system details and settled decisions:
 ## Working Assumptions
 
 - Privacy & Parent Safety remains Claude-owned unless explicitly redirected.
-- The next Codex-owned slice is operational observability, then targeted frontend coverage work.
+- The next Codex-owned slice is operational observability and operations follow-through, not another coverage wave.
 
 ## Priority 1: Security Hardening
 
@@ -30,8 +30,8 @@ Use the durable docs for system details and settled decisions:
 
 ## Priority 3: Code Quality And Maintainability
 
-- [ ] Target the biggest remaining meaningful runtime gaps first, starting with `scoreboard.js` and then residual `app.js` edges.
-- [ ] Use `cd backend && npm.cmd run coverage:report` after each coverage wave and include the changed file-level summary in the PR thread.
+- [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
+- [ ] Treat thin infra wrappers as low-value by default: accept `express.d.ts` as an intentional no-test file, keep `firebase.ts`, `supabase.ts`, and `logger.ts` as accepted wrapper gaps unless behavior grows, and only add direct tests for `server.ts` / `not-found.ts` if they pick up meaningful logic.
 
 ## Priority 4: Privacy And Parent Safety
 
@@ -47,8 +47,8 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 ## Priority 5: Testing And Operations
 
-- [ ] Revisit `scoreboard.js` first and then any residual `app.js` timer/result-transition edges that still show up in the current local coverage report.
-- [ ] Repeat browser-level verification after the next meaningful UI change or if a PR appears risky enough to justify it.
+- [ ] Repeat browser-level verification when a major UI flow changes, but treat it as maintenance now that the latest live pass did not surface a clear blocker.
+- [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
 - [ ] Decide whether long-lived observability should use Elastic / OpenSearch-backed log search and alerts or stay with a lighter hosted logging path, based on cost, maintenance burden, and the small current traffic profile.
 - [ ] Review Render cold-start behavior and decide whether uptime mitigation is worth the cost.
@@ -67,6 +67,5 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
 
 1. **Operations observability** - add the smallest credible backend telemetry slice first: structured request/error logging, a basic alert path for resets/write bursts/5xx spikes, and a decision memo on whether Elastic / OpenSearch is justified yet.
-2. **Next coverage wave** - revisit `scoreboard.js` first and then any residual `app.js` edges, using the latest raw `npm.cmd run test:coverage` output as the planning baseline when it disagrees with `coverage:report`.
-3. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
-4. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
+2. **Browser verification maintenance** - repeat the live desktop/mobile pass only after another meaningful UI change lands, or if a PR appears risky enough to justify it.
+3. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
