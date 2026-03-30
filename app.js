@@ -194,8 +194,7 @@ function resetLaunchVideoState() {
 }
 
 function renderLaunchVideoScreen() {
-  dom.questionPanel.classList.add("is-start-screen");
-  dom.questionPanel.classList.add("is-launch-video-screen");
+  dom.questionPanel.classList.add("is-start-screen", "is-launch-video-screen");
   dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   dom.playerNote.classList.add("is-hidden");
@@ -1671,8 +1670,7 @@ function renderQuestion() {
     return;
   }
 
-  dom.questionPanel.classList.remove("is-start-screen");
-  dom.questionPanel.classList.remove("is-launch-video-screen");
+  dom.questionPanel.classList.remove("is-start-screen", "is-launch-video-screen");
   dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   const question = questionAt(currentIndex);
