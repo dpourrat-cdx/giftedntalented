@@ -25,18 +25,14 @@ Use the durable docs for system details and settled decisions:
 
 ## Priority 2: Documentation And Repo Hygiene
 
-- [ ] Before any privacy-policy page is published on GitHub Pages, get the real operator name and working contact email from the repo owner and replace placeholders instead of shipping an incomplete public legal notice.
-
 ## Priority 3: Code Quality And Maintainability
-
-- [ ] Keep any future frontend harness changes source-attributed rather than eval-driven so new coverage remains honest and stable in Sonar.
-- [ ] Treat thin infra wrappers as low-value by default: accept `express.d.ts` as an intentional no-test file, keep `firebase.ts`, `supabase.ts`, and `logger.ts` as accepted wrapper gaps unless behavior grows, and only add direct tests for `server.ts` / `not-found.ts` if they pick up meaningful logic.
 
 ## Priority 4: Privacy And Parent Safety
 
 Claude owns Priority 4 execution. Codex should stay out of that implementation track unless explicitly redirected.
 
 - [ ] Treat the current privacy-policy step as a draft/WIP release only; before calling Priority 4 complete, replace placeholder operator/contact details with owner-provided values and reconcile the live policy wording with the actually shipped controls.
+- [ ] Before any privacy-policy page is published on GitHub Pages, get the real operator name and working contact email from the repo owner and replace placeholders instead of shipping an incomplete public legal notice.
 - [ ] Once the repo owner provides the operator name and contact email, add them to `privacy.html`, restore the privacy-policy link in the consent notice text, and restore the Privacy Policy footer link in `index.html`.
 - [ ] Implement per-child deletion (`DELETE /api/v1/admin/players/:playerName/records`) so one child's records can be removed without clearing all saved data.
 - [ ] Turn the retention plan into implementation, including a durable `last_active_at` signal for score retention and a cleanup mechanism that matches the documented policy.
@@ -46,7 +42,6 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 ## Priority 5: Testing And Operations
 
-- [ ] Keep `backend/scripts/smoke-live-backend.ts` aligned whenever schema or score flow changes.
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
 
 ## Priority 6: Android And Accounts
