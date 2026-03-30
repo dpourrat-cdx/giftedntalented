@@ -23,28 +23,23 @@ Use the durable docs for system details and settled decisions:
 
 - [ ] If a header-capable host or proxy is chosen later, add real CSP reporting and frame-ancestor protection there.
 
-## Priority 2: Documentation And Repo Hygiene
+## Priority 2: Privacy And Parent Safety
 
-## Priority 3: Code Quality And Maintainability
+Claude owns this priority. Codex should stay out of that implementation track unless explicitly redirected.
 
-## Priority 4: Privacy And Parent Safety
-
-Claude owns Priority 4 execution. Codex should stay out of that implementation track unless explicitly redirected.
-
-- [ ] Treat the current privacy-policy step as a draft/WIP release only; before calling Priority 4 complete, replace placeholder operator/contact details with owner-provided values and reconcile the live policy wording with the actually shipped controls.
-- [ ] Before any privacy-policy page is published on GitHub Pages, get the real operator name and working contact email from the repo owner and replace placeholders instead of shipping an incomplete public legal notice.
-- [ ] Once the repo owner provides the operator name and contact email, add them to `privacy.html`, restore the privacy-policy link in the consent notice text, and restore the Privacy Policy footer link in `index.html`.
+- [ ] Treat the current privacy-policy step as a draft/WIP release only; before calling Priority 2 complete, replace placeholder operator/contact details with owner-provided values and reconcile the live policy wording with the actually shipped controls.
+- [ ] Before any privacy-policy page is published on GitHub Pages, get the real operator name and working contact email from the repo owner, add them to `privacy.html`, and restore the privacy-policy links in the consent notice and footer.
 - [ ] Implement per-child deletion (`DELETE /api/v1/admin/players/:playerName/records`) so one child's records can be removed without clearing all saved data.
 - [ ] Turn the retention plan into implementation, including a durable `last_active_at` signal for score retention and a cleanup mechanism that matches the documented policy.
 - [ ] Capture the explorer-name model decision as a durable ADR and add the chosen guardrails for name input.
 - [ ] Replace the browser prompt-based parent reset flow with a dedicated parent controls panel that can also host deletion/export actions cleanly.
 - [ ] Publish a privacy policy and choose the consent/operator-information approach required to ship it responsibly.
 
-## Priority 5: Testing And Operations
+## Priority 3: Testing And Operations
 
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
 
-## Priority 6: Android And Accounts
+## Priority 4: Android And Accounts
 
 - [ ] Choose the Android delivery approach for the current app and document the path to Google Play release, including packaging strategy, app identity/assets, signing, privacy/support metadata, internal testing, and production rollout steps.
 - [ ] Define the minimum Android-ready product changes needed for Play release, including mobile install/runtime behavior, offline/failure handling expectations, and any app-shell or hosting changes required by the chosen packaging approach.
@@ -53,7 +48,7 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 - [ ] Keep score tracking server-side for monitoring and operations even without login, but do not let children retrieve historical scores later unless a parent account flow is in place.
 - [ ] Separate child play from parent account actions clearly in the UX so children can play without credentials while parent-only retrieval and management stay behind the email-code flow.
 
-## Priority 7: Product And Content Improvements
+## Priority 5: Product And Content Improvements
 
 - [ ] Add a parent-friendly storyline selector so future story packs can be chosen without editing code.
 - [ ] Move storyline packs out of the main JS bundle into dedicated content files or JSON.
@@ -64,7 +59,6 @@ Claude owns Priority 4 execution. Codex should stay out of that implementation t
 
 ## Next Recommended Delivery Slice
 
-Priority 4 stays on Claude's side. The next recommended Codex-only slice is:
+Priority 2 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Android and account planning** - define the Google Play delivery path and parent passwordless account model before implementation work starts.
-2. **Priority 4 coordination** - keep treating Privacy & Parent Safety as Claude-owned unless you explicitly redirect Codex into that lane.
+1. **Priority 4: Android and account planning** - define the Google Play delivery path and parent passwordless account model before implementation work starts.
