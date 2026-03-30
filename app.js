@@ -181,6 +181,7 @@ function syncGamification() {
 function resetLaunchVideoState() {
   isLaunchVideoActive = false;
   launchVideoCompletion = null;
+  dom.questionPanel.classList.remove("is-launch-video-screen");
   dom.launchVideoPanel?.classList.add("is-hidden");
   if (dom.launchVideoStatus) {
     dom.launchVideoStatus.textContent =
@@ -194,6 +195,7 @@ function resetLaunchVideoState() {
 
 function renderLaunchVideoScreen() {
   dom.questionPanel.classList.add("is-start-screen");
+  dom.questionPanel.classList.add("is-launch-video-screen");
   dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   dom.playerNote.classList.add("is-hidden");
@@ -1456,6 +1458,7 @@ function renderStartScreen() {
     dom.launchVideoPanel?.classList.add("is-hidden");
   }
   dom.questionPanel.classList.add("is-start-screen");
+  dom.questionPanel.classList.remove("is-launch-video-screen");
   dom.tipCard?.classList.remove("is-hidden");
   dom.nameEntry.classList.remove("is-hidden");
   dom.playerNote.classList.add("is-hidden");
@@ -1669,6 +1672,7 @@ function renderQuestion() {
   }
 
   dom.questionPanel.classList.remove("is-start-screen");
+  dom.questionPanel.classList.remove("is-launch-video-screen");
   dom.tipCard?.classList.add("is-hidden");
   dom.nameEntry.classList.add("is-hidden");
   const question = questionAt(currentIndex);

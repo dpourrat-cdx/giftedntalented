@@ -1364,7 +1364,8 @@ h1 {
 .launch-video-panel {
   display: grid;
   gap: 14px;
-  margin-top: 14px;
+  width: min(100%, 920px);
+  margin: 0 auto;
 }
 
 .launch-video-shell {
@@ -1392,6 +1393,34 @@ h1 {
   font-size: 0.95rem;
   line-height: 1.5;
   color: var(--ink-soft);
+  text-align: center;
+}
+
+.question-panel.is-launch-video-screen {
+  align-content: stretch;
+}
+
+.question-panel.is-launch-video-screen .quick-sections,
+.question-panel.is-launch-video-screen .start-briefing-row,
+.question-panel.is-launch-video-screen .story-panel,
+.question-panel.is-launch-video-screen .player-note {
+  display: none;
+}
+
+.question-panel.is-launch-video-screen .question-stage {
+  display: grid;
+  align-items: center;
+  min-height: min(78vh, 860px);
+}
+
+.question-panel.is-launch-video-screen .launch-video-panel {
+  align-self: center;
+  gap: 16px;
+}
+
+.question-panel.is-launch-video-screen .question-prompt {
+  width: min(100%, 720px);
+  margin: 0 auto 16px;
   text-align: center;
 }
 
@@ -1589,6 +1618,14 @@ h1 {
 
   .question-panel.is-start-screen .question-stage {
     max-height: none;
+  }
+
+  .question-panel.is-launch-video-screen .question-stage {
+    min-height: calc(100vh - 220px);
+  }
+
+  .question-panel.is-launch-video-screen .launch-video-shell {
+    border-radius: 24px;
   }
 
   .start-briefing-row {
