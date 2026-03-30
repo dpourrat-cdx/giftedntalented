@@ -52,7 +52,10 @@
 
       <h2>1. Who we are</h2>
       <p>
-        Captain Nova's Rocket Mission is a free, story-driven educational app for children.
+        Captain Nova's Rocket Mission is a free, story-driven educational app <strong>directed to children</strong>.
+        Before a child can start the app, a parent or guardian must acknowledge our data practices
+        by checking a consent box. We do not allow children to submit their name without that
+        parental acknowledgement.
       </p>
       <p>
         <strong>Operator:</strong>
@@ -123,8 +126,17 @@
         </tbody>
       </table>
       <p>
-        The app is hosted on GitHub Pages. GitHub serves the static app files only and does not
-        receive your child's personal data.
+        The app's static files (HTML, CSS, JavaScript) are hosted on GitHub Pages. GitHub Pages
+        does not receive explorer names, scores, or other submitted gameplay data. GitHub Pages
+        does record standard hosting access logs (IP address, timestamp, URL) under
+        <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's Privacy Statement</a>;
+        we do not access or retain those logs separately.
+      </p>
+      <p>
+        Our backend server (Render) actively records request observability logs, including IP
+        address, forwarded-for header, route, HTTP status code, and a request ID. These logs
+        are visible to us via the Render dashboard and are used for debugging and security
+        monitoring. They are not linked to explorer names or scores.
       </p>
 
       <h2>5. How long we keep it</h2>
