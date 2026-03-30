@@ -18,7 +18,6 @@ Use the durable docs for system details and settled decisions:
 ## Working Assumptions
 
 - Privacy & Parent Safety remains Claude-owned unless explicitly redirected.
-- The next Codex-owned slice is operational observability and operations follow-through, not another coverage wave.
 
 ## Priority 1: Security Hardening
 
