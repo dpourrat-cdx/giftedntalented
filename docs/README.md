@@ -17,6 +17,11 @@ Use these files as the current sources of truth:
   - smoke checks
   - environment variables
 
+- `render-preview.md`
+  - quick Render-based frontend preview flow
+  - branch switching for phone testing and UAT-style validation
+  - default state and rollback to `master`
+
 - `backend-api-spec.md`
   - live backend contract
   - request and response shapes

@@ -4,6 +4,7 @@
 
 - **Frontend:** static assets served from GitHub Pages
   - Live: `https://dpourrat-cdx.github.io/giftedntalented/`
+  - Optional preview/UAT-style frontend: Render static site `giftedntalented-frontend-preview`
 - **Backend:** Render web service (Node.js + Express)
   - Live API: `https://giftedntalented.onrender.com`
   - Root directory: `backend/`
@@ -23,6 +24,8 @@
 6. Render auto-deploys the backend. GitHub Pages picks up frontend asset changes.
 7. Run `npm run smoke:live` from `backend/` to verify the live backend is healthy.
 8. Delete the feature branch after merge.
+
+For temporary branch-based frontend validation on phone or tablet, use the Render preview workflow in [render-preview.md](./render-preview.md). That preview should return to `master` after testing.
 
 On Windows, use `npm.cmd` for these backend commands as described in [CONTRIBUTING.md](../CONTRIBUTING.md).
 

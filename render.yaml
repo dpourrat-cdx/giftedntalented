@@ -2,7 +2,7 @@ services:
   - type: web
     runtime: static
     name: giftedntalented-frontend-preview
-    branch: codex/video-integration
+    branch: master
     buildCommand: node ./scripts/render-static-build.mjs
     staticPublishPath: ./render-static
     autoDeployTrigger: commit
