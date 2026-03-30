@@ -625,6 +625,51 @@ describe("app.js targeted coverage", () => {
       expect(mocks.gamificationController.sync.mock.calls.at(-1)?.[0]?.hasStarted).toBe(true);
     });
 
+    it("shows a play button when autoplay is blocked and resumes after a manual click", async () => {
+      const mocks = await setupApp();
+      const launchVideo = document.getElementById("launchVideo") as HTMLVideoElement;
+      const playVideo = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("autoplay blocked"))
+        .mockResolvedValueOnce(undefined);
+      Object.defineProperty(launchVideo, "play", {
+        configurable: true,
+        writable: true,
+        value: playVideo,
+      });
+
+      const nameInput = document.getElementById("childNameInput") as HTMLInputElement;
+      nameInput.value = "Alex";
+      nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+      nameInput.dispatchEvent(
+        new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+      );
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const launchVideoAction = document.getElementById("launchVideoAction") as HTMLButtonElement;
+      const launchVideoStatus = document.getElementById("launchVideoStatus") as HTMLElement;
+      expect(mocks.beginAttempt).toHaveBeenCalledTimes(1);
+      expect(launchVideoAction.classList.contains("is-hidden")).toBe(false);
+      expect(launchVideoStatus.textContent).toContain("Press play");
+      expect(mocks.gamificationController.sync.mock.calls.at(-1)?.[0]?.hasStarted).toBe(false);
+
+      launchVideoAction.click();
+      await Promise.resolve();
+
+      expect(playVideo).toHaveBeenCalledTimes(2);
+      expect(launchVideoAction.classList.contains("is-hidden")).toBe(true);
+
+      launchVideo.dispatchEvent(new window.Event("ended"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(document.getElementById("launchVideoPanel")?.classList.contains("is-hidden")).toBe(true);
+      expect(document.getElementById("questionPanel")?.classList.contains("is-start-screen")).toBe(false);
+      expect(mocks.gamificationController.sync.mock.calls.at(-1)?.[0]?.hasStarted).toBe(true);
+    });
+
     it("skips the launch video in story only mode", async () => {
       const mocks = await setupApp(attemptQuestion, {
         storyOnly: true,
