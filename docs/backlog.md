@@ -21,6 +21,8 @@ Use the durable docs for system details and settled decisions:
 
 ## Priority 1: Security Hardening
 
+- [ ] Clear the current production `npm audit --omit=dev --audit-level=high` findings, including the critical `protobufjs` advisory and high `path-to-regexp` advisories in the backend dependency tree.
+- [ ] Stop returning raw upstream/internal error details in production API responses; keep public error codes stable and log Supabase/provider details server-side with request IDs.
 - [ ] If a header-capable host or proxy is chosen later, add real CSP reporting and frame-ancestor protection there.
 
 ## Priority 2: Privacy And Parent Safety
@@ -38,6 +40,9 @@ Claude owns this priority. Codex should stay out of that implementation track un
 ## Priority 3: Testing And Operations
 
 - [ ] Add backend observability for unusual public write bursts, repeated reset failures, and backend error spikes, starting with request/error telemetry and searchable logs rather than child-level product analytics.
+- [ ] Add a lightweight CI check that compares the frontend-generated question bank with `backend/src/lib/question-bank.data.json` so backend answer validation cannot drift from the rendered questions.
+- [ ] Add root-level ignore rules or cleanup guidance for generated local artifacts such as root `node_modules/`, `backend/coverage/`, `test-results/`, and agent worktrees.
+- [ ] Reconcile `render.yaml` preview-service configuration with the intended durable Render setup; the current static preview entry is branch-specific and should not silently become production infrastructure.
 
 ## Priority 4: Android And Accounts
 
@@ -61,4 +66,5 @@ Claude owns this priority. Codex should stay out of that implementation track un
 
 Priority 2 stays on Claude's side. The next recommended Codex-only slice is:
 
-1. **Priority 4: Android and account planning** - define the Google Play delivery path and parent passwordless account model before implementation work starts.
+1. **Priority 1: dependency and error-response hardening** - clear production audit findings and remove internal provider details from public API errors.
+2. **Priority 4: Android and account planning** - define the Google Play delivery path and parent passwordless account model before implementation work starts.
